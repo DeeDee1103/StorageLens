@@ -46,8 +46,9 @@
                     <i class="bi bi-list"></i>
                 </button>
                 <div class="search-wrap">
-                    <i class="bi bi-search"></i>
-                    <input class="form-control" type="text" placeholder="Search files, locations, reports" />
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input class="form-control" id="globalSearch" type="search" placeholder="Search files, locations, reports" aria-label="Search" />
+                    <kbd class="search-kbd d-none d-md-inline">Ctrl K</kbd>
                 </div>
                 <div class="top-actions">
                     <button class="btn icon-btn theme-toggle-btn" id="darkModeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="false" title="Switch to dark mode">
@@ -78,13 +79,13 @@
         </div>
         <div class="offcanvas-body">
             <nav class="menu-nav">
-                <a class="menu-link" asp-page="/Index">Dashboard</a>
-                <a class="menu-link" asp-page="/StorageLocations">Storage Locations</a>
-                <a class="menu-link" asp-page="/ScanJobs">Scan Jobs</a>
-                <a class="menu-link" asp-page="/FileInventory">File Inventory</a>
-                <a class="menu-link" asp-page="/Duplicates">Duplicates</a>
-                <a class="menu-link" asp-page="/Reports">Reports</a>
-                <a class="menu-link" asp-page="/Settings">Settings</a>
+                <a class="menu-link @(activeNav == "dashboard" ? "active" : string.Empty)" asp-page="/Index"><i class="bi bi-speedometer2"></i>Dashboard</a>
+                <a class="menu-link @(activeNav == "locations" ? "active" : string.Empty)" asp-page="/StorageLocations"><i class="bi bi-hdd-stack"></i>Storage Locations</a>
+                <a class="menu-link @(activeNav == "scanjobs" ? "active" : string.Empty)" asp-page="/ScanJobs"><i class="bi bi-activity"></i>Scan Jobs</a>
+                <a class="menu-link @(activeNav == "fileinventory" ? "active" : string.Empty)" asp-page="/FileInventory"><i class="bi bi-folder2-open"></i>File Inventory</a>
+                <a class="menu-link @(activeNav == "duplicates" ? "active" : string.Empty)" asp-page="/Duplicates"><i class="bi bi-files"></i>Duplicates</a>
+                <a class="menu-link @(activeNav == "reports" ? "active" : string.Empty)" asp-page="/Reports"><i class="bi bi-graph-up-arrow"></i>Reports</a>
+                <a class="menu-link @(activeNav == "settings" ? "active" : string.Empty)" asp-page="/Settings"><i class="bi bi-gear"></i>Settings</a>
             </nav>
         </div>
     </div>

@@ -33,8 +33,16 @@ var upstream = builder.Configuration.GetSection(OrchestratorUpstreamOptions.Sect
 
 builder.Services.AddHttpClient("locations", client => client.BaseAddress = new Uri(upstream.Locations));
 builder.Services.AddHttpClient("scanjobs", client => client.BaseAddress = new Uri(upstream.ScanJobs));
-builder.Services.AddHttpClient("scanner", client => client.BaseAddress = new Uri(upstream.Scanner));
-builder.Services.AddHttpClient("hashing", client => client.BaseAddress = new Uri(upstream.Hashing));
+builder.Services.AddHttpClient("scanner", client =>
+{
+    client.BaseAddress = new Uri(upstream.Scanner);
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
+builder.Services.AddHttpClient("hashing", client =>
+{
+    client.BaseAddress = new Uri(upstream.Hashing);
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
 builder.Services.AddHttpClient("duplicates", client => client.BaseAddress = new Uri(upstream.Duplicates));
 builder.Services.AddHttpClient("analytics", client => client.BaseAddress = new Uri(upstream.Analytics));
 

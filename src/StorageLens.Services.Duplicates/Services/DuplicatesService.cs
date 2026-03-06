@@ -70,7 +70,7 @@ public class DuplicatesService(
         var fileInventoryClient = httpClientFactory.CreateClient("fileinventory");
 
         var files = await fileInventoryClient.GetFromJsonAsync<List<FileRecordDto>>(
-            $"api/files?&page=1&pageSize=2000",
+            $"api/files?page=1&pageSize=2000",
             cancellationToken) ?? [];
 
         var candidates = files

@@ -19,6 +19,13 @@ public class ScanJobsModel(
     public IReadOnlyList<ScanJobDto> Jobs { get; private set; } = [];
     public IReadOnlyList<StorageLocationDto> Locations { get; private set; } = [];
 
+    private static readonly HashSet<string> ActiveStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Running", "Scanning", "Hashing", "DetectingDuplicates", "RefreshingAnalytics", "InProgress", "Queued"
+    };
+
+    public bool HasActiveJobs => Jobs.Any(j => ActiveStatuses.Contains(j.Status));
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Scan Jobs";

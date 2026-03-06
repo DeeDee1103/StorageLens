@@ -23,11 +23,11 @@ public class AnalyticsService(
 
         await Task.WhenAll(locationsTask, jobsTask, filesTask, duplicateGroupsTask, duplicateSummaryTask);
 
-        var locations = locationsTask.Result;
-        var jobs = jobsTask.Result;
-        var files = filesTask.Result;
-        var duplicateGroups = duplicateGroupsTask.Result;
-        var duplicateSummary = duplicateSummaryTask.Result;
+        var locations = await locationsTask;
+        var jobs = await jobsTask;
+        var files = await filesTask;
+        var duplicateGroups = await duplicateGroupsTask;
+        var duplicateSummary = await duplicateSummaryTask;
 
         var totalStorage = locations.Sum(x => x.TotalSizeBytes);
         var totalFiles = files.Count > 0 ? files.Count : locations.Sum(x => x.FileCount);

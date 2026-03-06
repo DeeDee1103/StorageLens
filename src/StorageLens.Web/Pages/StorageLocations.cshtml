@@ -46,6 +46,12 @@
                 </tr>
             </thead>
             <tbody>
+            @if (!Model.Locations.Any())
+            {
+                <tr class="empty-state-row">
+                    <td colspan="9"><i class="bi bi-hdd-stack empty-state-icon"></i>No storage locations configured — add one above</td>
+                </tr>
+            }
             @foreach (var location in Model.Locations)
             {
                 var fileUrl = ToFileUrl(location.Path);
