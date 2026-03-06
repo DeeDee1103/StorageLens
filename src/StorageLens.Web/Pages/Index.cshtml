@@ -1,0 +1,172 @@
+﻿@page
+@model IndexModel
+@{
+    var growthLabels = System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.StorageGrowth.Select(x => x.Label));
+    var growthValues = System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.StorageGrowth.Select(x => x.Value));
+    var typeLabels = System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.FileTypeDistribution.Select(x => x.Label));
+    var typeValues = System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.FileTypeDistribution.Select(x => x.Value));
+    var locationLabels = System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.LargestLocations.Select(x => x.Label));
+    var locationValues = System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.LargestLocations.Select(x => x.Value));
+}
+
+<section class="mb-3 reveal-item">
+    <h1 class="dashboard-title">Storage Operations Dashboard</h1>
+    <p class="text-secondary mb-0">Executive overview of capacity, duplicate waste, and scan performance.</p>
+</section>
+
+<section class="row g-3 mb-3">
+    <div class="col-md-6 col-xl-3 reveal-item">
+        <div class="card-premium kpi-card">
+            <div class="kpi-label">Total Storage</div>
+            <div class="kpi-value">@SizeFormatter.ToFriendlySize(Model.Dashboard.Kpis.TotalStorageBytes)</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3 reveal-item">
+        <div class="card-premium kpi-card">
+            <div class="kpi-label">Total Files</div>
+            <div class="kpi-value">@Model.Dashboard.Kpis.TotalFiles.ToString("N0")</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3 reveal-item">
+        <div class="card-premium kpi-card">
+            <div class="kpi-label">Duplicate Files</div>
+            <div class="kpi-value">@Model.Dashboard.Kpis.DuplicatePercent%</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3 reveal-item">
+        <div class="card-premium kpi-card">
+            <div class="kpi-label">Potential Savings</div>
+            <div class="kpi-value">@SizeFormatter.ToFriendlySize(Model.Dashboard.Kpis.PotentialSavingsBytes)</div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-3 mb-3">
+    <div class="col-lg-8 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Storage Growth Trend (TB)</div>
+            <div class="chart-box">
+                <canvas id="storageGrowthChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">File Type Distribution</div>
+            <div class="chart-box">
+                <canvas id="fileTypeChart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-3 mb-3">
+    <div class="col-lg-4 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Quick Actions</div>
+            <div class="d-grid gap-2">
+                <a class="btn btn-gradient" asp-page="/StorageLocations">Add Location</a>
+                <a class="btn btn-outline-soft" asp-page="/ScanJobs">Start Scan</a>
+                <a class="btn btn-outline-soft" asp-page="/Duplicates">View Duplicates</a>
+                <a class="btn btn-outline-soft" asp-page="/Reports">View Reports</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Largest Locations (TB)</div>
+            <div class="chart-box">
+                <canvas id="largestLocationsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-3">
+    <div class="col-lg-6 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Recent Scan Jobs</div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Files Scanned</th>
+                            <th>Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var job in Model.Dashboard.RecentJobs)
+                    {
+                        <tr>
+                            <td>@job.LocationName</td>
+                            <td><span class="badge-soft">@job.Status</span></td>
+                            <td>@job.FilesScanned.ToString("N0")</td>
+                            <td>
+                                <div class="progress"><div class="progress-bar" style="width:@job.ProgressPercent%"></div></div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Top Duplicate Groups</div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Example File</th>
+                            <th>Count</th>
+                            <th>Waste</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var group in Model.Dashboard.TopDuplicateGroups)
+                    {
+                        <tr>
+                            <td>@group.ExampleFileName</td>
+                            <td>@group.FileCount</td>
+                            <td>@SizeFormatter.ToFriendlySize(group.WastedBytes)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        const growthLabels = @Html.Raw(growthLabels);
+        const growthValues = @Html.Raw(growthValues);
+        const typeLabels = @Html.Raw(typeLabels);
+        const typeValues = @Html.Raw(typeValues);
+        const locationLabels = @Html.Raw(locationLabels);
+        const locationValues = @Html.Raw(locationValues);
+
+        new Chart(document.getElementById("storageGrowthChart"), {
+            type: "line",
+            data: { labels: growthLabels, datasets: [{ label: "TB", data: growthValues, borderColor: "#1165d8", backgroundColor: "rgba(17,101,216,0.16)", fill: true, tension: 0.35 }] },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        new Chart(document.getElementById("fileTypeChart"), {
+            type: "doughnut",
+            data: { labels: typeLabels, datasets: [{ data: typeValues, backgroundColor: ["#1165d8", "#16b5aa", "#6f64e7", "#14b85d", "#0ea5e9", "#26a69a"] }] },
+            options: { maintainAspectRatio: false }
+        });
+
+        new Chart(document.getElementById("largestLocationsChart"), {
+            type: "bar",
+            data: { labels: locationLabels, datasets: [{ data: locationValues, backgroundColor: "#16b5aa" }] },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    </script>
+}
+</div>

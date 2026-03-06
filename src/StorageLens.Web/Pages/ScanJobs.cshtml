@@ -1,0 +1,64 @@
+@page
+@model ScanJobsModel
+
+<section class="mb-3 reveal-item">
+    <h1 class="dashboard-title">Scan Jobs</h1>
+    <p class="text-secondary mb-0">Track current and historical scans with progress and outcomes.</p>
+</section>
+
+<section class="card-premium p-3 mb-3 reveal-item">
+    <div class="section-title">Start New Scan</div>
+    <form method="post" asp-page-handler="Start" class="row g-2 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label">Location</label>
+            <select asp-for="SelectedLocationId" class="form-select">
+                @foreach (var location in Model.Locations)
+                {
+                    <option value="@location.Id">@location.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label">Notes</label>
+            <input class="form-control" asp-for="Notes" />
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-gradient w-100" type="submit">Start Scan</button>
+        </div>
+    </form>
+</section>
+
+<section class="card-premium p-3 reveal-item">
+    <div class="section-title">Recent Jobs</div>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Files Scanned</th>
+                    <th>Progress</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var job in Model.Jobs)
+            {
+                <tr>
+                    <td>@job.LocationName</td>
+                    <td><span class="badge-soft">@job.Status</span></td>
+                    <td>@job.FilesScanned.ToString("N0")</td>
+                    <td>
+                        <div class="progress"><div class="progress-bar" style="width:@job.ProgressPercent%"></div></div>
+                    </td>
+                    <td>@job.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@(job.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                    <td>@job.Notes</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

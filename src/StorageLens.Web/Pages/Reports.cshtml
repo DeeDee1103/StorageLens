@@ -1,0 +1,90 @@
+@page
+@model ReportsModel
+@{
+    var typeLabels = System.Text.Json.JsonSerializer.Serialize(Model.Reports.MostCommonFileTypes.Select(x => x.Label));
+    var typeValues = System.Text.Json.JsonSerializer.Serialize(Model.Reports.MostCommonFileTypes.Select(x => x.Value));
+}
+
+<section class="mb-3 reveal-item">
+    <h1 class="dashboard-title">Reports & Insights</h1>
+    <p class="text-secondary mb-0">Surface operational hotspots, old data, and heavy storage consumers.</p>
+</section>
+
+<section class="row g-3 mb-3">
+    <div class="col-lg-8 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Most Common File Types</div>
+            <div class="chart-box">
+                <canvas id="reportTypeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Duplicate-Heavy Locations</div>
+            <ul class="list-group list-group-flush">
+                @foreach (var item in Model.Reports.DuplicateHeavyLocations)
+                {
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span>@item.Label</span>
+                        <span class="badge-soft">@item.Value</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="row g-3">
+    <div class="col-lg-6 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Oldest Files</div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>File</th><th>Modified</th><th>Location</th></tr></thead>
+                    <tbody>
+                    @foreach (var file in Model.Reports.OldestFiles.Take(8))
+                    {
+                        <tr><td>@file.FileName</td><td>@file.LastModifiedDate.ToLocalTime().ToString("yyyy-MM-dd")</td><td>@file.LocationName</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 reveal-item">
+        <div class="card-premium p-3 h-100">
+            <div class="section-title">Largest Files</div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>File</th><th>Size</th><th>Location</th></tr></thead>
+                    <tbody>
+                    @foreach (var file in Model.Reports.LargestFiles.Take(8))
+                    {
+                        <tr><td>@file.FileName</td><td>@SizeFormatter.ToFriendlySize(file.SizeBytes)</td><td>@file.LocationName</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        const typeLabels = @Html.Raw(typeLabels);
+        const typeValues = @Html.Raw(typeValues);
+
+        new Chart(document.getElementById("reportTypeChart"), {
+            type: "bar",
+            data: {
+                labels: typeLabels,
+                datasets: [{ data: typeValues, backgroundColor: ["#1165d8", "#16b5aa", "#14b85d", "#6f64e7", "#0ea5e9", "#2fb5ad", "#3497f3"] }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+}

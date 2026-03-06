@@ -1,0 +1,61 @@
+@page
+@model StorageLocationsModel
+
+<section class="mb-3 reveal-item">
+    <h1 class="dashboard-title">Storage Locations</h1>
+    <p class="text-secondary mb-0">Manage NAS paths, local drives, and file shares monitored by StorageLens.</p>
+</section>
+
+<section class="card-premium p-3 mb-3 reveal-item">
+    <div class="section-title">Add Location</div>
+    <form method="post" asp-page-handler="Add" class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Name</label>
+            <input class="form-control" asp-for="Name" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Path</label>
+            <input class="form-control" asp-for="Path" required placeholder="\\nas01\share\folder" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Type</label>
+            <select class="form-select" asp-for="Type" asp-items="Html.GetEnumSelectList<StorageLocationType>()"></select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-gradient w-100">Add Location</button>
+        </div>
+    </form>
+</section>
+
+<section class="card-premium p-3 reveal-item">
+    <div class="section-title">Configured Locations</div>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Path</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Last Scan</th>
+                    <th>Total Size</th>
+                    <th>File Count</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var location in Model.Locations)
+            {
+                <tr>
+                    <td>@location.Name</td>
+                    <td><code>@location.Path</code></td>
+                    <td>@location.Type</td>
+                    <td><span class="badge-soft">@location.Status</span></td>
+                    <td>@(location.LastScanDate?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                    <td>@SizeFormatter.ToFriendlySize(location.TotalSizeBytes)</td>
+                    <td>@location.FileCount.ToString("N0")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

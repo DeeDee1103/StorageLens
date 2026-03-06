@@ -1,0 +1,91 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - StorageLens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/StorageLens.Web.styles.css" asp-append-version="true" />
+</head>
+<body class="app-body">
+    @{
+        var activeNav = (ViewData["Nav"]?.ToString() ?? "Dashboard").ToLowerInvariant();
+    }
+    <div class="app-shell">
+        <aside class="sidebar-panel" id="sidebarPanel">
+            <div class="brand-wrap">
+                <div class="brand-icon"><i class="bi bi-database-fill-check"></i></div>
+                <div>
+                    <div class="brand-name">StorageLens</div>
+                    <div class="brand-subtitle">Storage Intelligence</div>
+                </div>
+            </div>
+
+            <nav class="menu-nav">
+                <a class="menu-link @(activeNav == "dashboard" ? "active" : string.Empty)" asp-page="/Index"><i class="bi bi-speedometer2"></i>Dashboard</a>
+                <a class="menu-link @(activeNav == "locations" ? "active" : string.Empty)" asp-page="/StorageLocations"><i class="bi bi-hdd-stack"></i>Storage Locations</a>
+                <a class="menu-link @(activeNav == "scanjobs" ? "active" : string.Empty)" asp-page="/ScanJobs"><i class="bi bi-activity"></i>Scan Jobs</a>
+                <a class="menu-link @(activeNav == "fileinventory" ? "active" : string.Empty)" asp-page="/FileInventory"><i class="bi bi-folder2-open"></i>File Inventory</a>
+                <a class="menu-link @(activeNav == "duplicates" ? "active" : string.Empty)" asp-page="/Duplicates"><i class="bi bi-files"></i>Duplicates</a>
+                <a class="menu-link @(activeNav == "reports" ? "active" : string.Empty)" asp-page="/Reports"><i class="bi bi-graph-up-arrow"></i>Reports</a>
+                <a class="menu-link @(activeNav == "settings" ? "active" : string.Empty)" asp-page="/Settings"><i class="bi bi-gear"></i>Settings</a>
+            </nav>
+        </aside>
+
+        <section class="main-panel">
+            <header class="top-bar">
+                <button class="btn btn-light d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="search-wrap">
+                    <i class="bi bi-search"></i>
+                    <input class="form-control" type="text" placeholder="Search files, locations, reports" />
+                </div>
+                <div class="top-actions">
+                    <button class="btn icon-btn"><i class="bi bi-bell"></i></button>
+                    <div class="avatar-badge">DD</div>
+                </div>
+            </header>
+
+            <main role="main" class="content-area">
+                @RenderBody()
+            </main>
+
+            <footer class="app-footer">
+                <span>StorageLens MVP</span>
+                <span class="dot-sep">|</span>
+                <span>Built on .NET 8 microservices</span>
+            </footer>
+        </section>
+    </div>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="sidebarOffcanvasLabel">StorageLens</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="menu-nav">
+                <a class="menu-link" asp-page="/Index">Dashboard</a>
+                <a class="menu-link" asp-page="/StorageLocations">Storage Locations</a>
+                <a class="menu-link" asp-page="/ScanJobs">Scan Jobs</a>
+                <a class="menu-link" asp-page="/FileInventory">File Inventory</a>
+                <a class="menu-link" asp-page="/Duplicates">Duplicates</a>
+                <a class="menu-link" asp-page="/Reports">Reports</a>
+                <a class="menu-link" asp-page="/Settings">Settings</a>
+            </nav>
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
