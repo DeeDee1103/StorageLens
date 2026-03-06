@@ -12,6 +12,7 @@
 - API or contract changes documented
 - Operational impact documented (config, deploy, scale)
 - Backward compatibility assessed
+- `docs/CHANGELOG.md` updated for user-visible, API, or operational changes
 
 ## Documentation Update Requirement
 

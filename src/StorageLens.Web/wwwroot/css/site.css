@@ -26,6 +26,19 @@ body {
     var(--sl-bg);
 }
 
+body.dark-mode {
+  --sl-bg: #0c1422;
+  --sl-card: #121d30;
+  --sl-text: #e8eefb;
+  --sl-muted: #9eb0cd;
+  --sl-border: #2a3a56;
+  --sl-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(56, 122, 220, 0.22), transparent 28%),
+    radial-gradient(circle at 90% 0%, rgba(22, 181, 170, 0.2), transparent 38%),
+    var(--sl-bg);
+}
+
 .app-shell {
   display: flex;
   min-height: 100vh;
@@ -138,6 +151,21 @@ body {
   border-radius: 11px;
   border: 1px solid var(--sl-border);
   background: #fff;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  color: var(--sl-text);
+}
+
+.theme-toggle-label {
+  display: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .avatar-badge {
@@ -311,6 +339,102 @@ body {
   color: var(--sl-text);
 }
 
+body.dark-mode .search-wrap,
+body.dark-mode .icon-btn,
+body.dark-mode .btn-outline-soft,
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode .form-check-input,
+body.dark-mode .offcanvas,
+body.dark-mode .offcanvas-body,
+body.dark-mode .offcanvas-header,
+body.dark-mode .table,
+body.dark-mode .table > :not(caption) > * > * {
+  background-color: #18263d;
+  color: var(--sl-text);
+  border-color: var(--sl-border);
+}
+
+body.dark-mode .table tbody tr {
+  background: #152238;
+}
+
+body.dark-mode .table thead th {
+  color: var(--sl-muted);
+}
+
+body.dark-mode .text-secondary {
+  color: var(--sl-muted) !important;
+}
+
+body.dark-mode code {
+  color: #b6d9ff;
+  background: #0d1b31;
+  border: 1px solid #284062;
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+}
+
+body.dark-mode .sidebar-panel {
+  background: linear-gradient(190deg, #0b2f78, #081f52);
+}
+
+body.dark-mode .search-wrap .form-control::placeholder {
+  color: #8ea1bf;
+}
+
+body.dark-mode .btn-delete-location {
+  background: #3b1616;
+  border-color: #a43030;
+  color: #f6d9d9;
+}
+
+body.dark-mode .btn-delete-location:hover,
+body.dark-mode .btn-delete-location:focus {
+  background: #4a1d1d;
+  border-color: #ba3a3a;
+}
+
+.btn-start-scan-location {
+  border-radius: 12px;
+  border: 1px solid #0f55bf;
+  background: #2d8cff;
+  color: #000;
+  font-weight: 700;
+}
+
+.btn-start-scan-location:hover,
+.btn-start-scan-location:focus {
+  background: #1878ef;
+  border-color: #0c4cad;
+  color: #000;
+}
+
+.btn-delete-location {
+  border-radius: 12px;
+  border: 1px solid #9e2020;
+  background: #ffd6d6;
+  color: #000;
+  min-width: 2rem;
+}
+
+.btn-delete-location:hover,
+.btn-delete-location:focus {
+  background: #ffbdbd;
+  border-color: #871818;
+  color: #000;
+}
+
+.delete-location-icon {
+  color: #d42020;
+  -webkit-text-stroke: 0.4px #111;
+  text-shadow:
+    0 1px 0 #111,
+    0 -1px 0 #111,
+    1px 0 0 #111,
+    -1px 0 0 #111;
+}
+
 .chart-box {
   height: 260px;
 }
@@ -337,5 +461,17 @@ body {
   .main-panel {
     margin-left: 0;
     width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .theme-toggle-btn {
+    width: auto;
+    height: 40px;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .theme-toggle-label {
+    display: inline;
   }
 }

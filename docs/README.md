@@ -45,10 +45,14 @@ StorageLens provides a production-ready architecture for:
 
 ## Technical
 - [Technical Specification](technical/technical-specification.md)
+- [Technology Stack](technical/technology-stack.md)
 - [Database Schema](technical/database-schema.md)
 - [API Specification](technical/api-specification.md)
 - [Service Contracts](technical/service-contracts.md)
 - [Configuration Guide](technical/configuration-guide.md)
+
+## Release History
+- [Changelog](CHANGELOG.md)
 
 ## Operations
 - [Deployment Guide](operations/deployment-guide.md)
@@ -80,4 +84,5 @@ Documentation should be updated in the same pull request as source-code changes.
 Recommended governance:
 - Treat documentation as a release artifact
 - Require impacted docs updates in PR reviews
+- Require `docs/CHANGELOG.md` updates for user-visible behavior, API, or operational changes
 - Use CI docs guard (`.github/workflows/docs-guard.yml`) to fail PRs when source/config changes are not reflected in `docs/`
