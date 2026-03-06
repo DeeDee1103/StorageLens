@@ -105,6 +105,8 @@ services:
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"
     volumes:
       - ./sample-scan:/scan-root
+      - C:/:/host/drives/c:ro
+      - //DouglasCloudEx2/Development:/host/unc/DouglasCloudEx2/Development:ro
     depends_on:
       - sqlserver
       - fileinventory
@@ -127,6 +129,8 @@ services:
       HashingWorker__MaxFileSizeBytes: "2147483648"
     volumes:
       - ./sample-scan:/scan-root
+      - C:/:/host/drives/c:ro
+      - //DouglasCloudEx2/Development:/host/unc/DouglasCloudEx2/Development:ro
     depends_on:
       - sqlserver
       - fileinventory

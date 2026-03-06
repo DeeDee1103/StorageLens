@@ -10,18 +10,21 @@ namespace StorageLens.Services.Scanner.Services;
 public class ScannerExecutionService(
     ScannerDbContext dbContext,
     IHttpClientFactory httpClientFactory,
+    IScannerPathResolver pathResolver,
     ILogger<ScannerExecutionService> logger) : IScannerExecutionService
 {
     public async Task<ScannerExecutionDto> ExecuteAsync(ScannerExecuteRequest request, CancellationToken cancellationToken)
     {
-        if (!PathSafety.IsPathSupported(request.RootPath))
+        var resolvedRootPath = pathResolver.Resolve(request.RootPath);
+
+        if (!PathSafety.IsPathSupported(resolvedRootPath))
         {
             throw new InvalidOperationException("Only rooted local paths and UNC paths are supported.");
         }
 
-        if (!Directory.Exists(request.RootPath))
+        if (!Directory.Exists(resolvedRootPath))
         {
-            throw new DirectoryNotFoundException($"Scan root path not found: {request.RootPath}");
+            throw new DirectoryNotFoundException($"Scan root path not found: {request.RootPath} (resolved: {resolvedRootPath})");
         }
 
         var execution = new ScanExecution
@@ -30,7 +33,7 @@ public class ScannerExecutionService(
             StorageLocationId = request.StorageLocationId,
             ScanJobId = request.ScanJobId,
             CorrelationId = request.CorrelationId,
-            RootPath = request.RootPath,
+            RootPath = resolvedRootPath,
             Status = "Running",
             StartedAtUtc = DateTimeOffset.UtcNow,
             Notes = "Scanning in progress"
@@ -51,7 +54,7 @@ public class ScannerExecutionService(
         try
         {
             var pendingDirectories = new Stack<string>();
-            pendingDirectories.Push(request.RootPath);
+            pendingDirectories.Push(resolvedRootPath);
 
             while (pendingDirectories.Count > 0)
             {
@@ -107,13 +110,13 @@ public class ScannerExecutionService(
                             request.LocationName,
                             info.Name,
                             info.FullName,
-                            info.Extension,
+                            NormalizeExtension(info.Extension),
                             info.Length,
                             info.LastWriteTimeUtc,
                             info.CreationTimeUtc == DateTime.MinValue ? null : info.CreationTimeUtc,
                             info.LastAccessTimeUtc == DateTime.MinValue ? null : info.LastAccessTimeUtc,
                             DateTimeOffset.UtcNow,
-                            request.RootPath);
+                            resolvedRootPath);
 
                         batch.Add(metadata);
                         filesDiscovered++;
@@ -184,12 +187,13 @@ public class ScannerExecutionService(
     private async Task FlushBatchAsync(ScannerExecuteRequest request, IReadOnlyList<FileMetadataDto> batch, CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient("fileinventory");
+        var resolvedRootPath = pathResolver.Resolve(request.RootPath);
         var payload = new FileMetadataBatchIngestRequest(
             request.StorageLocationId,
             request.ScanJobId,
             request.CorrelationId,
             request.LocationName,
-            request.RootPath,
+            resolvedRootPath,
             batch);
 
         using var response = await client.PostAsJsonAsync("api/files/batch", payload, cancellationToken);
@@ -250,4 +254,17 @@ public class ScannerExecutionService(
             entity.FilesDiscovered,
             entity.ErrorCount,
             entity.Notes);
+
+    private static string NormalizeExtension(string? extension)
+    {
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return "";
+        }
+
+        // FileInventory currently stores extension with a constrained column length.
+        // Keep payload compatible with deployed schema to prevent batch ingest failures.
+        var trimmed = extension.Trim();
+        return trimmed.Length <= 20 ? trimmed : trimmed[..20];
+    }
 }

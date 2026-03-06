@@ -40,7 +40,7 @@
                     <th>Last Scan</th>
                     <th>Total Size</th>
                     <th>File Count</th>
-                    <th>Action</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -59,7 +59,14 @@
                     <td>
                         <form method="post" asp-page-handler="StartScan" class="d-inline">
                             <input type="hidden" name="locationId" value="@location.Id" />
-                            <button type="submit" class="btn btn-outline-soft btn-sm">Start Scan</button>
+                            <button type="submit" class="btn btn-start-scan-location btn-sm">Start Scan</button>
+                        </form>
+                        <form method="post" asp-page-handler="Delete" class="d-inline ms-1"
+                              onsubmit="return confirm('Delete this location? This action cannot be undone.');">
+                            <input type="hidden" name="locationId" value="@location.Id" />
+                            <button type="submit" class="btn btn-delete-location btn-sm" title="Delete location" aria-label="Delete location @location.Name">
+                                <i class="bi bi-trash-fill delete-location-icon" aria-hidden="true"></i>
+                            </button>
                         </form>
                     </td>
                 </tr>

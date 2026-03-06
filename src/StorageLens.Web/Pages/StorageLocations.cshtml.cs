@@ -50,4 +50,15 @@ public class StorageLocationsModel(
         await orchestratorApiClient.StartScanAsync(locationId, cancellationToken);
         return RedirectToPage();
     }
+
+    public async Task<IActionResult> OnPostDeleteAsync(Guid locationId, CancellationToken cancellationToken)
+    {
+        if (locationId == Guid.Empty)
+        {
+            return RedirectToPage();
+        }
+
+        await locationsApiClient.DeleteAsync(locationId, cancellationToken);
+        return RedirectToPage();
+    }
 }

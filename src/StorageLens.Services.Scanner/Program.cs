@@ -27,6 +27,8 @@ builder.Services.AddDbContext<ScannerDbContext>(options =>
 
 builder.Services.Configure<ScannerUpstreamOptions>(
     builder.Configuration.GetSection(ScannerUpstreamOptions.SectionName));
+builder.Services.Configure<ScannerPathMappingOptions>(
+    builder.Configuration.GetSection(ScannerPathMappingOptions.SectionName));
 
 var upstream = builder.Configuration.GetSection(ScannerUpstreamOptions.SectionName).Get<ScannerUpstreamOptions>()
               ?? new ScannerUpstreamOptions();
@@ -34,6 +36,7 @@ var upstream = builder.Configuration.GetSection(ScannerUpstreamOptions.SectionNa
 builder.Services.AddHttpClient("fileinventory", client => client.BaseAddress = new Uri(upstream.FileInventory));
 builder.Services.AddHttpClient("scanjobs", client => client.BaseAddress = new Uri(upstream.ScanJobs));
 
+builder.Services.AddSingleton<IScannerPathResolver, ScannerPathResolver>();
 builder.Services.AddScoped<IScannerExecutionService, ScannerExecutionService>();
 
 var app = builder.Build();

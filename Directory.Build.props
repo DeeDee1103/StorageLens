@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <VersionPrefix>0.4.0</VersionPrefix>
+    <Version>$(VersionPrefix)</Version>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <FileVersion>0.4.0.0</FileVersion>
+    <InformationalVersion>$(VersionPrefix)</InformationalVersion>
+    <RepositoryUrl>https://github.com/DeeDee1103/StorageLens</RepositoryUrl>
+  </PropertyGroup>
+</Project>
