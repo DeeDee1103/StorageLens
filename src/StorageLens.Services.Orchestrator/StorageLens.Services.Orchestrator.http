@@ -1,0 +1,6 @@
+@StorageLens.Services.Orchestrator_HostAddress = http://localhost:5188
+
+GET {{StorageLens.Services.Orchestrator_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

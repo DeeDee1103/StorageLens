@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/StorageLens.Services.Analytics/StorageLens.Services.Analytics.csproj" />
+    <Project Path="src/StorageLens.Services.Duplicates/StorageLens.Services.Duplicates.csproj" />
+    <Project Path="src/StorageLens.Services.FileInventory/StorageLens.Services.FileInventory.csproj" />
+    <Project Path="src/StorageLens.Services.Locations/StorageLens.Services.Locations.csproj" />
+    <Project Path="src/StorageLens.Services.ScanJobs/StorageLens.Services.ScanJobs.csproj" />
+    <Project Path="src/StorageLens.Shared.Contracts/StorageLens.Shared.Contracts.csproj" />
+    <Project Path="src/StorageLens.Shared.Infrastructure/StorageLens.Shared.Infrastructure.csproj" />
+    <Project Path="src/StorageLens.Web/StorageLens.Web.csproj" />
+  </Folder>
+</Solution>

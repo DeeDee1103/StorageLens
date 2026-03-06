@@ -1,0 +1,59 @@
+@page
+@model DuplicatesModel
+
+<section class="mb-3 reveal-item">
+    <h1 class="dashboard-title">Duplicate Files</h1>
+    <p class="text-secondary mb-0">Identify duplicate waste and triage high-impact groups for cleanup.</p>
+</section>
+
+<section class="row g-3 mb-3">
+    <div class="col-md-4 reveal-item">
+        <div class="card-premium kpi-card">
+            <div class="kpi-label">Duplicate Groups</div>
+            <div class="kpi-value">@Model.Summary.DuplicateGroups</div>
+        </div>
+    </div>
+    <div class="col-md-4 reveal-item">
+        <div class="card-premium kpi-card">
+            <div class="kpi-label">Duplicate Files</div>
+            <div class="kpi-value">@Model.Summary.DuplicateFiles.ToString("N0")</div>
+        </div>
+    </div>
+    <div class="col-md-4 reveal-item">
+        <div class="card-premium kpi-card">
+            <div class="kpi-label">Wasted Storage</div>
+            <div class="kpi-value">@SizeFormatter.ToFriendlySize(Model.Summary.WastedBytes)</div>
+        </div>
+    </div>
+</section>
+
+<section class="card-premium p-3 reveal-item">
+    <div class="section-title">Duplicate Groups</div>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Group ID</th>
+                    <th>File Count</th>
+                    <th>Total Duplicate Size</th>
+                    <th>Example File</th>
+                    <th>Hash</th>
+                    <th>Locations</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var group in Model.Groups)
+            {
+                <tr>
+                    <td>@group.Id.ToString()[..8]</td>
+                    <td>@group.FileCount</td>
+                    <td>@SizeFormatter.ToFriendlySize(group.TotalSizeBytes)</td>
+                    <td>@group.ExampleFileName</td>
+                    <td><code>@group.HashValue[..Math.Min(14, group.HashValue.Length)]...</code></td>
+                    <td>@string.Join(", ", group.Locations)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>
