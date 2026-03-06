@@ -30,21 +30,23 @@ public class AnalyticsService(
         var duplicateSummary = duplicateSummaryTask.Result;
 
         var totalStorage = locations.Sum(x => x.TotalSizeBytes);
-        var totalFiles = Math.Max(locations.Sum(x => x.FileCount), 42_700_000);
+        var totalFiles = files.Count > 0 ? files.Count : locations.Sum(x => x.FileCount);
 
         var kpis = new DashboardKpiDto(
-            totalStorage == 0 ? 182L * 1024 * 1024 * 1024 * 1024 : totalStorage,
+            totalStorage,
             totalFiles,
-            duplicateSummary.DuplicatePercent == 0 ? 27 : (int)Math.Round(duplicateSummary.DuplicatePercent),
-            duplicateSummary.WastedBytes == 0 ? 49L * 1024 * 1024 * 1024 * 1024 : duplicateSummary.WastedBytes);
+            Math.Clamp((int)Math.Round(duplicateSummary.DuplicatePercent), 0, 100),
+            duplicateSummary.WastedBytes);
 
-        var storageGrowth = new List<ChartPointDto>
-        {
-            new("Jan", 136), new("Feb", 142), new("Mar", 149), new("Apr", 154), new("May", 161), new("Jun", 169), new("Jul", 176), new("Aug", 182)
-        };
+        var storageGrowth = jobs
+            .GroupBy(x => x.StartTime.UtcDateTime.ToString("yyyy-MM-dd"))
+            .OrderBy(x => x.Key)
+            .TakeLast(8)
+            .Select(x => new ChartPointDto(x.Key[5..], x.Sum(v => v.FilesScanned)))
+            .ToList();
 
         var fileTypeDistribution = files
-            .GroupBy(x => x.Extension)
+            .GroupBy(x => string.IsNullOrWhiteSpace(x.Extension) ? "(none)" : x.Extension.ToLowerInvariant())
             .Select(g => new ChartPointDto(g.Key, g.Count()))
             .OrderByDescending(x => x.Value)
             .Take(6)
@@ -52,14 +54,7 @@ public class AnalyticsService(
 
         if (fileTypeDistribution.Count == 0)
         {
-            fileTypeDistribution.AddRange([
-                new(".pdf", 28),
-                new(".docx", 18),
-                new(".xlsx", 16),
-                new(".zip", 11),
-                new(".jpg", 14),
-                new(".msg", 13)
-            ]);
+            fileTypeDistribution.Add(new ChartPointDto("(none)", 0));
         }
 
         var largestLocations = locations
@@ -67,6 +62,11 @@ public class AnalyticsService(
             .Take(5)
             .Select(x => new ChartPointDto(x.Name, Math.Round(x.TotalSizeBytes / (double)(1024L * 1024 * 1024 * 1024), 1)))
             .ToList();
+
+        if (storageGrowth.Count == 0)
+        {
+            storageGrowth.Add(new ChartPointDto("N/A", 0));
+        }
 
         logger.LogInformation("Dashboard aggregation complete with {LocationCount} locations", locations.Count);
 

@@ -35,4 +35,24 @@ public class ScanJobsController(IScanJobsService scanJobsService) : ControllerBa
         var created = await scanJobsService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
+
+    [HttpPut("{id:guid}/status")]
+    public async Task<ActionResult<ScanJobDto>> UpdateStatus(
+        Guid id,
+        [FromBody] UpdateScanJobStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var updated = await scanJobsService.UpdateStatusAsync(id, request, cancellationToken);
+        return updated is null ? NotFound() : Ok(updated);
+    }
+
+    [HttpPut("{id:guid}/progress")]
+    public async Task<ActionResult<ScanJobDto>> UpdateProgress(
+        Guid id,
+        [FromBody] UpdateScanJobProgressRequest request,
+        CancellationToken cancellationToken)
+    {
+        var updated = await scanJobsService.UpdateProgressAsync(id, request, cancellationToken);
+        return updated is null ? NotFound() : Ok(updated);
+    }
 }

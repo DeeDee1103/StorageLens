@@ -1,0 +1,6 @@
+@StorageLens.Services.Hashing_HostAddress = http://localhost:5275
+
+GET {{StorageLens.Services.Hashing_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

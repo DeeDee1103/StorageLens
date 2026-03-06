@@ -1,0 +1,183 @@
+version: "3.9"
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: storagelens-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Your_password123"
+    ports:
+      - "14333:1433"
+    volumes:
+      - storagelens-sql-data:/var/opt/mssql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: storagelens-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  locations:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Services.Locations/Dockerfile
+    ports:
+      - "5101:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__LocationsDb: "Server=sqlserver,1433;Database=StorageLensLocations;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      Database__UseInMemory: "false"
+    depends_on:
+      - sqlserver
+
+  scanjobs:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Services.ScanJobs/Dockerfile
+    ports:
+      - "5102:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__ScanJobsDb: "Server=sqlserver,1433;Database=StorageLensScanJobs;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      Database__UseInMemory: "false"
+    depends_on:
+      - sqlserver
+
+  fileinventory:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Services.FileInventory/Dockerfile
+    ports:
+      - "5103:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__FileInventoryDb: "Server=sqlserver,1433;Database=StorageLensFileInventory;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      Database__UseInMemory: "false"
+    depends_on:
+      - sqlserver
+
+  duplicates:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Services.Duplicates/Dockerfile
+    ports:
+      - "5104:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__DuplicatesDb: "Server=sqlserver,1433;Database=StorageLensDuplicates;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      Database__UseInMemory: "false"
+      UpstreamServices__FileInventory: "http://fileinventory:8080/"
+    depends_on:
+      - sqlserver
+      - fileinventory
+
+  analytics:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Services.Analytics/Dockerfile
+    ports:
+      - "5105:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      UpstreamServices__Locations: "http://locations:8080/"
+      UpstreamServices__ScanJobs: "http://scanjobs:8080/"
+      UpstreamServices__FileInventory: "http://fileinventory:8080/"
+      UpstreamServices__Duplicates: "http://duplicates:8080/"
+    depends_on:
+      - locations
+      - scanjobs
+      - fileinventory
+      - duplicates
+
+  scanner:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Services.Scanner/Dockerfile
+    ports:
+      - "5106:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__ScannerDb: "Server=sqlserver,1433;Database=StorageLensScanner;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      Database__UseInMemory: "false"
+      UpstreamServices__FileInventory: "http://fileinventory:8080/"
+      UpstreamServices__ScanJobs: "http://scanjobs:8080/"
+    volumes:
+      - ./sample-scan:/scan-root
+    depends_on:
+      - sqlserver
+      - fileinventory
+      - scanjobs
+
+  hashing:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Services.Hashing/Dockerfile
+    ports:
+      - "5107:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__HashingDb: "Server=sqlserver,1433;Database=StorageLensHashing;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      Database__UseInMemory: "false"
+      UpstreamServices__FileInventory: "http://fileinventory:8080/"
+      UpstreamServices__ScanJobs: "http://scanjobs:8080/"
+      HashingWorker__MaxDegreeOfParallelism: "4"
+      HashingWorker__BatchSize: "500"
+      HashingWorker__MaxFileSizeBytes: "2147483648"
+    volumes:
+      - ./sample-scan:/scan-root
+    depends_on:
+      - sqlserver
+      - fileinventory
+      - scanjobs
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Services.Orchestrator/Dockerfile
+    ports:
+      - "5108:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__OrchestratorDb: "Server=sqlserver,1433;Database=StorageLensOrchestration;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      Database__UseInMemory: "false"
+      UpstreamServices__Locations: "http://locations:8080/"
+      UpstreamServices__ScanJobs: "http://scanjobs:8080/"
+      UpstreamServices__Scanner: "http://scanner:8080/"
+      UpstreamServices__Hashing: "http://hashing:8080/"
+      UpstreamServices__Duplicates: "http://duplicates:8080/"
+      UpstreamServices__Analytics: "http://analytics:8080/"
+    depends_on:
+      - sqlserver
+      - locations
+      - scanjobs
+      - scanner
+      - hashing
+      - duplicates
+      - analytics
+
+  web:
+    build:
+      context: .
+      dockerfile: src/StorageLens.Web/Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ServiceEndpoints__Locations: "http://locations:8080/"
+      ServiceEndpoints__ScanJobs: "http://scanjobs:8080/"
+      ServiceEndpoints__FileInventory: "http://fileinventory:8080/"
+      ServiceEndpoints__Duplicates: "http://duplicates:8080/"
+      ServiceEndpoints__Analytics: "http://analytics:8080/"
+      ServiceEndpoints__Orchestrator: "http://orchestrator:8080/"
+    depends_on:
+      - locations
+      - scanjobs
+      - fileinventory
+      - duplicates
+      - analytics
+      - orchestrator
+
+volumes:
+  storagelens-sql-data:

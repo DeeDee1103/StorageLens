@@ -5,7 +5,10 @@ using StorageLens.Web.Clients;
 
 namespace StorageLens.Web.Pages;
 
-public class ScanJobsModel(ScanJobsApiClient scanJobsApiClient, LocationsApiClient locationsApiClient) : PageModel
+public class ScanJobsModel(
+    ScanJobsApiClient scanJobsApiClient,
+    LocationsApiClient locationsApiClient,
+    OrchestratorApiClient orchestratorApiClient) : PageModel
 {
     [BindProperty]
     public Guid SelectedLocationId { get; set; }
@@ -36,7 +39,7 @@ public class ScanJobsModel(ScanJobsApiClient scanJobsApiClient, LocationsApiClie
             return RedirectToPage();
         }
 
-        await scanJobsApiClient.StartScanAsync(new CreateScanJobRequest(SelectedLocationId, Notes), cancellationToken);
+        await orchestratorApiClient.StartScanAsync(SelectedLocationId, cancellationToken);
         return RedirectToPage();
     }
 }

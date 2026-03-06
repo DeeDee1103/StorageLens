@@ -252,6 +252,32 @@ body {
   color: #000;
 }
 
+.status-queued {
+  background: #ffe066;
+  border-color: #e8c84a;
+  color: #000;
+}
+
+.status-scanning,
+.status-hashing,
+.status-refreshinganalytics {
+  background: #74b9ff;
+  border-color: #4a96e3;
+  color: #000;
+}
+
+.status-detectingduplicates {
+  background: #7cd8d0;
+  border-color: #54beb5;
+  color: #000;
+}
+
+.status-partiallycompleted {
+  background: #ffb870;
+  border-color: #e39950;
+  color: #000;
+}
+
 .status-inprogress {
   background: #74b9ff;
   border-color: #4a96e3;

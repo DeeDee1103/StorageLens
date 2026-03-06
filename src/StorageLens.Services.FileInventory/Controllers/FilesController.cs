@@ -45,4 +45,48 @@ public class FilesController(IFileInventoryService fileInventoryService) : Contr
         var items = await fileInventoryService.GetByLocationAsync(locationId, cancellationToken);
         return Ok(items);
     }
+
+    [HttpPost("batch")]
+    public async Task<ActionResult<FileBatchIngestResultDto>> IngestBatch(
+        [FromBody] FileMetadataBatchIngestRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await fileInventoryService.UpsertBatchAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("pending-hash")]
+    public async Task<ActionResult<IReadOnlyList<PendingHashFileDto>>> GetPendingHash(
+        [FromQuery] Guid? scanJobId,
+        [FromQuery] int take = 500,
+        CancellationToken cancellationToken = default)
+    {
+        var items = await fileInventoryService.GetPendingHashFilesAsync(scanJobId, take, cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpPost("{id:guid}/hash-result")]
+    public async Task<IActionResult> SetHashResult(
+        Guid id,
+        [FromBody] FileHashResultRequest request,
+        CancellationToken cancellationToken)
+    {
+        var ok = await fileInventoryService.UpdateHashResultAsync(id, request, cancellationToken);
+        return ok ? Ok() : NotFound();
+    }
+
+    [HttpPost("mark-duplicates/{scanJobId:guid}")]
+    public async Task<ActionResult<int>> MarkDuplicates(
+        Guid scanJobId,
+        [FromBody] MarkDuplicateHashesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var changed = await fileInventoryService.MarkDuplicateFlagsByHashAsync(
+            scanJobId,
+            request.CorrelationId,
+            request.Hashes.ToHashSet(StringComparer.OrdinalIgnoreCase),
+            cancellationToken);
+
+        return Ok(changed);
+    }
 }

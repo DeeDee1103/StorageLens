@@ -17,7 +17,7 @@ public class UpstreamApiClient(HttpClient httpClient)
 
     public async Task<IReadOnlyList<FileRecordDto>> GetFilesAsync(CancellationToken cancellationToken)
     {
-        return await httpClient.GetFromJsonAsync<List<FileRecordDto>>("api/files?page=1&pageSize=200", cancellationToken) ?? [];
+        return await httpClient.GetFromJsonAsync<List<FileRecordDto>>("api/files?page=1&pageSize=2000", cancellationToken) ?? [];
     }
 
     public async Task<IReadOnlyList<DuplicateGroupDto>> GetDuplicateGroupsAsync(CancellationToken cancellationToken)

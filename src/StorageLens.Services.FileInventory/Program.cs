@@ -3,12 +3,14 @@ using StorageLens.Services.FileInventory.Data;
 using StorageLens.Services.FileInventory.Extensions;
 using StorageLens.Services.FileInventory.Interfaces;
 using StorageLens.Services.FileInventory.Services;
+using StorageLens.Shared.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
 
 var useInMemory = builder.Configuration.GetValue<bool>("Database:UseInMemory");
 
@@ -35,11 +37,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Database");
     var context = scope.ServiceProvider.GetRequiredService<FileInventoryDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(context, logger);
     await FileInventorySeeder.SeedAsync(context);
 }
 

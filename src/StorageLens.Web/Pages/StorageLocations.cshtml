@@ -40,6 +40,7 @@
                     <th>Last Scan</th>
                     <th>Total Size</th>
                     <th>File Count</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -55,6 +56,12 @@
                     <td>@(location.LastScanDate?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
                     <td>@SizeFormatter.ToFriendlySize(location.TotalSizeBytes)</td>
                     <td>@location.FileCount.ToString("N0")</td>
+                    <td>
+                        <form method="post" asp-page-handler="StartScan" class="d-inline">
+                            <input type="hidden" name="locationId" value="@location.Id" />
+                            <button type="submit" class="btn btn-outline-soft btn-sm">Start Scan</button>
+                        </form>
+                    </td>
                 </tr>
             }
             </tbody>

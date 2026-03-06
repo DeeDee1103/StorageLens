@@ -16,10 +16,12 @@ public class DuplicatesDbContext(DbContextOptions<DuplicatesDbContext> options) 
         {
             entity.ToTable("DuplicateGroups");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
             entity.Property(x => x.HashValue).HasMaxLength(128).IsRequired();
             entity.Property(x => x.ExampleFileName).HasMaxLength(180).IsRequired();
             entity.Property(x => x.LocationsCsv).HasMaxLength(500).IsRequired();
-            entity.HasIndex(x => x.HashValue).IsUnique();
+            entity.HasIndex(x => new { x.ScanJobId, x.HashValue }).IsUnique();
+            entity.HasIndex(x => x.CorrelationId);
         });
     }
 }

@@ -9,4 +9,5 @@ public class ServiceEndpointsOptions
     public string FileInventory { get; set; } = "http://localhost:5103/";
     public string Duplicates { get; set; } = "http://localhost:5104/";
     public string Analytics { get; set; } = "http://localhost:5105/";
+    public string Orchestrator { get; set; } = "http://localhost:5108/";
 }

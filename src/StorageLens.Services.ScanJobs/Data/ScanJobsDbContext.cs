@@ -18,8 +18,12 @@ public class ScanJobsDbContext(DbContextOptions<ScanJobsDbContext> options) : Db
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.LocationName).HasMaxLength(120);
+            entity.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.CurrentStage).HasMaxLength(60).IsRequired();
             entity.Property(x => x.Notes).HasMaxLength(300);
             entity.HasIndex(x => x.StartTime);
+            entity.HasIndex(x => x.CorrelationId);
+            entity.HasIndex(x => x.Status);
         });
     }
 }

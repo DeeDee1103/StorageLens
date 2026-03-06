@@ -3,12 +3,14 @@ using StorageLens.Services.ScanJobs.Data;
 using StorageLens.Services.ScanJobs.Extensions;
 using StorageLens.Services.ScanJobs.Interfaces;
 using StorageLens.Services.ScanJobs.Services;
+using StorageLens.Shared.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
 
 var useInMemory = builder.Configuration.GetValue<bool>("Database:UseInMemory");
 
@@ -35,11 +37,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Database");
     var context = scope.ServiceProvider.GetRequiredService<ScanJobsDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(context, logger);
     await ScanJobsSeeder.SeedAsync(context);
 }
 

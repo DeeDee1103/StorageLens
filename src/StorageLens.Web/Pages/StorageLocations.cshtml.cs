@@ -5,7 +5,9 @@ using StorageLens.Web.Clients;
 
 namespace StorageLens.Web.Pages;
 
-public class StorageLocationsModel(LocationsApiClient locationsApiClient) : PageModel
+public class StorageLocationsModel(
+    LocationsApiClient locationsApiClient,
+    OrchestratorApiClient orchestratorApiClient) : PageModel
 {
     [BindProperty]
     public string Name { get; set; } = string.Empty;
@@ -35,6 +37,17 @@ public class StorageLocationsModel(LocationsApiClient locationsApiClient) : Page
         }
 
         await locationsApiClient.CreateAsync(new CreateStorageLocationRequest(Name.Trim(), Path.Trim(), Type), cancellationToken);
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostStartScanAsync(Guid locationId, CancellationToken cancellationToken)
+    {
+        if (locationId == Guid.Empty)
+        {
+            return RedirectToPage();
+        }
+
+        await orchestratorApiClient.StartScanAsync(locationId, cancellationToken);
         return RedirectToPage();
     }
 }

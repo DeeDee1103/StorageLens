@@ -28,4 +28,14 @@ public class DuplicatesController(IDuplicatesService duplicatesService) : Contro
         var item = await duplicatesService.GetGroupByIdAsync(id, cancellationToken);
         return item is null ? NotFound() : Ok(item);
     }
+
+    [HttpPost("recalculate/{scanJobId:guid}")]
+    public async Task<ActionResult<DuplicateRecalculationResultDto>> Recalculate(
+        Guid scanJobId,
+        [FromQuery] string correlationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await duplicatesService.RecalculateAsync(scanJobId, correlationId, cancellationToken);
+        return Ok(result);
+    }
 }

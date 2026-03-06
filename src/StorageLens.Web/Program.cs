@@ -16,6 +16,7 @@ builder.Services.AddHttpClient<ScanJobsApiClient>(client => client.BaseAddress =
 builder.Services.AddHttpClient<FileInventoryApiClient>(client => client.BaseAddress = new Uri(endpoints.FileInventory));
 builder.Services.AddHttpClient<DuplicatesApiClient>(client => client.BaseAddress = new Uri(endpoints.Duplicates));
 builder.Services.AddHttpClient<AnalyticsApiClient>(client => client.BaseAddress = new Uri(endpoints.Analytics));
+builder.Services.AddHttpClient<OrchestratorApiClient>(client => client.BaseAddress = new Uri(endpoints.Orchestrator));
 
 var app = builder.Build();
 
