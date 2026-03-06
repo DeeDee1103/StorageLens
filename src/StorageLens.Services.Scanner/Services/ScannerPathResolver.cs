@@ -33,6 +33,11 @@ public class ScannerPathResolver(
             return fromRule;
         }
 
+        if (!ShouldUseAutoMapping(current))
+        {
+            return inputPath;
+        }
+
         // Auto-map any Windows drive path, for example C:\Users\User -> /host/drives/c/Users/User
         var driveMapped = TryAutoMapWindowsDrive(inputPath);
         if (driveMapped is not null)
@@ -48,6 +53,23 @@ public class ScannerPathResolver(
         }
 
         return inputPath;
+    }
+
+    private static bool ShouldUseAutoMapping(ScannerPathMappingOptions options)
+    {
+        if (!options.EnableAutoMapping)
+        {
+            return false;
+        }
+
+        if (!options.AutoMapInContainerOnly)
+        {
+            return true;
+        }
+
+        var runningInContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER");
+        return string.Equals(runningInContainer, "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(runningInContainer, "1", StringComparison.OrdinalIgnoreCase);
     }
 
     private string ResolveByRules(string inputPath, IReadOnlyList<ScannerPathMappingRule> mappings)

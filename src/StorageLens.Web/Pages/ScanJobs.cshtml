@@ -34,6 +34,7 @@
         <table class="table align-middle">
             <thead>
                 <tr>
+                    <th>Job ID</th>
                     <th>Location</th>
                     <th>Status</th>
                     <th>Files Scanned</th>
@@ -46,7 +47,9 @@
             <tbody>
             @foreach (var job in Model.Jobs)
             {
+                var shortJobId = job.Id.ToString("N")[..8];
                 <tr>
+                    <td><code title="@job.Id">@shortJobId</code></td>
                     <td>@job.LocationName</td>
                     <td>
                         <span class="badge-soft status-badge status-@job.Status.ToLowerInvariant()">@job.Status</span>

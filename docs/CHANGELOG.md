@@ -29,6 +29,8 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 - Updated browser tab favicon to use the transparent icon asset with cache-busting versioning.
 - Updated browser tab title branding text from "StorageLens" to "Storage Lens".
 - Restored explicit `Total Used` column on Storage Locations and kept `Total Size` as capacity when available.
+- Added `Job ID` column to Scan Jobs table (compact display with full GUID tooltip).
+- Scanner UNC handling improved: built-in auto path remapping now defaults to container-only, and scans with 0 files plus access errors now fail explicitly instead of silently appearing successful.
 
 ## [0.1.0] - 2026-03-06
 
