@@ -27,6 +27,8 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 - Cleaned up Storage Locations table grid spacing and updated Start Scan action to an icon button so Start Scan/Delete remain aligned on one row.
 - Replaced logo assets again with the newer transparent StorageLens image provided by user.
 - Updated browser tab favicon to use the transparent icon asset with cache-busting versioning.
+- Updated browser tab title branding text from "StorageLens" to "Storage Lens".
+- Restored explicit `Total Used` column on Storage Locations and kept `Total Size` as capacity when available.
 
 ## [0.1.0] - 2026-03-06
 
