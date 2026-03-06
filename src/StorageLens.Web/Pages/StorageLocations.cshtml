@@ -39,6 +39,7 @@
                     <th>Status</th>
                     <th>Last Scan</th>
                     <th>Total Size</th>
+                    <th>Total Used</th>
                     <th>% Remaining</th>
                     <th>File Count</th>
                     <th class="actions-col">Actions</th>
@@ -77,6 +78,16 @@
                         <span class="badge-soft status-badge status-@location.Status.ToLowerInvariant()">@location.Status</span>
                     </td>
                     <td>@(location.LastScanDate?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                    <td>
+                        @if (spaceMetrics.TotalBytes is long totalBytes)
+                        {
+                            @SizeFormatter.ToFriendlySize(totalBytes)
+                        }
+                        else
+                        {
+                            <span class="text-secondary">N/A</span>
+                        }
+                    </td>
                     <td>@SizeFormatter.ToFriendlySize(location.TotalSizeBytes)</td>
                     <td>
                         @if (spaceMetrics.PercentRemaining is double remainingPercent)

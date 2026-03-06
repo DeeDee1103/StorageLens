@@ -5,6 +5,7 @@
 - `appsettings.json`
 - `appsettings.Development.json`
 - Environment variables (container/runtime overrides)
+- .NET user-secrets (`secrets.json` in the user profile, for local development)
 
 ## Standard Configuration Areas
 
@@ -23,6 +24,8 @@ Compose injects critical values for:
 
 ## Security Recommendations
 
-- Replace plain-text secrets with secret manager integration
+- Do not commit credentials to `appsettings*.json` or source-controlled files
+- Store local development secrets in .NET user-secrets
+- Use `.env` for Docker Compose secrets and keep `.env` out of source control
 - Use per-environment configuration sets
 - Restrict admin credentials and rotate regularly

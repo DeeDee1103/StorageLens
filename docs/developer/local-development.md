@@ -39,3 +39,21 @@ dotnet run --project src/StorageLens.Web
 
 - Web `http://localhost:5001`
 - Services `http://localhost:5101` to `http://localhost:5108`
+
+## Secrets and Passwords
+
+Azure SQL credentials must not be stored in `appsettings*.json`.
+
+For service runs via `dotnet run`, store connection strings in the .NET user-secrets file:
+
+```bash
+pwsh ./scripts/set-azure-sql-user-secrets.ps1 -AzureSqlServer <your-azure-sql-server> -SqlUser <your-sql-user>
+```
+
+The script prompts for the password securely and writes values into your local user profile `secrets.json`.
+
+For Docker Compose, store the SQL password in `.env` (never commit it):
+
+```bash
+cp .env.example .env
+```

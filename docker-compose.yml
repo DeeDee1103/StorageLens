@@ -6,7 +6,7 @@ services:
     container_name: storagelens-sql
     environment:
       ACCEPT_EULA: "Y"
-      SA_PASSWORD: "Your_password123"
+      SA_PASSWORD: "${STORAGELENS_SQL_PASSWORD}"
     ports:
       - "14333:1433"
     volumes:
@@ -27,7 +27,7 @@ services:
       - "5101:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__LocationsDb: "Server=sqlserver,1433;Database=StorageLensLocations;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      ConnectionStrings__LocationsDb: "Server=sqlserver,1433;Database=StorageLensLocations;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;"
       Database__UseInMemory: "false"
     depends_on:
       - sqlserver
@@ -40,7 +40,7 @@ services:
       - "5102:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__ScanJobsDb: "Server=sqlserver,1433;Database=StorageLensScanJobs;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      ConnectionStrings__ScanJobsDb: "Server=sqlserver,1433;Database=StorageLensScanJobs;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;"
       Database__UseInMemory: "false"
     depends_on:
       - sqlserver
@@ -53,7 +53,7 @@ services:
       - "5103:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__FileInventoryDb: "Server=sqlserver,1433;Database=StorageLensFileInventory;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      ConnectionStrings__FileInventoryDb: "Server=sqlserver,1433;Database=StorageLensFileInventory;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;"
       Database__UseInMemory: "false"
     depends_on:
       - sqlserver
@@ -66,7 +66,7 @@ services:
       - "5104:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__DuplicatesDb: "Server=sqlserver,1433;Database=StorageLensDuplicates;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      ConnectionStrings__DuplicatesDb: "Server=sqlserver,1433;Database=StorageLensDuplicates;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;"
       Database__UseInMemory: "false"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
     depends_on:
@@ -99,7 +99,7 @@ services:
       - "5106:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__ScannerDb: "Server=sqlserver,1433;Database=StorageLensScanner;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      ConnectionStrings__ScannerDb: "Server=sqlserver,1433;Database=StorageLensScanner;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;"
       Database__UseInMemory: "false"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"
@@ -120,7 +120,7 @@ services:
       - "5107:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__HashingDb: "Server=sqlserver,1433;Database=StorageLensHashing;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      ConnectionStrings__HashingDb: "Server=sqlserver,1433;Database=StorageLensHashing;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;"
       Database__UseInMemory: "false"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"
@@ -144,7 +144,7 @@ services:
       - "5108:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__OrchestratorDb: "Server=sqlserver,1433;Database=StorageLensOrchestration;User Id=sa;Password=Your_password123;TrustServerCertificate=True;"
+      ConnectionStrings__OrchestratorDb: "Server=sqlserver,1433;Database=StorageLensOrchestration;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;"
       Database__UseInMemory: "false"
       UpstreamServices__Locations: "http://locations:8080/"
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"

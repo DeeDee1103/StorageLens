@@ -17,6 +17,12 @@ public class ScannerExecutionService(
     {
         var resolvedRootPath = pathResolver.Resolve(request.RootPath);
 
+        logger.LogInformation(
+            "Starting scanner execution for ScanJobId {ScanJobId}. RootPath={RootPath}, ResolvedRootPath={ResolvedRootPath}",
+            request.ScanJobId,
+            request.RootPath,
+            resolvedRootPath);
+
         if (!PathSafety.IsPathSupported(resolvedRootPath))
         {
             throw new InvalidOperationException("Only rooted local paths and UNC paths are supported.");
@@ -146,8 +152,25 @@ public class ScannerExecutionService(
                 await FlushBatchAsync(request, batch, cancellationToken);
             }
 
-            execution.Status = errors == 0 ? "Completed" : "PartiallyCompleted";
-            execution.Notes = errors == 0 ? "Scan completed" : "Scan completed with some errors";
+            if (filesDiscovered == 0 && errors > 0)
+            {
+                execution.Status = "Failed";
+                execution.Notes = "Scanner could not enumerate files from the target path. Check UNC permissions and service identity.";
+
+                await UpdateScanJobStatusAsync(
+                    request.ScanJobId,
+                    new UpdateScanJobStatusRequest(
+                        ScanJobStatus.Failed,
+                        "Scanning",
+                        execution.Notes,
+                        true),
+                    cancellationToken);
+            }
+            else
+            {
+                execution.Status = errors == 0 ? "Completed" : "PartiallyCompleted";
+                execution.Notes = errors == 0 ? "Scan completed" : "Scan completed with some errors";
+            }
         }
         catch (OperationCanceledException)
         {
@@ -173,7 +196,10 @@ public class ScannerExecutionService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        await UpdateScanJobProgressAsync(request.ScanJobId, filesDiscovered, 75, errors, cancellationToken);
+        if (!string.Equals(execution.Status, "Failed", StringComparison.OrdinalIgnoreCase))
+        {
+            await UpdateScanJobProgressAsync(request.ScanJobId, filesDiscovered, 75, errors, cancellationToken);
+        }
 
         return Map(execution);
     }

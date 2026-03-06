@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace StorageLens.Shared.Infrastructure;
@@ -15,7 +17,13 @@ public static class StartupDatabaseInitializer
         {
             try
             {
-                await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+                var created = await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+
+                if (!created)
+                {
+                    await EnsureTablesCreatedForCurrentContextAsync(dbContext, logger, cancellationToken);
+                }
+
                 return;
             }
             catch (Exception ex) when (attempt < maxAttempts && IsRetryableStartupError(ex))
@@ -32,7 +40,39 @@ public static class StartupDatabaseInitializer
             }
         }
 
-        await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        var finalCreated = await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        if (!finalCreated)
+        {
+            await EnsureTablesCreatedForCurrentContextAsync(dbContext, logger, cancellationToken);
+        }
+    }
+
+    private static async Task EnsureTablesCreatedForCurrentContextAsync(
+        DbContext dbContext,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var creator = dbContext.Database.GetService<IDatabaseCreator>();
+            var createTablesAsync = creator.GetType().GetMethod("CreateTablesAsync", [typeof(CancellationToken)]);
+
+            if (createTablesAsync is null)
+            {
+                return;
+            }
+
+            var task = createTablesAsync.Invoke(creator, [cancellationToken]) as Task;
+            if (task is not null)
+            {
+                await task;
+            }
+        }
+        catch (Exception ex) when (TableAlreadyExists(ex))
+        {
+            // Another instance may have already created these tables.
+            logger.LogDebug(ex, "Database tables for current context already exist.");
+        }
     }
 
     private static bool IsRetryableStartupError(Exception ex)
@@ -71,5 +111,23 @@ public static class StartupDatabaseInitializer
         }
 
         return null;
+    }
+
+    private static bool TableAlreadyExists(Exception ex)
+    {
+        var current = ex;
+        while (current is not null)
+        {
+            var message = current.Message;
+            if (message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("already an object named", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            current = current.InnerException;
+        }
+
+        return false;
     }
 }
