@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="icon" type="image/png" href="~/images/storagelens-icon.png" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/StorageLens.Web.styles.css" asp-append-version="true" />
 </head>
@@ -18,11 +19,13 @@
     }
     <div class="app-shell">
         <aside class="sidebar-panel" id="sidebarPanel">
-            <div class="brand-wrap">
-                <div class="brand-icon"><i class="bi bi-database-fill-check"></i></div>
-                <div>
-                    <div class="brand-name">StorageLens</div>
-                    <div class="brand-subtitle">Storage Intelligence</div>
+            <div class="sidebar-brand text-center py-4">
+                <img src="~/images/storagelens-logo.png"
+                     alt="StorageLens Logo"
+                     class="sidebar-logo">
+
+                <div class="sidebar-title">
+                    Storage Intelligence
                 </div>
             </div>
 

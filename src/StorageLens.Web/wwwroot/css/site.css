@@ -57,6 +57,33 @@ body.dark-mode {
   box-shadow: var(--sl-shadow);
 }
 
+.sidebar-brand {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+  margin-bottom: 10px;
+  background: transparent;
+  border-radius: 14px;
+}
+
+.sidebar-logo {
+  width: 90px;
+  height: auto;
+  margin-bottom: 8px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e7f0ff;
+}
+
+.sidebar-logo:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
 .brand-wrap {
   display: flex;
   gap: 0.75rem;
@@ -339,6 +366,55 @@ body.dark-mode {
   color: var(--sl-text);
 }
 
+.path-link {
+  text-decoration: none;
+}
+
+.path-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.path-link code {
+  color: #0f4eb5;
+  background: #eef5ff;
+  border: 1px solid #cfe0fb;
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+}
+
+.path-link:hover code,
+.path-link:focus code {
+  background: #e1eeff;
+  text-decoration: underline;
+}
+
+.copy-path-btn {
+  border: 1px solid #cfe0fb;
+  background: #eef5ff;
+  color: #0f4eb5;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+
+.copy-path-btn:hover,
+.copy-path-btn:focus {
+  background: #e1eeff;
+  border-color: #bcd5fa;
+  color: #0c3f92;
+}
+
+.copy-path-btn.copied {
+  background: #d4f5dd;
+  border-color: #8fd7a1;
+  color: #1f7a39;
+}
+
 body.dark-mode .search-wrap,
 body.dark-mode .icon-btn,
 body.dark-mode .btn-outline-soft,
@@ -401,6 +477,8 @@ body.dark-mode .btn-delete-location:focus {
   background: #2d8cff;
   color: #000;
   font-weight: 700;
+  min-width: 2rem;
+  padding: 0.28rem 0.48rem;
 }
 
 .btn-start-scan-location:hover,
@@ -416,6 +494,33 @@ body.dark-mode .btn-delete-location:focus {
   background: #ffd6d6;
   color: #000;
   min-width: 2rem;
+}
+
+.locations-table th,
+.locations-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.locations-table td:nth-child(1),
+.locations-table td:nth-child(2) {
+  white-space: normal;
+}
+
+.actions-col,
+.actions-cell {
+  min-width: 96px;
+}
+
+.locations-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+}
+
+.locations-actions .ms-1 {
+  margin-left: 0 !important;
 }
 
 .btn-delete-location:hover,
@@ -464,6 +569,16 @@ body.dark-mode .btn-delete-location:focus {
   }
 }
 
+@media (max-width: 768px) {
+  .sidebar-logo {
+    width: 60px;
+  }
+
+  .sidebar-title {
+    font-size: 16px;
+  }
+}
+
 @media (max-width: 575.98px) {
   .theme-toggle-btn {
     width: auto;
@@ -474,4 +589,34 @@ body.dark-mode .btn-delete-location:focus {
   .theme-toggle-label {
     display: inline;
   }
+}
+
+body.dark-mode .path-link code {
+  color: #b6d9ff;
+  background: #0d1b31;
+  border-color: #284062;
+}
+
+body.dark-mode .path-link:hover code,
+body.dark-mode .path-link:focus code {
+  background: #122441;
+}
+
+body.dark-mode .copy-path-btn {
+  border-color: #284062;
+  background: #0d1b31;
+  color: #b6d9ff;
+}
+
+body.dark-mode .copy-path-btn:hover,
+body.dark-mode .copy-path-btn:focus {
+  background: #122441;
+  border-color: #32507a;
+  color: #d4e9ff;
+}
+
+body.dark-mode .copy-path-btn.copied {
+  background: #1a3a26;
+  border-color: #2c7b47;
+  color: #9de4b3;
 }

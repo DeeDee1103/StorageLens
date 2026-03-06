@@ -30,7 +30,7 @@
 <section class="card-premium p-3 reveal-item">
     <div class="section-title">Configured Locations</div>
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle locations-table">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -39,27 +39,59 @@
                     <th>Status</th>
                     <th>Last Scan</th>
                     <th>Total Size</th>
+                    <th>% Remaining</th>
                     <th>File Count</th>
-                    <th>Actions</th>
+                    <th class="actions-col">Actions</th>
                 </tr>
             </thead>
             <tbody>
             @foreach (var location in Model.Locations)
             {
+                var fileUrl = ToFileUrl(location.Path);
+                var spaceMetrics = GetSpaceMetrics(location.Path);
                 <tr>
                     <td>@location.Name</td>
-                    <td><code>@location.Path</code></td>
+                    <td>
+                        <div class="path-actions">
+                            <a href="@fileUrl" class="path-link storage-path-link" data-path="@location.Path" onclick="return openStoragePath(event);" title="Open @location.Path">
+                                <code>@location.Path</code>
+                            </a>
+                            <button type="button"
+                                    class="btn copy-path-btn"
+                                    data-path="@location.Path"
+                                    onclick="return copyStoragePath(event);"
+                                    title="Copy path"
+                                    aria-label="Copy path for @location.Name">
+                                <i class="bi bi-clipboard copy-path-icon" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </td>
                     <td>@location.Type</td>
                     <td>
                         <span class="badge-soft status-badge status-@location.Status.ToLowerInvariant()">@location.Status</span>
                     </td>
                     <td>@(location.LastScanDate?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
                     <td>@SizeFormatter.ToFriendlySize(location.TotalSizeBytes)</td>
-                    <td>@location.FileCount.ToString("N0")</td>
                     <td>
+                        @if (spaceMetrics.PercentRemaining is double remainingPercent)
+                        {
+                            <span class="badge-soft">@remainingPercent.ToString("N1")%</span>
+                        }
+                        else
+                        {
+                            <span class="text-secondary">N/A</span>
+                        }
+                    </td>
+                    <td>@location.FileCount.ToString("N0")</td>
+                    <td class="actions-cell">
+                        <div class="locations-actions">
                         <form method="post" asp-page-handler="StartScan" class="d-inline">
                             <input type="hidden" name="locationId" value="@location.Id" />
-                            <button type="submit" class="btn btn-start-scan-location btn-sm">Start Scan</button>
+                            <button type="submit" class="btn btn-start-scan-location btn-sm"
+                                    title="Start scan"
+                                    aria-label="Start scan for @location.Name">
+                                <i class="bi bi-play-fill" aria-hidden="true"></i>
+                            </button>
                         </form>
                         <form method="post" asp-page-handler="Delete" class="d-inline ms-1"
                               onsubmit="return confirm('Delete this location? This action cannot be undone.');">
@@ -68,6 +100,7 @@
                                 <i class="bi bi-trash-fill delete-location-icon" aria-hidden="true"></i>
                             </button>
                         </form>
+                        </div>
                     </td>
                 </tr>
             }
@@ -75,3 +108,59 @@
         </table>
     </div>
 </section>
+
+@functions {
+    private readonly record struct SpaceMetrics(long? TotalBytes, double? PercentRemaining);
+
+    private static SpaceMetrics GetSpaceMetrics(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return new SpaceMetrics(null, null);
+        }
+
+        try
+        {
+            var rootPath = System.IO.Path.GetPathRoot(path.Trim());
+            if (string.IsNullOrWhiteSpace(rootPath))
+            {
+                return new SpaceMetrics(null, null);
+            }
+
+            var driveInfo = new System.IO.DriveInfo(rootPath);
+            if (!driveInfo.IsReady || driveInfo.TotalSize <= 0)
+            {
+                return new SpaceMetrics(null, null);
+            }
+
+            var percentRemaining = (driveInfo.AvailableFreeSpace * 100d) / driveInfo.TotalSize;
+            return new SpaceMetrics(driveInfo.TotalSize, percentRemaining);
+        }
+        catch
+        {
+            return new SpaceMetrics(null, null);
+        }
+    }
+
+    private static string ToFileUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "#";
+        }
+
+        var trimmed = path.Trim();
+
+        // UNC share (e.g. \\server\share) should map to file://server/share
+        if (trimmed.StartsWith("\\\\", StringComparison.Ordinal))
+        {
+            var uncPath = trimmed.TrimStart('\\').Replace('\\', '/');
+            // Windows browsers are often more successful with UNC links as file://///server/share/path
+            return $"file://///{uncPath}";
+        }
+
+        // Local Windows path (e.g. C:\folder) should map to file:///C:/folder
+        var localPath = trimmed.Replace('\\', '/');
+        return $"file:///{localPath}";
+    }
+}
