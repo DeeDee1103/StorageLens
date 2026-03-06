@@ -25,7 +25,7 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
         var items = await query
             .OrderByDescending(x => x.SizeBytes)
             .Skip((Math.Max(page, 1) - 1) * Math.Max(pageSize, 1))
-            .Take(Math.Clamp(pageSize, 1, 200))
+            .Take(Math.Clamp(pageSize, 1, 5000))
             .ToListAsync(cancellationToken);
 
         return items.Select(Map).ToList();
