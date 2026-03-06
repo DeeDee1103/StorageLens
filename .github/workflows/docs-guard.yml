@@ -1,0 +1,48 @@
+name: Documentation Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  docs-guard:
+    name: Require docs for code changes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed file groups
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+            source_or_config:
+              - 'src/**'
+              - 'docker-compose.yml'
+              - 'README.md'
+              - 'StorageLens.sln'
+              - 'StorageLens.slnx'
+
+      - name: Enforce docs updates
+        shell: bash
+        run: |
+          echo "docs changed: ${{ steps.changes.outputs.docs }}"
+          echo "source/config changed: ${{ steps.changes.outputs.source_or_config }}"
+
+          if [[ "${{ steps.changes.outputs.source_or_config }}" == "true" && "${{ steps.changes.outputs.docs }}" != "true" ]]; then
+            echo "Documentation update required: source or configuration changed, but no files under docs/ were updated."
+            echo "Please update relevant documentation in docs/ before merging."
+            exit 1
+          fi
+
+          echo "Documentation guard passed."
