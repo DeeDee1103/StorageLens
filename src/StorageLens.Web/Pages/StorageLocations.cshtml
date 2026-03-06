@@ -49,7 +49,9 @@
                     <td>@location.Name</td>
                     <td><code>@location.Path</code></td>
                     <td>@location.Type</td>
-                    <td><span class="badge-soft">@location.Status</span></td>
+                    <td>
+                        <span class="badge-soft status-badge status-@location.Status.ToLowerInvariant()">@location.Status</span>
+                    </td>
                     <td>@(location.LastScanDate?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
                     <td>@SizeFormatter.ToFriendlySize(location.TotalSizeBytes)</td>
                     <td>@location.FileCount.ToString("N0")</td>

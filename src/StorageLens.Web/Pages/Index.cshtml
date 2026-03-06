@@ -101,7 +101,9 @@
                     {
                         <tr>
                             <td>@job.LocationName</td>
-                            <td><span class="badge-soft">@job.Status</span></td>
+                            <td>
+                                <span class="badge-soft status-badge status-@job.Status.ToLowerInvariant()">@job.Status</span>
+                            </td>
                             <td>@job.FilesScanned.ToString("N0")</td>
                             <td>
                                 <div class="progress"><div class="progress-bar" style="width:@job.ProgressPercent%"></div></div>

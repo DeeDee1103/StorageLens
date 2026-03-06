@@ -224,6 +224,52 @@ body {
   padding: 0.33rem 0.55rem;
 }
 
+.status-badge {
+  font-weight: 700;
+}
+
+.status-pending {
+  background: #ffe066;
+  border-color: #e8c84a;
+  color: #000;
+}
+
+.status-failed {
+  background: #ff6b6b;
+  border-color: #df4a4a;
+  color: #000;
+}
+
+.status-completed {
+  background: #74d680;
+  border-color: #58bb64;
+  color: #000;
+}
+
+.status-running {
+  background: #74b9ff;
+  border-color: #4a96e3;
+  color: #000;
+}
+
+.status-inprogress {
+  background: #74b9ff;
+  border-color: #4a96e3;
+  color: #000;
+}
+
+.status-warning {
+  background: #ffe066;
+  border-color: #e8c84a;
+  color: #000;
+}
+
+.status-online {
+  background: #74d680;
+  border-color: #58bb64;
+  color: #000;
+}
+
 .btn-gradient {
   color: #fff;
   border: 0;
