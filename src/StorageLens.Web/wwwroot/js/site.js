@@ -48,3 +48,116 @@
 			});
 	});
 });
+
+const buildStoragePathCandidates = (rawPath) => {
+	const trimmed = rawPath.trim();
+	if (!trimmed) {
+		return [];
+	}
+
+	if (trimmed.startsWith("\\\\")) {
+		const uncForwardSlashes = trimmed.replace(/^\\+/, "").replaceAll("\\", "/");
+		return [
+			`file://///${uncForwardSlashes}`,
+			`file:///${uncForwardSlashes}`,
+			trimmed
+		];
+	}
+
+	const localForwardSlashes = trimmed.replaceAll("\\", "/");
+	return [
+		`file:///${localForwardSlashes}`,
+		trimmed
+	];
+};
+
+window.openStoragePath = (event) => {
+	const link = event.currentTarget;
+	const rawPath = link?.dataset?.path;
+	if (!rawPath) {
+		return true;
+	}
+
+	event.preventDefault();
+	const candidates = buildStoragePathCandidates(rawPath);
+
+	for (const candidate of candidates) {
+		const openLink = document.createElement("a");
+		openLink.href = candidate;
+		openLink.target = "_self";
+		openLink.rel = "noopener noreferrer";
+		document.body.appendChild(openLink);
+		openLink.click();
+		openLink.remove();
+	}
+
+	return false;
+};
+
+const fallbackCopyText = (text) => {
+	const textarea = document.createElement("textarea");
+	textarea.value = text;
+	textarea.setAttribute("readonly", "");
+	textarea.style.position = "fixed";
+	textarea.style.opacity = "0";
+	document.body.appendChild(textarea);
+	textarea.focus();
+	textarea.select();
+
+	let copied = false;
+	try {
+		copied = document.execCommand("copy");
+	} catch {
+		copied = false;
+	}
+
+	textarea.remove();
+	return copied;
+};
+
+window.copyStoragePath = async (event) => {
+	const button = event.currentTarget;
+	const rawPath = button?.dataset?.path;
+	if (!rawPath) {
+		return false;
+	}
+
+	event.preventDefault();
+
+	let copied = false;
+	if (navigator.clipboard?.writeText) {
+		try {
+			await navigator.clipboard.writeText(rawPath);
+			copied = true;
+		} catch {
+			copied = false;
+		}
+	}
+
+	if (!copied) {
+		copied = fallbackCopyText(rawPath);
+	}
+
+	const icon = button.querySelector("i");
+	const originalTitle = button.title;
+
+	if (copied) {
+		button.classList.add("copied");
+		button.title = "Copied";
+		if (icon) {
+			icon.className = "bi bi-check-lg copy-path-icon";
+		}
+	} else {
+		button.title = "Copy failed";
+	}
+
+	window.setTimeout(() => {
+		button.classList.remove("copied");
+		button.title = originalTitle;
+		if (icon) {
+			icon.className = "bi bi-clipboard copy-path-icon";
+		}
+	}, 1200);
+
+	return false;
+};

@@ -1,4 +1,6 @@
-# StorageLens Documentation
+# StorageLens
+
+![StorageLens Logo](../src/StorageLens.Web/wwwroot/images/storagelens-logo.png)
 
 StorageLens is a SaaS platform for analyzing NAS and cloud-connected storage footprints across distributed environments. It helps organizations understand storage growth, detect duplicate content, and optimize storage cost/risk with workflow-driven scanning and analytics.
 
