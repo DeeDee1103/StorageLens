@@ -33,6 +33,18 @@
 		applyTheme(nextTheme);
 	});
 
+	// Ctrl+K / Cmd+K focuses the global search box
+	document.addEventListener("keydown", (e) => {
+		if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+			const searchInput = document.getElementById("globalSearch");
+			if (searchInput) {
+				e.preventDefault();
+				searchInput.focus();
+				searchInput.select();
+			}
+		}
+	});
+
 	const revealItems = document.querySelectorAll(".reveal-item");
 	revealItems.forEach((item, index) => {
 		item.animate(

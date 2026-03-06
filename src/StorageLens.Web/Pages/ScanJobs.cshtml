@@ -29,7 +29,15 @@
 </section>
 
 <section class="card-premium p-3 reveal-item">
-    <div class="section-title">Recent Jobs</div>
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="section-title mb-0">Recent Jobs</div>
+        @if (Model.HasActiveJobs)
+        {
+            <span class="auto-refresh-badge" title="Page will refresh automatically while scans are active">
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Auto-refreshing
+            </span>
+        }
+    </div>
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
@@ -44,6 +52,12 @@
                 </tr>
             </thead>
             <tbody>
+            @if (!Model.Jobs.Any())
+            {
+                <tr class="empty-state-row">
+                    <td colspan="7"><i class="bi bi-activity empty-state-icon"></i>No scan jobs yet — start one above</td>
+                </tr>
+            }
             @foreach (var job in Model.Jobs)
             {
                 <tr>
@@ -53,7 +67,10 @@
                     </td>
                     <td>@job.FilesScanned.ToString("N0")</td>
                     <td>
-                        <div class="progress"><div class="progress-bar" style="width:@job.ProgressPercent%"></div></div>
+                        <div class="progress-with-label">
+                            <div class="progress"><div class="progress-bar" style="width:@job.ProgressPercent%"></div></div>
+                            <span class="progress-pct">@job.ProgressPercent%</span>
+                        </div>
                     </td>
                     <td>@job.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@(job.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
@@ -64,3 +81,13 @@
         </table>
     </div>
 </section>
+
+@section Scripts {
+    @if (Model.HasActiveJobs)
+    {
+        <script>
+            const AUTO_REFRESH_INTERVAL_MS = 10000;
+            setTimeout(() => location.reload(), AUTO_REFRESH_INTERVAL_MS);
+        </script>
+    }
+}

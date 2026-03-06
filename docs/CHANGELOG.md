@@ -6,7 +6,22 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Added
+- Dashboard KPI cards now display contextual icons (storage, files, duplicates, savings) for faster at-a-glance recognition.
+- Quick Actions panel buttons now include matching Bootstrap Icons for visual clarity.
+- All data tables (Dashboard, Scan Jobs, File Inventory, Duplicates, Storage Locations) now show a friendly empty-state message with an icon when no records are present.
+- Scan Jobs page now displays a percentage label next to each progress bar so exact progress is readable without hovering.
+- Scan Jobs page now auto-refreshes every 10 seconds while any job is in an active state (Running, Scanning, Hashing, etc.) and shows a spinning "Auto-refreshing" badge.
+- File Inventory pagination now disables the Previous button on page 1 and the Next button when the current page returns no results, preventing dead-end navigation.
+- Settings page replaced with six placeholder cards (Authentication, Cloud Connectors, Notifications, Scheduled Scans, Retention Policies, Orchestration) giving a clear roadmap for future features.
+- Global search box now supports the Ctrl+K / Cmd+K keyboard shortcut to focus it from anywhere on the page, with a visible `Ctrl K` hint badge in the search bar.
+- Mobile offcanvas navigation now correctly highlights the active page link, matching the behaviour of the desktop sidebar.
+
 ### Changed
+- Sidebar navigation links now animate smoothly on hover/active via a CSS transition.
+- Dark mode toggle now transitions body background, card, and border colours smoothly instead of switching instantly.
+- `--sl-transition` CSS custom property introduced to apply consistent timing across the layout for dark/light mode switching.
+- Focus-visible outlines added for keyboard-navigable controls (links, buttons, inputs, selects) to meet basic WCAG 2.1 AA focus-indicator requirements.
 - `AnalyticsService.GetDashboardAsync`: replaced `.Result` property accesses after `await Task.WhenAll` with idiomatic `await` calls so that individual task exceptions propagate as the original exception type rather than `AggregateException`.
 - `FileInventoryService.GetAllAsync`: raised the per-request page-size ceiling from 200 to 5,000 so that internal service calls (Analytics, Duplicates) which request up to 2,000 records per page are no longer silently truncated to 200.
 - Orchestrator `Program.cs`: set `Timeout = Timeout.InfiniteTimeSpan` on the `scanner` and `hashing` HTTP clients so that long-running scan and hash operations are not aborted by the default 100-second HttpClient timeout.
