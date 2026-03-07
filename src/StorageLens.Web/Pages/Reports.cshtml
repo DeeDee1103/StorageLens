@@ -75,6 +75,11 @@
         const typeLabels = @Html.Raw(typeLabels);
         const typeValues = @Html.Raw(typeValues);
 
+        if (document.body.classList.contains('dark-mode')) {
+            Chart.defaults.color = '#9eb0cd';
+            Chart.defaults.borderColor = '#2a3a56';
+        }
+
         new Chart(document.getElementById("reportTypeChart"), {
             type: "bar",
             data: {
