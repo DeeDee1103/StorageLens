@@ -34,6 +34,7 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 - Scan Jobs page now auto-refreshes every 10 seconds while any job is in an active state (Running, Scanning, Hashing, etc.) and shows a spinning "Auto-refreshing" badge.
 - File Inventory pagination now disables the Previous button on page 1 and the Next button when the current page returns no results, preventing dead-end navigation.
 - Settings page replaced with six placeholder cards (Authentication, Cloud Connectors, Notifications, Scheduled Scans, Retention Policies, Orchestration) giving a clear roadmap for future features.
+- Settings page now includes an **AI Features** card (Coming Soon) describing planned machine-learning capabilities: anomaly detection, predictive capacity planning, and AI-driven duplicate classification.
 - Global search box now supports the Ctrl+K / Cmd+K keyboard shortcut to focus it from anywhere on the page, with a visible `Ctrl K` hint badge in the search bar.
 - Mobile offcanvas navigation now correctly highlights the active page link, matching the behaviour of the desktop sidebar.
 
