@@ -21,6 +21,25 @@ docker compose up -d --build
 docker compose ps -a
 ```
 
+### Use Azure SQL with Docker Compose
+
+By default, Compose services connect to the local `sqlserver` container.
+
+To run services against Azure SQL instead, set this variable in `.env`:
+
+```bash
+STORAGELENS_AZURE_SQL_CONNECTION_STRING=Server=tcp:<your-server>.database.windows.net,1433;Initial Catalog=StorageLens;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;User ID=<your-user>;Password=<your-password>;
+```
+
+Then restart the stack so containers pick up the new environment variable:
+
+```bash
+docker compose down --remove-orphans
+docker compose up -d --build
+```
+
+To switch back to local container SQL, remove `STORAGELENS_AZURE_SQL_CONNECTION_STRING` from `.env` and restart Compose.
+
 ## Run Services Directly
 
 ```bash
