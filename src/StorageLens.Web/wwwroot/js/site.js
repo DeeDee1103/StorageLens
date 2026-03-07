@@ -59,6 +59,11 @@
 				easing: "ease-out"
 			});
 	});
+
+	// Initialize profile avatar and display name across the layout
+	if (typeof window.slProfileInit === "function") {
+		window.slProfileInit();
+	}
 });
 
 const buildStoragePathCandidates = (rawPath) => {

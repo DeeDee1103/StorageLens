@@ -38,6 +38,17 @@
                 <a class="menu-link @(activeNav == "reports" ? "active" : string.Empty)" asp-page="/Reports"><i class="bi bi-graph-up-arrow"></i>Reports</a>
                 <a class="menu-link @(activeNav == "settings" ? "active" : string.Empty)" asp-page="/Settings"><i class="bi bi-gear"></i>Settings</a>
             </nav>
+
+            <div class="sidebar-profile-footer">
+                <a class="sidebar-profile-link @(activeNav == "profile" ? "active" : string.Empty)" asp-page="/Profile">
+                    <span class="sidebar-profile-avatar" id="sidebarAvatarImg"></span>
+                    <div class="sidebar-profile-info">
+                        <span class="sidebar-profile-name" id="sidebarProfileName">DeeDee</span>
+                        <span class="sidebar-profile-role">Admin</span>
+                    </div>
+                    <i class="bi bi-chevron-right sidebar-profile-chevron" aria-hidden="true"></i>
+                </a>
+            </div>
         </aside>
 
         <section class="main-panel">
@@ -56,7 +67,26 @@
                         <span class="theme-toggle-label">Dark Mode</span>
                     </button>
                     <button class="btn icon-btn"><i class="bi bi-bell"></i></button>
-                    <div class="avatar-badge">DD</div>
+                    <div class="dropdown">
+                        <button class="btn p-0 border-0 bg-transparent" type="button" id="topbarProfileMenu"
+                                data-bs-toggle="dropdown" aria-expanded="false" aria-label="Profile menu">
+                            <span class="avatar-badge" id="topbarAvatarImg">DD</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end profile-dropdown shadow" aria-labelledby="topbarProfileMenu">
+                            <li class="px-3 py-2 d-flex align-items-center gap-2">
+                                <span class="avatar-badge avatar-badge-sm" id="topbarAvatarImgDropdown">DD</span>
+                                <div>
+                                    <div class="fw-semibold small" id="topbarDropdownName">DeeDee</div>
+                                    <div class="text-secondary" style="font-size:0.75rem;" id="topbarDropdownEmail">admin@storagelens.local</div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li><a class="dropdown-item" asp-page="/Profile"><i class="bi bi-person-circle me-2" aria-hidden="true"></i>My Profile</a></li>
+                            <li><a class="dropdown-item" asp-page="/Settings"><i class="bi bi-gear me-2" aria-hidden="true"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li><span class="dropdown-item text-secondary small"><i class="bi bi-microsoft me-2" aria-hidden="true"></i>Signed in via Microsoft</span></li>
+                        </ul>
+                    </div>
                 </div>
             </header>
 
@@ -86,12 +116,14 @@
                 <a class="menu-link @(activeNav == "duplicates" ? "active" : string.Empty)" asp-page="/Duplicates"><i class="bi bi-files"></i>Duplicates</a>
                 <a class="menu-link @(activeNav == "reports" ? "active" : string.Empty)" asp-page="/Reports"><i class="bi bi-graph-up-arrow"></i>Reports</a>
                 <a class="menu-link @(activeNav == "settings" ? "active" : string.Empty)" asp-page="/Settings"><i class="bi bi-gear"></i>Settings</a>
+                <a class="menu-link @(activeNav == "profile" ? "active" : string.Empty)" asp-page="/Profile"><i class="bi bi-person-circle"></i>Profile</a>
             </nav>
         </div>
     </div>
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="~/js/profile.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
