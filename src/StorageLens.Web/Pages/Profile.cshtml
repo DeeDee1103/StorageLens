@@ -1,0 +1,284 @@
+@page
+@model ProfileModel
+
+<section class="mb-3 reveal-item">
+    <h1 class="dashboard-title">My Profile</h1>
+    <p class="text-secondary mb-0">Manage your identity, preferences, and account security.</p>
+</section>
+
+<div class="row g-3">
+    <!-- Profile Identity Card -->
+    <div class="col-lg-4 reveal-item">
+        <div class="card-premium p-4 h-100 d-flex flex-column align-items-center text-center profile-identity-card">
+            <div class="profile-avatar-wrap mb-3" id="avatarWrap">
+                <img id="profileAvatarImg"
+                     src=""
+                     alt="Profile picture"
+                     class="profile-avatar"
+                     onerror="this.style.display='none'; document.getElementById('profileAvatarInitials').style.display='grid';" />
+                <div id="profileAvatarInitials" class="profile-avatar-initials" style="display:none;">DD</div>
+                <label class="profile-avatar-upload-btn" for="avatarUploadInput" title="Upload new photo" aria-label="Upload profile picture">
+                    <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                </label>
+                <input type="file" id="avatarUploadInput" accept="image/*" class="d-none" aria-label="Select profile picture file" />
+            </div>
+
+            <h4 class="mb-0 profile-display-name" id="profileDisplayName">DeeDee</h4>
+            <span class="text-secondary small mt-1" id="profileJobTitle">Storage Administrator</span>
+            <span class="badge profile-role-badge mt-2 mb-3">Admin</span>
+
+            <div class="profile-meta w-100">
+                <div class="profile-meta-item">
+                    <i class="bi bi-envelope" aria-hidden="true"></i>
+                    <span id="profileEmail">admin@storagelens.local</span>
+                </div>
+                <div class="profile-meta-item">
+                    <i class="bi bi-building" aria-hidden="true"></i>
+                    <span id="profileDepartment">IT Infrastructure</span>
+                </div>
+                <div class="profile-meta-item">
+                    <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                    <span id="profileLocation">On-Premises</span>
+                </div>
+            </div>
+
+            <button class="btn btn-gradient w-100 mt-3" id="btnEditProfile" type="button"
+                    data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                <i class="bi bi-pencil-square me-1" aria-hidden="true"></i> Edit Profile
+            </button>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-8 d-flex flex-column gap-3">
+
+        <!-- Activity Stats -->
+        <div class="row g-3 reveal-item">
+            <div class="col-6 col-md-3">
+                <div class="card-premium kpi-card text-center">
+                    <div class="kpi-icon kpi-icon-blue mx-auto mb-2"><i class="bi bi-activity" aria-hidden="true"></i></div>
+                    <div class="kpi-value" id="statScansRun">—</div>
+                    <div class="kpi-label">Scans Run</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-premium kpi-card text-center">
+                    <div class="kpi-icon kpi-icon-teal mx-auto mb-2"><i class="bi bi-files" aria-hidden="true"></i></div>
+                    <div class="kpi-value" id="statDuplicatesFound">—</div>
+                    <div class="kpi-label">Duplicates Found</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-premium kpi-card text-center">
+                    <div class="kpi-icon kpi-icon-green mx-auto mb-2"><i class="bi bi-hdd" aria-hidden="true"></i></div>
+                    <div class="kpi-value" id="statLocations">—</div>
+                    <div class="kpi-label">Locations</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card-premium kpi-card text-center">
+                    <div class="kpi-icon kpi-icon-orange mx-auto mb-2"><i class="bi bi-clock-history" aria-hidden="true"></i></div>
+                    <div class="kpi-value" id="statDaysActive">—</div>
+                    <div class="kpi-label">Days Active</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences -->
+        <div class="card-premium p-3 reveal-item">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-sliders" aria-hidden="true"></i></div>
+                <h5 class="mb-0">Preferences</h5>
+            </div>
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <label class="form-label fw-semibold small text-secondary text-uppercase" style="letter-spacing:.04em;">Theme</label>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-soft profile-theme-btn flex-fill" id="themeLight" type="button" data-theme="light">
+                            <i class="bi bi-sun me-1" aria-hidden="true"></i>Light
+                        </button>
+                        <button class="btn btn-outline-soft profile-theme-btn flex-fill" id="themeDark" type="button" data-theme="dark">
+                            <i class="bi bi-moon-stars me-1" aria-hidden="true"></i>Dark
+                        </button>
+                        <button class="btn btn-outline-soft profile-theme-btn flex-fill" id="themeSystem" type="button" data-theme="system">
+                            <i class="bi bi-display me-1" aria-hidden="true"></i>System
+                        </button>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label fw-semibold small text-secondary text-uppercase" style="letter-spacing:.04em;">Default View</label>
+                    <select class="form-select" id="prefDefaultView" aria-label="Default view preference">
+                        <option value="dashboard">Dashboard</option>
+                        <option value="scanjobs">Scan Jobs</option>
+                        <option value="fileinventory">File Inventory</option>
+                        <option value="reports">Reports</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold small text-secondary text-uppercase" style="letter-spacing:.04em;">Notifications</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="prefScanComplete" checked>
+                            <label class="form-check-label small" for="prefScanComplete">Scan completed</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="prefDuplicates" checked>
+                            <label class="form-check-label small" for="prefDuplicates">Duplicates detected</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="prefThreshold">
+                            <label class="form-check-label small" for="prefThreshold">Storage threshold alerts</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-3">
+                <button class="btn btn-gradient" id="btnSavePreferences" type="button">
+                    <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save Preferences
+                </button>
+            </div>
+        </div>
+
+        <!-- Security & Sessions -->
+        <div class="card-premium p-3 reveal-item">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-shield-check" aria-hidden="true"></i></div>
+                <h5 class="mb-0">Security</h5>
+            </div>
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <div class="security-item">
+                        <span class="security-item-label">Last Sign-In</span>
+                        <span class="security-item-value" id="secLastLogin">—</span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="security-item">
+                        <span class="security-item-label">Authentication</span>
+                        <span class="security-item-value">
+                            <i class="bi bi-microsoft text-primary" aria-hidden="true"></i>
+                            Microsoft SSO
+                            <span class="badge bg-success bg-opacity-15 text-success ms-1">Active</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="security-item">
+                        <span class="security-item-label">Account Since</span>
+                        <span class="security-item-value" id="secAccountSince">—</span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="security-item">
+                        <span class="security-item-label">2FA Status</span>
+                        <span class="security-item-value">
+                            <span class="badge bg-success bg-opacity-15 text-success">Enabled via Microsoft</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3 flex-wrap">
+                <button class="btn btn-outline-soft btn-sm" type="button" id="btnSignOutAll">
+                    <i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Sign Out All Sessions
+                </button>
+                <button class="btn btn-outline-soft btn-sm" type="button" id="btnDownloadData">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>Export My Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card-premium p-3 reveal-item">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-clock-history" aria-hidden="true"></i></div>
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <ul class="activity-feed" id="activityFeed">
+                <li class="activity-item">
+                    <span class="activity-icon activity-icon-blue"><i class="bi bi-activity" aria-hidden="true"></i></span>
+                    <div class="activity-body">
+                        <span class="activity-title">Scan job initiated</span>
+                        <span class="activity-time text-secondary small">Just now</span>
+                    </div>
+                </li>
+                <li class="activity-item">
+                    <span class="activity-icon activity-icon-teal"><i class="bi bi-files" aria-hidden="true"></i></span>
+                    <div class="activity-body">
+                        <span class="activity-title">Duplicate detection completed</span>
+                        <span class="activity-time text-secondary small">2 hours ago</span>
+                    </div>
+                </li>
+                <li class="activity-item">
+                    <span class="activity-icon activity-icon-green"><i class="bi bi-hdd-stack" aria-hidden="true"></i></span>
+                    <div class="activity-body">
+                        <span class="activity-title">Storage location added</span>
+                        <span class="activity-time text-secondary small">Yesterday</span>
+                    </div>
+                </li>
+                <li class="activity-item">
+                    <span class="activity-icon activity-icon-orange"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+                    <div class="activity-body">
+                        <span class="activity-title">Analytics report generated</span>
+                        <span class="activity-time text-secondary small">3 days ago</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content profile-modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="editProfileModalLabel">
+                    <i class="bi bi-person-circle me-2" aria-hidden="true"></i>Edit Profile
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="editDisplayName">Display Name</label>
+                    <input type="text" class="form-control" id="editDisplayName" placeholder="Your display name" maxlength="80" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="editEmail">Email</label>
+                    <input type="email" class="form-control" id="editEmail" placeholder="your@email.com" maxlength="120" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="editJobTitle">Job Title</label>
+                    <input type="text" class="form-control" id="editJobTitle" placeholder="e.g. Storage Administrator" maxlength="80" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="editDepartment">Department</label>
+                    <input type="text" class="form-control" id="editDepartment" placeholder="e.g. IT Infrastructure" maxlength="80" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="editLocation">Location</label>
+                    <input type="text" class="form-control" id="editLocation" placeholder="e.g. On-Premises, London HQ" maxlength="80" />
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-soft" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-gradient" id="btnSaveProfile">
+                    <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+    <div id="profileToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-semibold" id="profileToastMsg">Saved!</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+}
