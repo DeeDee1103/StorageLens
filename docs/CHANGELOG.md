@@ -6,6 +6,11 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Fixed
+- `docker-compose.yml`: removed Windows-only volume mounts (`C:/` and UNC network share) from the `scanner` and `hashing` services so the stack starts on Linux and macOS hosts without modification.
+- `docker-compose.yml`: removed obsolete top-level `version` attribute that produced deprecation warnings with Docker Compose v2.
+- `StartupDatabaseInitializer`: expanded startup retry logic to treat SQL Server pre-login handshake failures (`SocketException`, network `IOException`) as retryable errors, preventing services from crashing when SQL Server is still initialising inside the Docker Compose stack.
+
 ### Added
 - **User Profile page** (`/Profile`) — a full-featured profile dashboard including:
   - Profile picture with automatic Microsoft Graph SSO avatar support; falls back to initials when the Graph endpoint is unavailable.

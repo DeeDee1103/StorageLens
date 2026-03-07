@@ -90,10 +90,26 @@ public static class StartupDatabaseInitializer
 
                 var message = current.Message;
                 if (message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
-                    message.Contains("timeout", StringComparison.OrdinalIgnoreCase))
+                    message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("pre-login handshake", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("login failed", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("connection refused", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("connection reset", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("connection failed", StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
+            }
+
+            if (current is System.Net.Sockets.SocketException)
+            {
+                return true;
+            }
+
+            if (current is System.IO.IOException ioEx &&
+                ioEx.InnerException is System.Net.Sockets.SocketException)
+            {
+                return true;
             }
 
             current = current.InnerException;
