@@ -6,6 +6,17 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+- `AnalyticsService.GetDashboardAsync`: Total Files KPI now always uses `locations.Sum(x => x.FileCount)` (accurate total from location metadata) instead of the API-capped `files.Count` value which was limited to the first 2,000 file records.
+- `AnalyticsService.GetDashboardAsync`: Storage Growth Trend chart now correctly plots storage in TB (sum of `TotalSizeBytes` for distinct locations scanned each day, divided to TB) instead of the raw `FilesScanned` count that was previously used.
+- Dashboard `Index.cshtml`: Chart.js text colour (`Chart.defaults.color`) is now set to the muted dark-mode palette (`#9eb0cd`) when dark mode is active, so axis labels and tick marks remain readable against the dark card backgrounds.
+- Reports `Reports.cshtml`: Same Chart.js dark-mode colour fix applied to the Most Common File Types chart.
+
+### Fixed
+- Dark-mode flash on page load: an inline `<script>` immediately after `<body>` now reads `localStorage` and applies the `dark-mode` class before the first browser paint, eliminating the white-flash-then-dark flicker.
+- CSS `body.preload` / `body.preload *` rule added to suppress all CSS transitions during the initial page load so the theme is applied instantaneously; transitions are re-enabled once the `load` event fires.
+- `Index.cshtml`: removed a stray `</div>` closing tag that appeared after the `@section Scripts {}` block; this orphaned tag could cause the browser HTML parser to close an ancestor `<div>` prematurely and break the page layout.
+
 ### Added
 - Dashboard KPI cards now display contextual icons (storage, files, duplicates, savings) for faster at-a-glance recognition.
 - Quick Actions panel buttons now include matching Bootstrap Icons for visual clarity.

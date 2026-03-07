@@ -30,7 +30,7 @@ public class AnalyticsService(
         var duplicateSummary = await duplicateSummaryTask;
 
         var totalStorage = locations.Sum(x => x.TotalSizeBytes);
-        var totalFiles = files.Count > 0 ? files.Count : locations.Sum(x => x.FileCount);
+        var totalFiles = locations.Sum(x => x.FileCount);
 
         var kpis = new DashboardKpiDto(
             totalStorage,
@@ -42,7 +42,14 @@ public class AnalyticsService(
             .GroupBy(x => x.StartTime.UtcDateTime.ToString("yyyy-MM-dd"))
             .OrderBy(x => x.Key)
             .TakeLast(8)
-            .Select(x => new ChartPointDto(x.Key[5..], x.Sum(v => v.FilesScanned)))
+            .Select(x => new ChartPointDto(
+                x.Key[5..],
+                Math.Round(
+                    x.Select(j => j.StorageLocationId)
+                     .Distinct()
+                     .Select(id => locations.FirstOrDefault(l => l.Id == id)?.TotalSizeBytes ?? 0L)
+                     .Sum() / (double)(1024L * 1024 * 1024 * 1024),
+                    2)))
             .ToList();
 
         var fileTypeDistribution = files
