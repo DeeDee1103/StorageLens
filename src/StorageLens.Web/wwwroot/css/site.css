@@ -734,3 +734,324 @@ body.dark-mode .copy-path-btn.copied {
   border-color: #2c7b47;
   color: #9de4b3;
 }
+/* ── Profile page ────────────────────────────────────────────────────────── */
+
+.profile-identity-card {
+  gap: 0;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.profile-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--sl-border);
+  box-shadow: var(--sl-shadow);
+}
+
+.profile-avatar-initials {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--sl-cyan), var(--sl-accent));
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--sl-border);
+  box-shadow: var(--sl-shadow);
+}
+
+.profile-avatar-upload-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--sl-primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  border: 2px solid var(--sl-card);
+  transition: background 0.18s ease;
+}
+
+.profile-avatar-upload-btn:hover {
+  background: #0f4eb5;
+}
+
+.profile-display-name {
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.profile-role-badge {
+  background: rgba(17, 101, 216, 0.12);
+  color: var(--sl-primary);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.22rem 0.7rem;
+  border: 1px solid rgba(17, 101, 216, 0.18);
+}
+
+.profile-meta {
+  border-top: 1px solid var(--sl-border);
+  padding-top: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.profile-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.88rem;
+  color: var(--sl-text);
+}
+
+.profile-meta-item .bi {
+  color: var(--sl-muted);
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.security-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: var(--sl-bg);
+  border: 1px solid var(--sl-border);
+}
+
+.security-item-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--sl-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.security-item-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--sl-text);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+/* Activity feed */
+.activity-feed {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+}
+
+.activity-icon-blue   { background: rgba(17,101,216,0.12); color: #1165d8; }
+.activity-icon-teal   { background: rgba(22,181,170,0.12); color: #16b5aa; }
+.activity-icon-green  { background: rgba(20,184,93,0.12);  color: #14b85d; }
+.activity-icon-orange { background: rgba(255,140,0,0.12);  color: #e07b00; }
+
+.activity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.activity-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--sl-text);
+}
+
+.activity-time {
+  font-size: 0.75rem;
+}
+
+/* Sidebar profile footer */
+.sidebar-profile-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.65rem;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.18s ease;
+}
+
+.sidebar-profile-link:hover,
+.sidebar-profile-link.active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--sl-cyan), var(--sl-accent));
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sidebar-profile-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.sidebar-profile-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #e7f0ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-profile-role {
+  font-size: 0.72rem;
+  color: #c4d4ff;
+}
+
+.sidebar-profile-chevron {
+  color: #c4d4ff;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+/* Topbar avatar dropdown */
+.profile-dropdown {
+  min-width: 220px;
+  border-radius: 14px;
+  border: 1px solid var(--sl-border);
+  background: var(--sl-card);
+}
+
+.profile-dropdown .dropdown-item {
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  color: var(--sl-text);
+}
+
+.profile-dropdown .dropdown-item:hover {
+  background: var(--sl-bg);
+}
+
+/* Smaller avatar variant in dropdown header */
+.avatar-badge-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: #fff;
+  background: linear-gradient(145deg, var(--sl-cyan), var(--sl-accent));
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Profile theme buttons active state */
+.profile-theme-btn.active {
+  background: var(--sl-primary);
+  color: #fff;
+  border-color: var(--sl-primary);
+}
+
+/* Profile modal */
+.profile-modal-content {
+  border-radius: var(--sl-radius);
+  border: 1px solid var(--sl-border);
+  background: var(--sl-card);
+  color: var(--sl-text);
+}
+
+/* Dark mode overrides for profile */
+body.dark-mode .security-item {
+  background: #18263d;
+  border-color: var(--sl-border);
+}
+
+body.dark-mode .profile-dropdown {
+  background: #121d30;
+  border-color: var(--sl-border);
+}
+
+body.dark-mode .profile-dropdown .dropdown-item {
+  color: var(--sl-text);
+}
+
+body.dark-mode .profile-dropdown .dropdown-item:hover {
+  background: #18263d;
+}
+
+body.dark-mode .profile-modal-content {
+  background: #121d30;
+  border-color: var(--sl-border);
+  color: var(--sl-text);
+}
+
+body.dark-mode .profile-avatar-initials,
+body.dark-mode .sidebar-profile-avatar {
+  border-color: var(--sl-border);
+}
+
+/* Sidebar flex layout so profile footer sits at the bottom */
+.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-panel .menu-nav {
+  flex-grow: 1;
+}
