@@ -103,6 +103,13 @@ services:
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"
     volumes:
       - ./sample-scan:/scan-root
+      # The following Windows-specific mounts enable Scanner's built-in
+      # C:\ and UNC path auto-mapping (e.g., C:\ -> /host/drives/c).
+      # Uncomment these lines if you are running Docker Compose on Windows
+      # and want to scan local/UNC paths using the /host/drives and /host/unc
+      # conventions inside the container.
+      # - /host/drives:/host/drives
+      # - /host/unc:/host/unc
     depends_on:
       - sqlserver
       - fileinventory
