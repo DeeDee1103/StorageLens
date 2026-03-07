@@ -641,6 +641,12 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+/* Suppress all transitions during initial page load to prevent theme flash */
+body.preload,
+body.preload * {
+  transition: none !important;
+}
+
 /* Smooth transition on cards and borders when switching dark/light mode */
 .card-premium,
 .search-wrap,

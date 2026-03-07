@@ -171,6 +171,11 @@
         const locationLabels = @Html.Raw(locationLabels);
         const locationValues = @Html.Raw(locationValues);
 
+        if (document.body.classList.contains('dark-mode')) {
+            Chart.defaults.color = '#9eb0cd';
+            Chart.defaults.borderColor = '#2a3a56';
+        }
+
         new Chart(document.getElementById("storageGrowthChart"), {
             type: "line",
             data: { labels: growthLabels, datasets: [{ label: "TB", data: growthValues, borderColor: "#1165d8", backgroundColor: "rgba(17,101,216,0.16)", fill: true, tension: 0.35 }] },
@@ -190,4 +195,3 @@
         });
     </script>
 }
-</div>
