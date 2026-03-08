@@ -1,5 +1,6 @@
 bin/
 obj/
+obj_alt/
 .vs/
 .vscode/
 *.user
