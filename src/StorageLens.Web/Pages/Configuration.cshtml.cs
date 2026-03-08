@@ -238,6 +238,8 @@ public class ConfigurationModel(IConfiguration configuration, IWebHostEnvironmen
 
         var writeOpts = new JsonSerializerOptions { WriteIndented = true };
         doc[sectionName] = JsonSerializer.SerializeToNode(value, writeOpts);
-        System.IO.File.WriteAllText(path, doc.ToJsonString(writeOpts));
+        var tempPath = path + ".tmp";
+        System.IO.File.WriteAllText(tempPath, doc.ToJsonString(writeOpts));
+        System.IO.File.Move(tempPath, path, overwrite: true);
     }
 }

@@ -1,0 +1,313 @@
+@page
+@model ScannerSettingsModel
+
+<section class="mb-3 reveal-item">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a asp-page="/Settings">Settings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Scanner &amp; Performance</li>
+        </ol>
+    </nav>
+    <h1 class="dashboard-title">Scanner &amp; Performance</h1>
+    <p class="text-secondary mb-0">Fine-tune hashing worker concurrency and scanner path-mapping settings. Save here to record your preferred values, then download the per-service snippets.</p>
+</section>
+
+@if (Model.SuccessMessage is not null)
+{
+    <div class="alert alert-success alert-dismissible fade show reveal-item" role="alert">
+        <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger alert-dismissible fade show reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.IsDevelopmentEnvironment)
+{
+    <div class="alert alert-warning reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+        <strong>Read-only mode.</strong> Configuration changes can only be saved in the
+        <strong>Development</strong> environment. Currently running: <strong>@Model.EnvironmentName</strong>.
+    </div>
+}
+
+<form method="post" asp-page-handler="Save">
+
+    <!-- ═══ 1. HASHING WORKER ══════════════════════════════════════════════ -->
+    <div class="card-premium p-4 mb-4 reveal-item">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-cpu" aria-hidden="true"></i></div>
+            <h5 class="mb-0">Hashing Worker</h5>
+        </div>
+        <p class="text-secondary small mb-3">
+            These settings control the <strong>StorageLens.Services.Hashing</strong> worker.
+            Changes are saved to the web app's <code>appsettings.Development.json</code> as reference values;
+            copy the generated snippet into the Hashing service's own <code>appsettings.Development.json</code>.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="HashingMaxDegreeOfParallelism">
+                    Max Degree of Parallelism
+                </label>
+                <input class="form-control" id="HashingMaxDegreeOfParallelism"
+                       name="HashingMaxDegreeOfParallelism" type="number"
+                       value="@Model.HashingMaxDegreeOfParallelism" min="1" max="64"
+                       oninput="updateHashingPreview()">
+                <div class="form-text">
+                    Number of files hashed concurrently. Recommended: 2&ndash;8 for most machines.
+                </div>
+                <span asp-validation-for="HashingMaxDegreeOfParallelism" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label" for="HashingBatchSize">Batch Size</label>
+                <input class="form-control" id="HashingBatchSize"
+                       name="HashingBatchSize" type="number"
+                       value="@Model.HashingBatchSize" min="10" max="10000"
+                       oninput="updateHashingPreview()">
+                <div class="form-text">Files dequeued per worker iteration (10&ndash;10,000).</div>
+                <span asp-validation-for="HashingBatchSize" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label" for="HashingMaxFileSizeBytes">
+                    Max File Size to Hash
+                </label>
+                <select class="form-select" id="HashingMaxFileSizeBytes"
+                        name="HashingMaxFileSizeBytes" onchange="updateHashingPreview()">
+                    @foreach (var (bytes, label) in ScannerSettingsModel.CommonFileSizeLimits)
+                    {
+                        <option value="@bytes" selected="@(Model.HashingMaxFileSizeBytes == bytes)">@label</option>
+                    }
+                </select>
+                <div class="form-text">Files larger than this are skipped. <strong>0</strong> = no limit.</div>
+            </div>
+        </div>
+
+        <!-- Hashing snippet preview -->
+        <div class="mt-4">
+            <label class="form-label fw-semibold">
+                Hashing Service &mdash; <code>appsettings.Development.json</code> Snippet
+            </label>
+            <div class="position-relative">
+                <code id="hashingSnippet"
+                      class="d-block bg-body-secondary p-3 rounded small"
+                      style="white-space:pre;font-family:monospace;overflow-x:auto;">@Model.BuildHashingWorkerSnippet()</code>
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2"
+                        onclick="slCopyEl(this.previousElementSibling)" title="Copy to clipboard">
+                    <i class="bi bi-clipboard" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ 2. SCANNER PATH MAPPINGS ════════════════════════════════════════ -->
+    <div class="card-premium p-4 mb-4 reveal-item">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-map" aria-hidden="true"></i></div>
+            <h5 class="mb-0">Scanner Path Mappings</h5>
+        </div>
+        <p class="text-secondary small mb-3">
+            These settings control the <strong>StorageLens.Services.Scanner</strong> service.
+            Auto-mapping translates container-internal paths to host-mount paths automatically.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="ScannerEnableAutoMapping" name="ScannerEnableAutoMapping" value="true"
+                           @(Model.ScannerEnableAutoMapping ? "checked" : "")
+                           onchange="updateScannerPreview()">
+                    <label class="form-check-label" for="ScannerEnableAutoMapping">
+                        Enable automatic path mapping
+                    </label>
+                </div>
+                <div class="form-text">Translates host paths (e.g. <code>C:\</code>) to container mount paths (e.g. <code>/host/drives/c</code>).</div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="ScannerAutoMapInContainerOnly" name="ScannerAutoMapInContainerOnly" value="true"
+                           @(Model.ScannerAutoMapInContainerOnly ? "checked" : "")
+                           onchange="updateScannerPreview()">
+                    <label class="form-check-label" for="ScannerAutoMapInContainerOnly">
+                        Auto-map only inside containers
+                    </label>
+                </div>
+                <div class="form-text">Recommended: prevents unintended path rewriting during local (non-Docker) development.</div>
+            </div>
+        </div>
+
+        <!-- Reference: example custom mappings -->
+        <div class="mt-4">
+            <label class="form-label fw-semibold">Example Custom Path Mappings</label>
+            <p class="text-secondary small">
+                Add these manually to the Scanner service's <code>appsettings.json</code> under
+                <code>ScannerPathMappings.Mappings</code> and set <code>"Enabled": true</code> as needed.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm small mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mode</th>
+                            <th>Pattern</th>
+                            <th>Replacement</th>
+                            <th>Use case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge bg-primary bg-opacity-15 text-primary">Prefix</span></td>
+                            <td><code>C:\</code></td>
+                            <td><code>/host/drives/c</code></td>
+                            <td>Windows drive mapped via Docker bind mount</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-teal bg-opacity-15" style="background:rgba(20,184,166,.15);color:#0d9488;">Regex</span></td>
+                            <td><code>^\\\\([^\\]+)\\([^\\]+)(.*)$</code></td>
+                            <td><code>/host/unc/$1/$2$3</code></td>
+                            <td>UNC network share via <code>/host/unc/</code> mount</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Scanner snippet preview -->
+        <div class="mt-4">
+            <label class="form-label fw-semibold">
+                Scanner Service &mdash; <code>appsettings.Development.json</code> Snippet
+            </label>
+            <div class="position-relative">
+                <code id="scannerSnippet"
+                      class="d-block bg-body-secondary p-3 rounded small"
+                      style="white-space:pre;font-family:monospace;overflow-x:auto;">@Model.BuildScannerMappingSnippet()</code>
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2"
+                        onclick="slCopyEl(this.previousElementSibling)" title="Copy to clipboard">
+                    <i class="bi bi-clipboard" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ 3. PERFORMANCE GUIDE ════════════════════════════════════════════ -->
+    <div class="card-premium p-4 mb-4 reveal-item">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="kpi-icon kpi-icon-orange mb-0"><i class="bi bi-speedometer" aria-hidden="true"></i></div>
+            <h5 class="mb-0">Performance Tuning Guide</h5>
+        </div>
+        <p class="text-secondary small mb-3">Recommended starting points for common deployment sizes.</p>
+        <div class="table-responsive">
+            <table class="table table-sm small mb-0">
+                <thead>
+                    <tr>
+                        <th>Scenario</th>
+                        <th>Max Parallelism</th>
+                        <th>Batch Size</th>
+                        <th>Max File Size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Developer laptop (low CPU)</td>
+                        <td>2</td>
+                        <td>100</td>
+                        <td>512 MB</td>
+                    </tr>
+                    <tr>
+                        <td>Developer laptop (high CPU)</td>
+                        <td>4</td>
+                        <td>500</td>
+                        <td>2 GB</td>
+                    </tr>
+                    <tr>
+                        <td>Azure VM / server (4 vCPU)</td>
+                        <td>8</td>
+                        <td>1000</td>
+                        <td>4 GB</td>
+                    </tr>
+                    <tr>
+                        <td>Azure VM / server (8+ vCPU)</td>
+                        <td>16</td>
+                        <td>2000</td>
+                        <td>10 GB</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="text-secondary small mt-2 mb-0">
+            <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+            Hashing is I/O bound for most workloads. Increasing parallelism beyond the number of physical CPUs
+            rarely improves throughput and can increase memory pressure.
+        </p>
+    </div>
+
+    @if (Model.IsDevelopmentEnvironment)
+    {
+        <div class="reveal-item mb-4">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-floppy me-1" aria-hidden="true"></i>Save Performance Settings
+            </button>
+        </div>
+    }
+</form>
+
+@section Scripts {
+<script>
+(function () {
+    // ── clipboard (same pattern as Configuration page) ─────────────────
+    window.slCopyEl = function (el) {
+        if (!el) return;
+        navigator.clipboard.writeText(el.textContent).then(function () {
+            var btn = el.nextElementSibling;
+            if (btn) {
+                var icon = btn.querySelector('i');
+                if (icon) icon.className = 'bi bi-clipboard-check';
+                setTimeout(function () { if (icon) icon.className = 'bi bi-clipboard'; }, 1500);
+            }
+        });
+    };
+
+    // ── live snippet preview ───────────────────────────────────────────
+    function buildHashingSnippet() {
+        var parallelism = parseInt(document.getElementById('HashingMaxDegreeOfParallelism').value) || 4;
+        var batch       = parseInt(document.getElementById('HashingBatchSize').value) || 500;
+        var maxBytes    = parseInt(document.getElementById('HashingMaxFileSizeBytes').value) || 2147483648;
+        return JSON.stringify({
+            Database: { UseInMemory: false },
+            HashingWorker: { MaxDegreeOfParallelism: parallelism, BatchSize: batch, MaxFileSizeBytes: maxBytes }
+        }, null, 2);
+    }
+
+    function buildScannerSnippet() {
+        var autoMap  = document.getElementById('ScannerEnableAutoMapping').checked;
+        var contOnly = document.getElementById('ScannerAutoMapInContainerOnly').checked;
+        return JSON.stringify({
+            Database: { UseInMemory: false },
+            ScannerPathMappings: { EnableAutoMapping: autoMap, AutoMapInContainerOnly: contOnly, Mappings: [] }
+        }, null, 2);
+    }
+
+    window.updateHashingPreview = function () {
+        var el = document.getElementById('hashingSnippet');
+        if (el) el.textContent = buildHashingSnippet();
+    };
+
+    window.updateScannerPreview = function () {
+        var el = document.getElementById('scannerSnippet');
+        if (el) el.textContent = buildScannerSnippet();
+    };
+}());
+</script>
+}
