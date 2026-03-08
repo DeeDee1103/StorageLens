@@ -1,8 +1,5 @@
 namespace StorageLens.Services.Orchestrator.Clients;
 
-public class WorkflowProcessingOptions
-{
-    public const string SectionName = "WorkflowProcessing";
-
-    public int MaxConcurrentWorkflows { get; set; } = 4;
-}
+// NOTE: The previous WorkflowProcessingOptions class was removed because it was
+// not referenced anywhere (no configuration binding, DI registration, or usage),
+// and was flagged as dead code by static analysis.
