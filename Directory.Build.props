@@ -1,5 +1,7 @@
 <Project>
   <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**\obj_alt\**</DefaultItemExcludes>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <VersionPrefix>0.4.0</VersionPrefix>
     <Version>$(VersionPrefix)</Version>
     <AssemblyVersion>0.4.0.0</AssemblyVersion>
