@@ -12,6 +12,7 @@ public class ScannerSettingsModel(IConfiguration configuration, IWebHostEnvironm
 
     public bool IsDevelopmentEnvironment { get; private set; }
     public string EnvironmentName { get; private set; } = string.Empty;
+    public string SelectedEditEnvironment { get; private set; } = EnvironmentSettingsModel.Development;
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
@@ -70,7 +71,7 @@ public class ScannerSettingsModel(IConfiguration configuration, IWebHostEnvironm
             return Page();
         }
 
-        MergeIntoDevSettings(ScannerPerformanceOptions.SectionName, new
+        MergeIntoTargetSettings(ScannerPerformanceOptions.SectionName, new
         {
             HashingMaxDegreeOfParallelism,
             HashingBatchSize,
@@ -79,7 +80,7 @@ public class ScannerSettingsModel(IConfiguration configuration, IWebHostEnvironm
             ScannerAutoMapInContainerOnly,
         });
 
-        SuccessMessage = "Scanner & performance settings saved to appsettings.Development.json. " +
+        SuccessMessage = $"Scanner & performance settings saved to appsettings.{SelectedEditEnvironment}.json. " +
                          "Download the per-service snippets below and apply them to each service's appsettings.Development.json.";
         return Page();
     }
@@ -134,6 +135,7 @@ public class ScannerSettingsModel(IConfiguration configuration, IWebHostEnvironm
         ViewData["Nav"] = "Settings";
         IsDevelopmentEnvironment = environment.IsDevelopment();
         EnvironmentName = environment.EnvironmentName;
+        SelectedEditEnvironment = EnvironmentSettingsModel.ResolveEditEnvironment(Request);
     }
 
     private void LoadCurrentSettings()
@@ -146,9 +148,10 @@ public class ScannerSettingsModel(IConfiguration configuration, IWebHostEnvironm
         ScannerAutoMapInContainerOnly = s.GetValue("ScannerAutoMapInContainerOnly", true);
     }
 
-    private void MergeIntoDevSettings(string sectionName, object value)
+    private void MergeIntoTargetSettings(string sectionName, object value)
     {
-        var path = Path.Combine(environment.ContentRootPath, "appsettings.Development.json");
+        var fileName = $"appsettings.{SelectedEditEnvironment}.json";
+        var path = Path.Combine(environment.ContentRootPath, fileName);
         var json = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : "{}";
         var doc = JsonNode.Parse(json) as JsonObject ?? [];
         var writeOpts = new JsonSerializerOptions { WriteIndented = true };

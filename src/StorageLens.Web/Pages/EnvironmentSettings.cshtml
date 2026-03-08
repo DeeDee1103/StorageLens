@@ -1,0 +1,188 @@
+@page
+@model EnvironmentSettingsModel
+
+<section class="mb-3 reveal-item">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a asp-page="/Settings">Settings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Environment</li>
+        </ol>
+    </nav>
+    <h1 class="dashboard-title">Environment Settings</h1>
+    <p class="text-secondary mb-0">Control which environment&rsquo;s configuration files are edited when you save changes on other settings pages.</p>
+</section>
+
+@if (Model.SuccessMessage is not null)
+{
+    <div class="alert alert-success alert-dismissible fade show reveal-item" role="alert">
+        <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.IsDevelopmentEnvironment)
+{
+    <div class="alert alert-warning reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+        <strong>Read-only mode.</strong> The environment switch is only available when running in the
+        <strong>Development</strong> runtime. Currently running: <strong>@Model.CurrentEnvironment</strong>.
+    </div>
+}
+
+<!-- ═══ 1. RUNTIME ENVIRONMENT ════════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-info-circle" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Runtime Environment</h5>
+    </div>
+    <p class="text-secondary small mb-3">The environment this instance of StorageLens is currently running in. Set via the <code>ASPNETCORE_ENVIRONMENT</code> variable.</p>
+    <div class="d-flex align-items-center gap-3 mb-2">
+        <span class="fs-5 fw-semibold">@Model.CurrentEnvironment</span>
+        @if (Model.IsDevelopmentEnvironment)
+        {
+            <span class="badge bg-primary bg-opacity-20 text-primary">Development</span>
+        }
+        else
+        {
+            <span class="badge bg-warning bg-opacity-20 text-warning">@Model.CurrentEnvironment</span>
+        }
+    </div>
+    <p class="text-secondary small mb-0">
+        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+        The runtime environment cannot be changed here — it is determined at startup.
+    </p>
+</div>
+
+<!-- ═══ 2. ACTIVE EDIT ENVIRONMENT ════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-toggles" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Active Edit Environment</h5>
+    </div>
+    <p class="text-secondary small mb-3">
+        Choose which environment&rsquo;s <code>appsettings.{Environment}.json</code> is written when you save
+        changes on the Database Configuration, Notifications, and Scanner &amp; Performance pages.
+    </p>
+
+    <div class="mb-3">
+        <span class="text-secondary small me-2">Currently editing:</span>
+        @if (Model.SelectedEditEnvironment == "Production")
+        {
+            <span class="badge bg-danger bg-opacity-20 text-danger px-3 py-2">
+                <i class="bi bi-cloud-fill me-1" aria-hidden="true"></i>Production
+            </span>
+        }
+        else
+        {
+            <span class="badge bg-primary bg-opacity-20 text-primary px-3 py-2">
+                <i class="bi bi-code-slash me-1" aria-hidden="true"></i>Development
+            </span>
+        }
+    </div>
+
+    @if (Model.IsDevelopmentEnvironment)
+    {
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4">
+                <form method="post" asp-page-handler="Switch">
+                    <input type="hidden" name="target" value="Development">
+                    <button type="submit"
+                            class="btn @(Model.SelectedEditEnvironment == "Development" ? "btn-primary" : "btn-outline-primary") w-100 text-start p-3"
+                            @(Model.SelectedEditEnvironment == "Development" ? "disabled aria-current=\"true\"" : "")>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-code-slash fs-5" aria-hidden="true"></i>
+                            <div>
+                                <div class="fw-semibold">Development</div>
+                                <div class="small opacity-75">Writes to <code>appsettings.Development.json</code></div>
+                            </div>
+                            @if (Model.SelectedEditEnvironment == "Development")
+                            {
+                                <i class="bi bi-check-circle-fill ms-auto text-success" aria-hidden="true"></i>
+                            }
+                        </div>
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <form method="post" asp-page-handler="Switch">
+                    <input type="hidden" name="target" value="Production">
+                    <button type="submit"
+                            class="btn @(Model.SelectedEditEnvironment == "Production" ? "btn-danger" : "btn-outline-danger") w-100 text-start p-3"
+                            @(Model.SelectedEditEnvironment == "Production" ? "disabled aria-current=\"true\"" : "")>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-cloud-fill fs-5" aria-hidden="true"></i>
+                            <div>
+                                <div class="fw-semibold">Production</div>
+                                <div class="small opacity-75">Writes to <code>appsettings.Production.json</code></div>
+                            </div>
+                            @if (Model.SelectedEditEnvironment == "Production")
+                            {
+                                <i class="bi bi-check-circle-fill ms-auto text-success" aria-hidden="true"></i>
+                            }
+                        </div>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        @if (Model.SelectedEditEnvironment == "Production")
+        {
+            <div class="alert alert-warning mt-3 mb-0" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+                <strong>Production edit mode active.</strong> Any settings you save on the Database Configuration,
+                Notifications, and Scanner &amp; Performance pages will be written to
+                <code>appsettings.Production.json</code>. These values will be used when StorageLens is deployed
+                to the Production environment.
+            </div>
+        }
+    }
+</div>
+
+<!-- ═══ 3. CONFIGURATION FILE HIERARCHY ═══════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-orange mb-0"><i class="bi bi-file-earmark-code" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Configuration File Hierarchy</h5>
+    </div>
+    <p class="text-secondary small mb-3">
+        ASP.NET Core merges configuration from these sources in order; later entries override earlier ones.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Purpose</th>
+                    <th>Loaded when</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>appsettings.json</code></td>
+                    <td>Base defaults shared across all environments</td>
+                    <td>Always</td>
+                </tr>
+                <tr>
+                    <td><code>appsettings.Development.json</code></td>
+                    <td>Developer overrides (LocalDB, dev endpoints, verbose logging)</td>
+                    <td><code>ASPNETCORE_ENVIRONMENT=Development</code></td>
+                </tr>
+                <tr>
+                    <td><code>appsettings.Production.json</code></td>
+                    <td>Production overrides (Azure SQL, production endpoints, reduced logging)</td>
+                    <td><code>ASPNETCORE_ENVIRONMENT=Production</code></td>
+                </tr>
+                <tr>
+                    <td>User Secrets</td>
+                    <td>Sensitive values (passwords, tokens) — never committed to source control</td>
+                    <td>Development only, by convention</td>
+                </tr>
+                <tr>
+                    <td>Environment Variables</td>
+                    <td>Container / cloud-injected values — highest precedence</td>
+                    <td>Always</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

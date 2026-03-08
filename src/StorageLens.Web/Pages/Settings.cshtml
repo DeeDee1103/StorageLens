@@ -6,6 +6,35 @@
     <p class="text-secondary mb-0">Manage environment configuration, integrations, and system policies.</p>
 </section>
 
+<!-- Environment banner -->
+<div class="d-flex align-items-center gap-2 mb-3 reveal-item">
+    <span class="text-secondary small">
+        <i class="bi bi-server me-1" aria-hidden="true"></i>Runtime:
+    </span>
+    @if (Model.IsDevelopmentEnvironment)
+    {
+        <span class="badge bg-primary bg-opacity-20 text-primary">Development</span>
+    }
+    else
+    {
+        <span class="badge bg-warning bg-opacity-20 text-warning">@Model.EnvironmentName</span>
+    }
+    <span class="text-secondary small ms-2">
+        <i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Editing:
+    </span>
+    @if (Model.SelectedEditEnvironment == "Production")
+    {
+        <span class="badge bg-danger bg-opacity-20 text-danger">Production</span>
+    }
+    else
+    {
+        <span class="badge bg-primary bg-opacity-20 text-primary">Development</span>
+    }
+    <a asp-page="/EnvironmentSettings" class="btn btn-sm btn-outline-secondary ms-auto">
+        <i class="bi bi-toggles me-1" aria-hidden="true"></i>Switch environment
+    </a>
+</div>
+
 <!-- Active settings cards -->
 <section class="row g-3 reveal-item">
     <div class="col-md-6 col-lg-4">
@@ -53,6 +82,27 @@
                 </div>
                 <p class="text-secondary small flex-grow-1">Fine-tune hashing worker parallelism and batch sizes, configure scanner path mappings, and download per-service appsettings snippets.</p>
                 <span class="badge bg-primary bg-opacity-15 text-primary align-self-start">Configure &rsaquo;</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a asp-page="/EnvironmentSettings" class="text-decoration-none">
+            <div class="card-premium p-3 h-100 d-flex flex-column" style="border-color: var(--sl-accent, #3b82f6);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-toggles" aria-hidden="true"></i></div>
+                    <h5 class="mb-0">Environment</h5>
+                </div>
+                <p class="text-secondary small flex-grow-1">Switch the active edit environment between Development and Production to apply settings to the correct <code>appsettings.{Environment}.json</code> file.</p>
+                @if (Model.SelectedEditEnvironment == "Production")
+                {
+                    <span class="badge bg-danger bg-opacity-15 text-danger align-self-start">
+                        <i class="bi bi-cloud-fill me-1" aria-hidden="true"></i>Production active &rsaquo;
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-primary bg-opacity-15 text-primary align-self-start">Configure &rsaquo;</span>
+                }
             </div>
         </a>
     </div>

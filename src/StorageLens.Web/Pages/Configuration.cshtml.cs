@@ -12,6 +12,7 @@ public class ConfigurationModel(IConfiguration configuration, IWebHostEnvironmen
 
     public bool IsDevelopmentEnvironment { get; private set; }
     public string EnvironmentName { get; private set; } = string.Empty;
+    public string SelectedEditEnvironment { get; private set; } = EnvironmentSettingsModel.Development;
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
@@ -85,7 +86,7 @@ public class ConfigurationModel(IConfiguration configuration, IWebHostEnvironmen
             return Page();
         }
 
-        MergeIntoDevSettings(DatabaseConfigOptions.SectionName, new
+        MergeIntoTargetSettings(DatabaseConfigOptions.SectionName, new
         {
             Provider = DbProvider,
             UseInMemory,
@@ -102,7 +103,7 @@ public class ConfigurationModel(IConfiguration configuration, IWebHostEnvironmen
             ApplicationName,
         });
 
-        SuccessMessage = "Database configuration saved to appsettings.Development.json. Restart each service for changes to take effect.";
+        SuccessMessage = $"Database configuration saved to appsettings.{SelectedEditEnvironment}.json. Restart each service for changes to take effect.";
         return Page();
     }
 
@@ -122,7 +123,7 @@ public class ConfigurationModel(IConfiguration configuration, IWebHostEnvironmen
             return Page();
         }
 
-        MergeIntoDevSettings(ServiceEndpointsOptions.SectionName, new
+        MergeIntoTargetSettings(ServiceEndpointsOptions.SectionName, new
         {
             Locations = LocationsEndpoint,
             ScanJobs = ScanJobsEndpoint,
@@ -132,7 +133,7 @@ public class ConfigurationModel(IConfiguration configuration, IWebHostEnvironmen
             Orchestrator = OrchestratorEndpoint,
         });
 
-        SuccessMessage = "Service endpoints saved to appsettings.Development.json. Restart the web app for changes to take effect.";
+        SuccessMessage = $"Service endpoints saved to appsettings.{SelectedEditEnvironment}.json. Restart the web app for changes to take effect.";
         return Page();
     }
 
@@ -191,6 +192,7 @@ public class ConfigurationModel(IConfiguration configuration, IWebHostEnvironmen
         ViewData["Nav"] = "Settings";
         IsDevelopmentEnvironment = environment.IsDevelopment();
         EnvironmentName = environment.EnvironmentName;
+        SelectedEditEnvironment = EnvironmentSettingsModel.ResolveEditEnvironment(Request);
     }
 
     private void LoadCurrentSettings()
@@ -230,9 +232,10 @@ public class ConfigurationModel(IConfiguration configuration, IWebHostEnvironmen
                IsValid(AnalyticsEndpoint) && IsValid(OrchestratorEndpoint);
     }
 
-    private void MergeIntoDevSettings(string sectionName, object value)
+    private void MergeIntoTargetSettings(string sectionName, object value)
     {
-        var path = Path.Combine(environment.ContentRootPath, "appsettings.Development.json");
+        var fileName = $"appsettings.{SelectedEditEnvironment}.json";
+        var path = Path.Combine(environment.ContentRootPath, fileName);
         var json = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : "{}";
         var doc = JsonNode.Parse(json) as JsonObject ?? [];
 
