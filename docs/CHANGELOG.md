@@ -7,6 +7,21 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 ## [Unreleased]
 
 ### Added
+- **Environment Settings page** (`/EnvironmentSettings`) — lets engineers switch the active edit environment between **Development** and **Production**:
+  - Displays the current runtime environment (from `ASPNETCORE_ENVIRONMENT`) with a badge.
+  - Two-button switcher persists the chosen edit target in a server-side cookie (`sl-edit-env`).
+  - Contextual warning banner appears when Production edit mode is active.
+  - Reference table explaining the ASP.NET Core configuration-file hierarchy (base → Development / Production → User Secrets → Environment Variables).
+- **Environment switcher banner** on the Settings hub page — shows the current runtime environment and active edit environment at a glance, with a direct link to the Environment Settings page.
+- **Environment indicator** on Database Configuration, Notifications, and Scanner & Performance settings pages — a small badge displays which environment's file will be written, with a quick "Switch" link.
+- `appsettings.Production.json` — production configuration scaffold with Azure SQL defaults, higher connection-pool limits, production-appropriate service endpoints, and reduced logging verbosity.
+
+### Changed
+- Database Configuration, Notification Settings, and Scanner & Performance **Save** buttons now indicate the target environment (blue for Development, red for Production) and include the environment name in the button label.
+- `MergeIntoDevSettings` helper renamed to `MergeIntoTargetSettings` in all three settings page models; it now derives the target file name dynamically from the active edit environment cookie instead of always writing to `appsettings.Development.json`.
+- `SettingsModel` now accepts `IWebHostEnvironment` to expose the runtime environment and selected edit environment to the Settings hub view.
+
+
 - **Appearance & Display settings page** (`/AppearanceSettings`) — fully functional browser-side preference manager:
   - Visual theme picker cards (Light, Dark, System default) with miniature UI previews; applies the theme immediately and persists to `localStorage`.
   - Default landing page dropdown (Dashboard, Storage Locations, Scan Jobs, File Inventory, Duplicates, Reports).
