@@ -26,3 +26,15 @@ Engineers implementing features across UI, service APIs, workflow stages, and sh
 - Prefer additive contract changes
 - Preserve correlation ID propagation
 - Include health and operational considerations in feature design
+
+## Frontend Script Organization
+
+### Initialization Pattern
+
+Frontend initialization is organized by feature/module:
+
+- **`site.js`** - Common/global page initialization (theme, search, animations)
+- **`profile.js`** - Profile page specific initialization and avatar management
+- **Page-specific scripts** - Loaded via `@section Scripts { <script> }` in individual `.cshtml.cs` pages
+
+Each script module is responsible for its own DOM initialization. Do not mix initialization concerns in `site.js`; keep page-specific or feature-specific logic in dedicated modules.

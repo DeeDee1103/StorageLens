@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    This file was previously an auto-generated NuGet MSBuild targets file
+    under obj_alt. Generated build artifacts should not be committed to
+    source control. The contents have been intentionally cleared to avoid
+    tracking generated imports; MSBuild will regenerate the appropriate
+    .nuget.g.targets file under its normal obj directory during restore/build.
+  -->
+</Project>

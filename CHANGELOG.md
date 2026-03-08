@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+- `WorkflowProcessingOptions` configuration class for `StorageLens.Services.Orchestrator` to control concurrent scan workflow processing via `MaxConcurrentWorkflows` setting.
+
+### Changed
+- Frontend script organization improved: profile initialization moved from `site.js` to dedicated `profile.js` module, keeping page-specific initialization concerns separate from global initialization.
+
 ## [0.5.0] - 2026-03-06
 
 ### Changed

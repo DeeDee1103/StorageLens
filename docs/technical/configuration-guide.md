@@ -12,8 +12,28 @@
 - `ConnectionStrings`
 - `Database:UseInMemory`
 - `UpstreamServices`
-- Service-specific workers/options (for example `HashingWorker`)
+- Service-specific workers/options (for example `HashingWorker`, `WorkflowProcessing`)
 - Logging levels
+
+## Service Configuration Reference
+
+### Orchestrator Service (`StorageLens.Services.Orchestrator`)
+
+#### WorkflowProcessing
+
+Controls concurrent scan workflow processing behavior:
+
+```json
+{
+  "WorkflowProcessing": {
+    "MaxConcurrentWorkflows": 4
+  }
+}
+```
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `MaxConcurrentWorkflows` | `int` | `4` | Maximum number of concurrent scan workflows that can be processed simultaneously. Adjust based on system resources and storage I/O capacity. |
 
 ## Docker Compose Variables
 
