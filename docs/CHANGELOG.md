@@ -6,7 +6,25 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Added
+- **Database Configuration page** (`/Configuration`) — a full-featured developer configuration dashboard accessible from the Settings page, including:
+  - Database provider toggle: **Local SQL Server (LocalDB)** or **Azure SQL Database**.
+  - LocalDB fields: instance name and database name.
+  - Azure SQL fields: server name, database name, user ID, connection timeout, Encrypt, Trust Server Certificate, plus a read-only password field with a reminder to use `dotnet user-secrets`.
+  - Advanced connection options (expandable): Min/Max Pool Size and Application Name.
+  - Live-updating **Generated Connection String Preview** with a copy-to-clipboard button; the preview updates as form fields are typed.
+  - **Per-Service Connection Strings** panel listing all seven backend services (Locations, ScanJobs, FileInventory, Duplicates, Scanner, Hashing, Orchestrator) with individual copy buttons and a **Download appsettings snippet (JSON)** button.
+  - **Service Endpoints** form to configure the base URLs used by the web front-end to reach each backend microservice.
+  - In development mode: **Save** buttons persist database config and service endpoints to `appsettings.Development.json`.
+  - In non-development environments: read-only display with an informational banner.
+  - In-memory database toggle (per-service, dev only) with a clear label.
+- `DatabaseConfigOptions` class (`Services/DatabaseConfigOptions.cs`) — strongly-typed options class bound from the `DatabaseConfig` configuration section, covering all provider, LocalDB, Azure SQL, and advanced pooling settings.
+- `appsettings.json` — new `DatabaseConfig` section with LocalDB defaults.
+- `appsettings.Development.json` — new `DatabaseConfig` section with Azure SQL template values for local Azure development.
+
 ### Changed
+- `Settings.cshtml`: Added a functional **Database Configuration** card at the top of the Settings page, linked to the new `/Configuration` page, visually distinguished from the placeholder "Coming soon" cards below it.
+
 - `AnalyticsService.GetDashboardAsync`: Total Files KPI now always uses `locations.Sum(x => x.FileCount)` (accurate total from location metadata) instead of the API-capped `files.Count` value which was limited to the first 2,000 file records.
 - `AnalyticsService.GetDashboardAsync`: Storage Growth Trend chart now correctly plots storage in TB (sum of `TotalSizeBytes` for distinct locations scanned each day, divided to TB) instead of the raw `FilesScanned` count that was previously used.
 - Dashboard `Index.cshtml`: Chart.js text colour (`Chart.defaults.color`) is now set to the muted dark-mode palette (`#9eb0cd`) when dark mode is active, so axis labels and tick marks remain readable against the dark card backgrounds.

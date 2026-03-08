@@ -8,6 +8,9 @@ builder.Services.AddRazorPages();
 builder.Services.Configure<ServiceEndpointsOptions>(
     builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName));
 
+builder.Services.Configure<DatabaseConfigOptions>(
+    builder.Configuration.GetSection(DatabaseConfigOptions.SectionName));
+
 var endpoints = builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName).Get<ServiceEndpointsOptions>()
                ?? new ServiceEndpointsOptions();
 

@@ -3,10 +3,25 @@
 
 <section class="mb-3 reveal-item">
     <h1 class="dashboard-title">Settings</h1>
-    <p class="text-secondary mb-0">Environment, integration, and policy options will be added in the next milestone.</p>
+    <p class="text-secondary mb-0">Manage environment configuration, integrations, and system policies.</p>
 </section>
 
 <section class="row g-3 reveal-item">
+    <div class="col-md-6 col-lg-4">
+        <a asp-page="/Configuration" class="text-decoration-none">
+            <div class="card-premium p-3 h-100 d-flex flex-column" style="border-color: var(--sl-accent, #3b82f6);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-database-gear" aria-hidden="true"></i></div>
+                    <h5 class="mb-0">Database Configuration</h5>
+                </div>
+                <p class="text-secondary small flex-grow-1">Switch between LocalDB and Azure SQL, configure connection parameters, generate per-service connection strings, and edit service endpoint URLs.</p>
+                <span class="badge bg-primary bg-opacity-15 text-primary align-self-start">Configure &rsaquo;</span>
+            </div>
+        </a>
+    </div>
+</section>
+
+<section class="row g-3 reveal-item mt-0">
     <div class="col-md-6 col-lg-4">
         <div class="card-premium p-3 h-100 d-flex flex-column">
             <div class="d-flex align-items-center gap-2 mb-2">

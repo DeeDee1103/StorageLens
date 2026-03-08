@@ -1,0 +1,434 @@
+@page
+@model ConfigurationModel
+
+<section class="mb-3 reveal-item">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a asp-page="/Settings">Settings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Database Configuration</li>
+        </ol>
+    </nav>
+    <h1 class="dashboard-title">Database Configuration</h1>
+    <p class="text-secondary mb-0">Configure database connections and service endpoints for local development or Azure SQL.</p>
+</section>
+
+@if (Model.SuccessMessage is not null)
+{
+    <div class="alert alert-success alert-dismissible fade show reveal-item" role="alert">
+        <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger alert-dismissible fade show reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.IsDevelopmentEnvironment)
+{
+    <div class="alert alert-warning reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+        <strong>Read-only mode.</strong> Configuration changes can only be saved in the
+        <strong>Development</strong> environment. Currently running: <strong>@Model.EnvironmentName</strong>.
+    </div>
+}
+
+<!-- ═══════════════════ 1. DATABASE CONNECTION ═══════════════════-->
+<form method="post" asp-page-handler="SaveDbConfig" class="reveal-item">
+    <div class="card-premium p-4 mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-database-gear" aria-hidden="true"></i></div>
+            <h5 class="mb-0">Database Connection</h5>
+        </div>
+        <p class="text-secondary small mb-4">Choose your database provider and configure connection parameters. Saved settings are written to <code>appsettings.Development.json</code>.</p>
+
+        <!-- Provider toggle-->
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Database Provider</label>
+            <div class="d-flex flex-wrap gap-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="DbProvider" id="providerLocalDb"
+                           value="LocalDb" @(Model.DbProvider == "LocalDb" ? "checked" : "")
+                           onchange="onProviderChange(this.value)">
+                    <label class="form-check-label" for="providerLocalDb">
+                        <i class="bi bi-pc-display-horizontal me-1" aria-hidden="true"></i>Local SQL Server (LocalDB)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="DbProvider" id="providerAzureSql"
+                           value="AzureSql" @(Model.DbProvider == "AzureSql" ? "checked" : "")
+                           onchange="onProviderChange(this.value)">
+                    <label class="form-check-label" for="providerAzureSql">
+                        <i class="bi bi-cloud me-1" aria-hidden="true"></i>Azure SQL Database
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- In-memory toggle-->
+        <div class="mb-4">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="useInMemory"
+                       name="UseInMemory" value="true" @(Model.UseInMemory ? "checked" : "")>
+                <label class="form-check-label" for="useInMemory">
+                    Use in-memory database
+                    <span class="badge bg-info text-dark ms-1">dev only — data lost on restart</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- LocalDB fields-->
+        <div id="localDbFields" @(Model.DbProvider == "AzureSql" ? "style=\"display:none\"" : "")>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="LocalDbInstance">LocalDB Instance Name</label>
+                    <input class="form-control" id="LocalDbInstance" name="LocalDbInstance" type="text"
+                           value="@Model.LocalDbInstance" placeholder="MSSQLLocalDB"
+                           oninput="updateConnectionPreview()">
+                    <div class="form-text">Instance name used in <code>Server=(localdb)\{instance}</code>. Typically <code>MSSQLLocalDB</code> for Visual Studio installs.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="LocalDbDatabase">Database Name</label>
+                    <input class="form-control" id="LocalDbDatabase" name="LocalDbDatabase" type="text"
+                           value="@Model.LocalDbDatabase" placeholder="StorageLensMvp"
+                           oninput="updateConnectionPreview()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Azure SQL fields-->
+        <div id="azureSqlFields" @(Model.DbProvider != "AzureSql" ? "style=\"display:none\"" : "")>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="AzureSqlServer">
+                        Azure SQL Server <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <input class="form-control" id="AzureSqlServer" name="AzureSqlServer" type="text"
+                               value="@Model.AzureSqlServer" placeholder="your-server-name"
+                               oninput="updateConnectionPreview()">
+                        <span class="input-group-text text-secondary small">.database.windows.net</span>
+                    </div>
+                    <span asp-validation-for="AzureSqlServer" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="AzureSqlDatabase">Database Name</label>
+                    <input class="form-control" id="AzureSqlDatabase" name="AzureSqlDatabase" type="text"
+                           value="@Model.AzureSqlDatabase" placeholder="StorageLens"
+                           oninput="updateConnectionPreview()">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="AzureSqlUserId">User ID</label>
+                    <input class="form-control" id="AzureSqlUserId" name="AzureSqlUserId" type="text"
+                           value="@Model.AzureSqlUserId" placeholder="sqladmin"
+                           oninput="updateConnectionPreview()">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <input class="form-control bg-body-secondary" type="password" readonly
+                               value="stored-in-user-secrets" aria-label="Password is stored in user secrets">
+                        <span class="input-group-text text-success" title="Stored securely">
+                            <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+                        </span>
+                    </div>
+                    <div class="form-text">
+                        Store the password with
+                        <code>dotnet user-secrets set "ConnectionStrings:&lt;key&gt;" "...;Password=..."</code>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="ConnectionTimeout">Connection Timeout (s)</label>
+                    <input class="form-control" id="ConnectionTimeout" name="ConnectionTimeout" type="number"
+                           value="@Model.ConnectionTimeout" min="0" max="300"
+                           oninput="updateConnectionPreview()">
+                </div>
+                <div class="col-md-4 d-flex align-items-center">
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="AzureSqlEncrypt"
+                               name="AzureSqlEncrypt" value="true"
+                               @(Model.AzureSqlEncrypt ? "checked" : "")
+                               onchange="updateConnectionPreview()">
+                        <label class="form-check-label" for="AzureSqlEncrypt">Encrypt connection</label>
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-center">
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="AzureSqlTrustServerCertificate"
+                               name="AzureSqlTrustServerCertificate" value="true"
+                               @(Model.AzureSqlTrustServerCertificate ? "checked" : "")
+                               onchange="updateConnectionPreview()">
+                        <label class="form-check-label" for="AzureSqlTrustServerCertificate">Trust Server Certificate</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional options-->
+        <details class="mb-3">
+            <summary class="fw-semibold text-secondary small" style="cursor:pointer;">
+                <i class="bi bi-sliders me-1" aria-hidden="true"></i>Advanced Connection Options
+            </summary>
+            <div class="row g-3 mt-2">
+                <div class="col-md-4">
+                    <label class="form-label" for="MinPoolSize">Min Pool Size</label>
+                    <input class="form-control" id="MinPoolSize" name="MinPoolSize" type="number"
+                           value="@Model.MinPoolSize" min="0" max="100"
+                           oninput="updateConnectionPreview()">
+                    <div class="form-text">0 = driver default.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="MaxPoolSize">Max Pool Size</label>
+                    <input class="form-control" id="MaxPoolSize" name="MaxPoolSize" type="number"
+                           value="@Model.MaxPoolSize" min="1" max="1000"
+                           oninput="updateConnectionPreview()">
+                    <div class="form-text">Default: 100.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="ApplicationName">Application Name</label>
+                    <input class="form-control" id="ApplicationName" name="ApplicationName" type="text"
+                           value="@Model.ApplicationName" placeholder="StorageLens"
+                           oninput="updateConnectionPreview()">
+                    <div class="form-text">Visible in Azure SQL activity logs.</div>
+                </div>
+            </div>
+        </details>
+
+        <!-- Connection string preview-->
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Generated Connection String Preview</label>
+            <div class="position-relative">
+                <code id="connectionStringPreview"
+                      class="d-block bg-body-secondary p-3 rounded small"
+                      style="word-break:break-all;white-space:pre-wrap;font-family:monospace;">@Model.GetConnectionString()</code>
+                <button type="button" class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2"
+                        onclick="slCopy('connectionStringPreview')" title="Copy to clipboard">
+                    <i class="bi bi-clipboard" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="form-text">Each service appends its own <code>Database=</code> / connection-string key; this preview shows the shared parameters.</div>
+        </div>
+
+        @if (Model.IsDevelopmentEnvironment)
+        {
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-floppy me-1" aria-hidden="true"></i>Save Database Configuration
+            </button>
+        }
+    </div>
+</form>
+
+<!-- ═══════════════════ 2. PER-SERVICE CONNECTION STRINGS ════════-->
+<section class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-plugin" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Per-Service Connection Strings</h5>
+    </div>
+    <p class="text-secondary small mb-4">
+        Copy these into each service's <code>appsettings.Development.json</code> under
+        <code>ConnectionStrings</code>. Passwords must be provided separately via
+        <code>dotnet user-secrets</code>.
+    </p>
+    <div class="row g-3" id="serviceConnectionStrings">
+        @foreach (var (label, key) in ConfigurationModel.ServiceDbKeys)
+        {
+            <div class="col-12">
+                <label class="form-label small fw-semibold">@label &mdash; <code>@key</code></label>
+                <div class="position-relative">
+                    <code class="service-cs d-block bg-body-secondary p-2 rounded small"
+                          data-key="@key"
+                          style="word-break:break-all;white-space:pre-wrap;font-family:monospace;">@Model.GetConnectionString()</code>
+                    <button type="button" class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-1"
+                            onclick="slCopyEl(this.previousElementSibling)" title="Copy to clipboard">
+                        <i class="bi bi-clipboard" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="mt-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="downloadServiceConfig()">
+            <i class="bi bi-download me-1" aria-hidden="true"></i>Download appsettings snippet (JSON)
+        </button>
+    </div>
+</section>
+
+<!-- ═══════════════════ 3. SERVICE ENDPOINTS ════════════════════-->
+<form method="post" asp-page-handler="SaveEndpoints" class="reveal-item">
+    <div class="card-premium p-4 mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-hdd-network" aria-hidden="true"></i></div>
+            <h5 class="mb-0">Service Endpoints</h5>
+        </div>
+        <p class="text-secondary small mb-4">
+            Base URLs used by the web front-end to reach each backend microservice.
+            Changes are saved to the web app's <code>appsettings.Development.json</code>.
+        </p>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" for="LocationsEndpoint">Locations Service</label>
+                <input class="form-control" id="LocationsEndpoint" name="LocationsEndpoint"
+                       type="url" value="@Model.LocationsEndpoint" placeholder="http://localhost:5101/">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="ScanJobsEndpoint">Scan Jobs Service</label>
+                <input class="form-control" id="ScanJobsEndpoint" name="ScanJobsEndpoint"
+                       type="url" value="@Model.ScanJobsEndpoint" placeholder="http://localhost:5102/">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="FileInventoryEndpoint">File Inventory Service</label>
+                <input class="form-control" id="FileInventoryEndpoint" name="FileInventoryEndpoint"
+                       type="url" value="@Model.FileInventoryEndpoint" placeholder="http://localhost:5103/">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="DuplicatesEndpoint">Duplicates Service</label>
+                <input class="form-control" id="DuplicatesEndpoint" name="DuplicatesEndpoint"
+                       type="url" value="@Model.DuplicatesEndpoint" placeholder="http://localhost:5104/">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="AnalyticsEndpoint">Analytics Service</label>
+                <input class="form-control" id="AnalyticsEndpoint" name="AnalyticsEndpoint"
+                       type="url" value="@Model.AnalyticsEndpoint" placeholder="http://localhost:5105/">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="OrchestratorEndpoint">Orchestrator Service</label>
+                <input class="form-control" id="OrchestratorEndpoint" name="OrchestratorEndpoint"
+                       type="url" value="@Model.OrchestratorEndpoint" placeholder="http://localhost:5108/">
+            </div>
+        </div>
+
+        @if (Model.IsDevelopmentEnvironment)
+        {
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-floppy me-1" aria-hidden="true"></i>Save Service Endpoints
+                </button>
+            </div>
+        }
+    </div>
+</form>
+
+@section Scripts {
+<script>
+(function () {
+    // ── helpers ────────────────────────────────────────────────────────────
+    function getVal(id, fallback) {
+        var el = document.getElementById(id);
+        return el ? el.value.trim() : fallback;
+    }
+    function isChecked(id) {
+        var el = document.getElementById(id);
+        return el ? el.checked : false;
+    }
+
+    // ── provider switch ────────────────────────────────────────────────────
+    window.onProviderChange = function (val) {
+        document.getElementById('localDbFields').style.display = val === 'AzureSql' ? 'none' : '';
+        document.getElementById('azureSqlFields').style.display = val === 'AzureSql' ? '' : 'none';
+        updateConnectionPreview();
+    };
+
+    // ── connection string builder ──────────────────────────────────────────
+    function buildLocalDbCs() {
+        var inst = getVal('LocalDbInstance', 'MSSQLLocalDB') || 'MSSQLLocalDB';
+        var db   = getVal('LocalDbDatabase', 'StorageLensMvp') || 'StorageLensMvp';
+        var app  = getVal('ApplicationName', 'StorageLens');
+        var minP = parseInt(getVal('MinPoolSize', '0')) || 0;
+        var maxP = parseInt(getVal('MaxPoolSize', '100')) || 100;
+
+        var cs = 'Server=(localdb)\\' + inst + ';Database=' + db +
+                 ';Trusted_Connection=True;TrustServerCertificate=True;';
+        if (app) cs += 'Application Name=' + app + ';';
+        if (minP > 0) cs += 'Min Pool Size=' + minP + ';';
+        if (maxP !== 100) cs += 'Max Pool Size=' + maxP + ';';
+        return cs;
+    }
+
+    function buildAzureSqlCs() {
+        var srv  = getVal('AzureSqlServer', '') || '<your-server>';
+        var db   = getVal('AzureSqlDatabase', 'StorageLens') || 'StorageLens';
+        var uid  = getVal('AzureSqlUserId', '') || '<your-sql-user>';
+        var to   = parseInt(getVal('ConnectionTimeout', '30')) || 30;
+        var enc  = isChecked('AzureSqlEncrypt');
+        var tc   = isChecked('AzureSqlTrustServerCertificate');
+        var app  = getVal('ApplicationName', 'StorageLens');
+        var minP = parseInt(getVal('MinPoolSize', '0')) || 0;
+        var maxP = parseInt(getVal('MaxPoolSize', '100')) || 100;
+
+        var cs = 'Server=tcp:' + srv + '.database.windows.net,1433;Initial Catalog=' + db +
+                 ';Encrypt=' + enc + ';TrustServerCertificate=' + tc +
+                 ';Connection Timeout=' + to + ';User ID=' + uid +
+                 ';Password=<store-in-user-secrets>;';
+        if (app) cs += 'Application Name=' + app + ';';
+        if (minP > 0) cs += 'Min Pool Size=' + minP + ';';
+        if (maxP !== 100) cs += 'Max Pool Size=' + maxP + ';';
+        return cs;
+    }
+
+    window.updateConnectionPreview = function () {
+        var isAzure = document.getElementById('providerAzureSql') &&
+                      document.getElementById('providerAzureSql').checked;
+        var cs = isAzure ? buildAzureSqlCs() : buildLocalDbCs();
+
+        var preview = document.getElementById('connectionStringPreview');
+        if (preview) preview.textContent = cs;
+
+        // update per-service blocks
+        document.querySelectorAll('.service-cs').forEach(function (el) {
+            el.textContent = cs;
+        });
+    };
+
+    // ── clipboard ──────────────────────────────────────────────────────────
+    window.slCopy = function (id) {
+        var el = document.getElementById(id);
+        if (el) slCopyEl(el);
+    };
+    window.slCopyEl = function (el) {
+        if (!el) return;
+        navigator.clipboard.writeText(el.textContent).then(function () {
+            var btn = el.nextElementSibling;
+            if (btn) {
+                var icon = btn.querySelector('i');
+                if (icon) { icon.className = 'bi bi-clipboard-check'; }
+                setTimeout(function () {
+                    if (icon) icon.className = 'bi bi-clipboard';
+                }, 1500);
+            }
+        });
+    };
+
+    // ── download JSON snippet ──────────────────────────────────────────────
+    window.downloadServiceConfig = function () {
+        var isAzure = document.getElementById('providerAzureSql') &&
+                      document.getElementById('providerAzureSql').checked;
+        var cs = isAzure ? buildAzureSqlCs() : buildLocalDbCs();
+        var useInMem = document.getElementById('useInMemory') &&
+                       document.getElementById('useInMemory').checked;
+
+        var keys = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            ConfigurationModel.ServiceDbKeys.Select(x => x.ConnectionStringKey)));
+
+        var csList = {};
+        keys.forEach(function (k) { csList[k] = cs; });
+
+        var snippet = {
+            Database: { UseInMemory: useInMem },
+            ConnectionStrings: csList
+        };
+
+        var blob = new Blob([JSON.stringify(snippet, null, 2)], { type: 'application/json' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href  = url;
+        a.download = 'appsettings.Development.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+}());
+</script>
+}
