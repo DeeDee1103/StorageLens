@@ -37,6 +37,24 @@
     </div>
 }
 
+@if (Model.IsDevelopmentEnvironment)
+{
+    <div class="d-flex align-items-center gap-2 mb-3 reveal-item">
+        <span class="text-secondary small"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Editing:</span>
+        @if (Model.SelectedEditEnvironment == "Production")
+        {
+            <span class="badge bg-danger bg-opacity-20 text-danger">Production &mdash; saves to <code>appsettings.Production.json</code></span>
+        }
+        else
+        {
+            <span class="badge bg-primary bg-opacity-20 text-primary">Development &mdash; saves to <code>appsettings.Development.json</code></span>
+        }
+        <a asp-page="/EnvironmentSettings" class="btn btn-sm btn-outline-secondary ms-auto">
+            <i class="bi bi-toggles me-1" aria-hidden="true"></i>Switch
+        </a>
+    </div>
+}
+
 <form method="post" asp-page-handler="Save">
 
     <!-- ═══ 1. EMAIL ═══════════════════════════════════════════════════════ -->
@@ -209,8 +227,8 @@
     @if (Model.IsDevelopmentEnvironment)
     {
         <div class="reveal-item">
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-floppy me-1" aria-hidden="true"></i>Save Notification Settings
+            <button type="submit" class="btn @(Model.SelectedEditEnvironment == "Production" ? "btn-danger" : "btn-primary")">
+                <i class="bi bi-floppy me-1" aria-hidden="true"></i>Save Notification Settings to @Model.SelectedEditEnvironment
             </button>
         </div>
     }

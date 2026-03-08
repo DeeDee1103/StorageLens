@@ -12,6 +12,7 @@ public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnv
 
     public bool IsDevelopmentEnvironment { get; private set; }
     public string EnvironmentName { get; private set; } = string.Empty;
+    public string SelectedEditEnvironment { get; private set; } = EnvironmentSettingsModel.Development;
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
@@ -79,7 +80,7 @@ public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnv
             return Page();
         }
 
-        MergeIntoDevSettings(NotificationOptions.SectionName, new
+        MergeIntoTargetSettings(NotificationOptions.SectionName, new
         {
             EmailEnabled,
             SmtpHost,
@@ -99,7 +100,7 @@ public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnv
             StorageThresholdPercent,
         });
 
-        SuccessMessage = "Notification settings saved to appsettings.Development.json.";
+        SuccessMessage = $"Notification settings saved to appsettings.{SelectedEditEnvironment}.json.";
         return Page();
     }
 
@@ -111,6 +112,7 @@ public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnv
         ViewData["Nav"] = "Settings";
         IsDevelopmentEnvironment = environment.IsDevelopment();
         EnvironmentName = environment.EnvironmentName;
+        SelectedEditEnvironment = EnvironmentSettingsModel.ResolveEditEnvironment(Request);
     }
 
     private void LoadCurrentSettings()
@@ -134,9 +136,10 @@ public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnv
         StorageThresholdPercent = s.GetValue("StorageThresholdPercent", 90);
     }
 
-    private void MergeIntoDevSettings(string sectionName, object value)
+    private void MergeIntoTargetSettings(string sectionName, object value)
     {
-        var path = Path.Combine(environment.ContentRootPath, "appsettings.Development.json");
+        var fileName = $"appsettings.{SelectedEditEnvironment}.json";
+        var path = Path.Combine(environment.ContentRootPath, fileName);
         var json = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : "{}";
         var doc = JsonNode.Parse(json) as JsonObject ?? [];
         var writeOpts = new JsonSerializerOptions { WriteIndented = true };
