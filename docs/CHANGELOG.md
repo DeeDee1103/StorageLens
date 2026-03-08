@@ -6,7 +6,53 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Added
+- **Appearance & Display settings page** (`/AppearanceSettings`) — fully functional browser-side preference manager:
+  - Visual theme picker cards (Light, Dark, System default) with miniature UI previews; applies the theme immediately and persists to `localStorage`.
+  - Default landing page dropdown (Dashboard, Storage Locations, Scan Jobs, File Inventory, Duplicates, Reports).
+  - Sidebar collapse-by-default toggle.
+  - Tables & Data Display section: rows per page (10/25/50/100), Scan Jobs auto-refresh interval (disabled/5 s/10 s/30 s/60 s), dashboard date range (7/14/30 days).
+  - Animations & Accessibility section: KPI counter animation, reduce motion, compact mode toggles.
+  - Reset to defaults button clears all `localStorage` preference keys and re-applies system theme.
+  - Live "Current stored preferences" display showing all active `localStorage` keys.
+- **Notification Settings page** (`/NotificationSettings`) — configures alerting channels and saves to `appsettings.Development.json`:
+  - Email / SMTP section: host, port, SSL/TLS toggle, username, read-only password field with `dotnet user-secrets` reminder, from address, from name, comma-separated recipient list.
+  - Webhook section: URL, HMAC-SHA256 signing secret (sent as `X-StorageLens-Signature` header).
+  - Notification Events section: scan completed, scan failed, duplicates detected, storage threshold exceeded (with configurable % threshold).
+  - Show/hide collapsible panels for email and webhook fields based on their enable toggles.
+  - In development mode: **Save** button persists all settings to `appsettings.Development.json`.
+- **Scanner & Performance settings page** (`/ScannerSettings`) — generates per-service configuration snippets:
+  - Hashing Worker section: Max Degree of Parallelism (1–64), Batch Size (10–10,000), Max File Size to Hash dropdown (512 MB / 1 GB / 2 GB / 4 GB / 10 GB / No limit).
+  - Live-updating JSON snippet for `StorageLens.Services.Hashing` `appsettings.Development.json` with copy-to-clipboard button.
+  - Scanner Path Mappings section: Enable auto-mapping toggle, Auto-map in container only toggle.
+  - Example custom path mappings reference table (Prefix and Regex examples for Docker/UNC mounts).
+  - Live-updating JSON snippet for `StorageLens.Services.Scanner` `appsettings.Development.json` with copy-to-clipboard button.
+  - Performance Tuning Guide table with recommended values for developer laptops and Azure VMs (4/8+ vCPU).
+  - In development mode: **Save** button persists settings to the web app's `appsettings.Development.json`.
+- `AppearanceOptions`, `NotificationOptions`, `ScannerPerformanceOptions` — three new strongly-typed options classes registered via DI.
+- `appsettings.json` — `Appearance`, `Notifications`, and `ScannerPerformance` configuration sections with production defaults.
+- All `MergeIntoDevSettings` file writes now use an atomic write pattern (write to `.tmp` then `File.Move` with overwrite) to prevent corrupt JSON if the process is interrupted mid-write.
+
 ### Changed
+- `Settings.cshtml`: Reorganised into two rows — four active **Configure** cards (Database Configuration, Appearance & Display, Notifications, Scanner & Performance) followed by five **Coming soon** placeholders (Authentication, Cloud Connectors, Scheduled Scans, Retention Policies, AI Features). Removed the "Orchestration" placeholder (superseded by Scanner & Performance).
+
+  - Database provider toggle: **Local SQL Server (LocalDB)** or **Azure SQL Database**.
+  - LocalDB fields: instance name and database name.
+  - Azure SQL fields: server name, database name, user ID, connection timeout, Encrypt, Trust Server Certificate, plus a read-only password field with a reminder to use `dotnet user-secrets`.
+  - Advanced connection options (expandable): Min/Max Pool Size and Application Name.
+  - Live-updating **Generated Connection String Preview** with a copy-to-clipboard button; the preview updates as form fields are typed.
+  - **Per-Service Connection Strings** panel listing all seven backend services (Locations, ScanJobs, FileInventory, Duplicates, Scanner, Hashing, Orchestrator) with individual copy buttons and a **Download appsettings snippet (JSON)** button.
+  - **Service Endpoints** form to configure the base URLs used by the web front-end to reach each backend microservice.
+  - In development mode: **Save** buttons persist database config and service endpoints to `appsettings.Development.json`.
+  - In non-development environments: read-only display with an informational banner.
+  - In-memory database toggle (per-service, dev only) with a clear label.
+- `DatabaseConfigOptions` class (`Services/DatabaseConfigOptions.cs`) — strongly-typed options class bound from the `DatabaseConfig` configuration section, covering all provider, LocalDB, Azure SQL, and advanced pooling settings.
+- `appsettings.json` — new `DatabaseConfig` section with LocalDB defaults.
+- `appsettings.Development.json` — new `DatabaseConfig` section with Azure SQL template values for local Azure development.
+
+### Changed
+- `Settings.cshtml`: Added a functional **Database Configuration** card at the top of the Settings page, linked to the new `/Configuration` page, visually distinguished from the placeholder "Coming soon" cards below it.
+
 - `AnalyticsService.GetDashboardAsync`: Total Files KPI now always uses `locations.Sum(x => x.FileCount)` (accurate total from location metadata) instead of the API-capped `files.Count` value which was limited to the first 2,000 file records.
 - `AnalyticsService.GetDashboardAsync`: Storage Growth Trend chart now correctly plots storage in TB (sum of `TotalSizeBytes` for distinct locations scanned each day, divided to TB) instead of the raw `FilesScanned` count that was previously used.
 - Dashboard `Index.cshtml`: Chart.js text colour (`Chart.defaults.color`) is now set to the muted dark-mode palette (`#9eb0cd`) when dark mode is active, so axis labels and tick marks remain readable against the dark card backgrounds.

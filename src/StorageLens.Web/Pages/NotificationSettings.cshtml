@@ -1,0 +1,226 @@
+@page
+@model NotificationSettingsModel
+
+<section class="mb-3 reveal-item">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a asp-page="/Settings">Settings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Notification Settings</li>
+        </ol>
+    </nav>
+    <h1 class="dashboard-title">Notification Settings</h1>
+    <p class="text-secondary mb-0">Configure email and webhook alerting for scan events, storage thresholds, and duplicate detection.</p>
+</section>
+
+@if (Model.SuccessMessage is not null)
+{
+    <div class="alert alert-success alert-dismissible fade show reveal-item" role="alert">
+        <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger alert-dismissible fade show reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.IsDevelopmentEnvironment)
+{
+    <div class="alert alert-warning reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+        <strong>Read-only mode.</strong> Configuration changes can only be saved in the
+        <strong>Development</strong> environment. Currently running: <strong>@Model.EnvironmentName</strong>.
+    </div>
+}
+
+<form method="post" asp-page-handler="Save">
+
+    <!-- ═══ 1. EMAIL ═══════════════════════════════════════════════════════ -->
+    <div class="card-premium p-4 mb-4 reveal-item">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-envelope-at" aria-hidden="true"></i></div>
+            <h5 class="mb-0">Email Notifications</h5>
+        </div>
+        <p class="text-secondary small mb-3">Send alerts via SMTP when scan events occur. Store the SMTP password with <code>dotnet user-secrets</code>.</p>
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch" id="emailEnabled"
+                   name="EmailEnabled" value="true" @(Model.EmailEnabled ? "checked" : "")
+                   onchange="toggleSection('emailConfig', this.checked)">
+            <label class="form-check-label fw-semibold" for="emailEnabled">Enable email notifications</label>
+        </div>
+
+        <div id="emailConfig" @(Model.EmailEnabled ? "" : "style=\"display:none\"")>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="SmtpHost">
+                        SMTP Host <span class="text-danger">*</span>
+                    </label>
+                    <input class="form-control" id="SmtpHost" name="SmtpHost" type="text"
+                           value="@Model.SmtpHost" placeholder="smtp.example.com">
+                    <span asp-validation-for="SmtpHost" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="SmtpPort">SMTP Port</label>
+                    <input class="form-control" id="SmtpPort" name="SmtpPort" type="number"
+                           value="@Model.SmtpPort" min="1" max="65535">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="smtpSsl"
+                               name="SmtpUseSsl" value="true" @(Model.SmtpUseSsl ? "checked" : "")>
+                        <label class="form-check-label" for="smtpSsl">Use SSL/TLS</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="SmtpUsername">SMTP Username</label>
+                    <input class="form-control" id="SmtpUsername" name="SmtpUsername" type="text"
+                           value="@Model.SmtpUsername" placeholder="user@example.com">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">SMTP Password</label>
+                    <div class="input-group">
+                        <input class="form-control bg-body-secondary" type="password" readonly
+                               value="stored-in-user-secrets" aria-label="Password stored in user secrets">
+                        <span class="input-group-text text-success" title="Stored securely">
+                            <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+                        </span>
+                    </div>
+                    <div class="form-text">
+                        <code>dotnet user-secrets set "Notifications:SmtpPassword" "your-password"</code>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="FromAddress">From Address</label>
+                    <input class="form-control" id="FromAddress" name="FromAddress" type="email"
+                           value="@Model.FromAddress" placeholder="alerts@storagelens.local">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="FromName">From Name</label>
+                    <input class="form-control" id="FromName" name="FromName" type="text"
+                           value="@Model.FromName" placeholder="StorageLens">
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="ToAddresses">Recipient Addresses</label>
+                    <input class="form-control" id="ToAddresses" name="ToAddresses" type="text"
+                           value="@Model.ToAddresses" placeholder="admin@example.com, ops@example.com">
+                    <div class="form-text">Comma-separated list of email addresses that will receive alerts.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ 2. WEBHOOK ═════════════════════════════════════════════════════ -->
+    <div class="card-premium p-4 mb-4 reveal-item">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-broadcast-pin" aria-hidden="true"></i></div>
+            <h5 class="mb-0">Webhook Notifications</h5>
+        </div>
+        <p class="text-secondary small mb-3">POST a JSON payload to an HTTP endpoint when scan events occur. Optionally sign requests with an HMAC-SHA256 signature.</p>
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch" id="webhookEnabled"
+                   name="WebhookEnabled" value="true" @(Model.WebhookEnabled ? "checked" : "")
+                   onchange="toggleSection('webhookConfig', this.checked)">
+            <label class="form-check-label fw-semibold" for="webhookEnabled">Enable webhook notifications</label>
+        </div>
+
+        <div id="webhookConfig" @(Model.WebhookEnabled ? "" : "style=\"display:none\"")>
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label" for="WebhookUrl">
+                        Webhook URL <span class="text-danger">*</span>
+                    </label>
+                    <input class="form-control" id="WebhookUrl" name="WebhookUrl" type="url"
+                           value="@Model.WebhookUrl" placeholder="https://hooks.example.com/storagelens">
+                    <span asp-validation-for="WebhookUrl" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="WebhookSecret">Signing Secret <span class="text-secondary small">(optional)</span></label>
+                    <input class="form-control" id="WebhookSecret" name="WebhookSecret" type="text"
+                           value="@Model.WebhookSecret" placeholder="leave blank to disable signing">
+                    <div class="form-text">Sent as <code>X-StorageLens-Signature</code> header.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ 3. EVENTS ══════════════════════════════════════════════════════ -->
+    <div class="card-premium p-4 mb-4 reveal-item">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-bell" aria-hidden="true"></i></div>
+            <h5 class="mb-0">Notification Events</h5>
+        </div>
+        <p class="text-secondary small mb-3">Choose which events trigger a notification. Applies to both email and webhook channels.</p>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="d-flex flex-column gap-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="notifyScanComplete"
+                               name="NotifyOnScanComplete" value="true" @(Model.NotifyOnScanComplete ? "checked" : "")>
+                        <label class="form-check-label" for="notifyScanComplete">
+                            <i class="bi bi-check-circle text-success me-1" aria-hidden="true"></i>Scan completed
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="notifyScanFailed"
+                               name="NotifyOnScanFailed" value="true" @(Model.NotifyOnScanFailed ? "checked" : "")>
+                        <label class="form-check-label" for="notifyScanFailed">
+                            <i class="bi bi-x-circle text-danger me-1" aria-hidden="true"></i>Scan failed
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="notifyDuplicates"
+                               name="NotifyOnDuplicatesFound" value="true" @(Model.NotifyOnDuplicatesFound ? "checked" : "")>
+                        <label class="form-check-label" for="notifyDuplicates">
+                            <i class="bi bi-files text-warning me-1" aria-hidden="true"></i>Duplicates detected
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="notifyStorageThreshold"
+                           name="NotifyOnStorageThreshold" value="true" @(Model.NotifyOnStorageThreshold ? "checked" : "")
+                           onchange="toggleSection('thresholdConfig', this.checked)">
+                    <label class="form-check-label" for="notifyStorageThreshold">
+                        <i class="bi bi-hdd text-info me-1" aria-hidden="true"></i>Storage threshold exceeded
+                    </label>
+                </div>
+                <div id="thresholdConfig" @(Model.NotifyOnStorageThreshold ? "" : "style=\"display:none\"") class="ms-4">
+                    <label class="form-label small" for="StorageThresholdPercent">Alert when usage exceeds</label>
+                    <div class="input-group input-group-sm" style="max-width:140px;">
+                        <input class="form-control" id="StorageThresholdPercent"
+                               name="StorageThresholdPercent" type="number"
+                               value="@Model.StorageThresholdPercent" min="1" max="100">
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <span asp-validation-for="StorageThresholdPercent" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.IsDevelopmentEnvironment)
+    {
+        <div class="reveal-item">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-floppy me-1" aria-hidden="true"></i>Save Notification Settings
+            </button>
+        </div>
+    }
+</form>
+
+@section Scripts {
+<script>
+window.toggleSection = function (id, show) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+};
+</script>
+}

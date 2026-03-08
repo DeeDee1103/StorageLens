@@ -8,6 +8,18 @@ builder.Services.AddRazorPages();
 builder.Services.Configure<ServiceEndpointsOptions>(
     builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName));
 
+builder.Services.Configure<DatabaseConfigOptions>(
+    builder.Configuration.GetSection(DatabaseConfigOptions.SectionName));
+
+builder.Services.Configure<AppearanceOptions>(
+    builder.Configuration.GetSection(AppearanceOptions.SectionName));
+
+builder.Services.Configure<NotificationOptions>(
+    builder.Configuration.GetSection(NotificationOptions.SectionName));
+
+builder.Services.Configure<ScannerPerformanceOptions>(
+    builder.Configuration.GetSection(ScannerPerformanceOptions.SectionName));
+
 var endpoints = builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName).Get<ServiceEndpointsOptions>()
                ?? new ServiceEndpointsOptions();
 
