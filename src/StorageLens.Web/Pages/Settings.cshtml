@@ -3,10 +3,63 @@
 
 <section class="mb-3 reveal-item">
     <h1 class="dashboard-title">Settings</h1>
-    <p class="text-secondary mb-0">Environment, integration, and policy options will be added in the next milestone.</p>
+    <p class="text-secondary mb-0">Manage environment configuration, integrations, and system policies.</p>
 </section>
 
+<!-- Active settings cards -->
 <section class="row g-3 reveal-item">
+    <div class="col-md-6 col-lg-4">
+        <a asp-page="/Configuration" class="text-decoration-none">
+            <div class="card-premium p-3 h-100 d-flex flex-column" style="border-color: var(--sl-accent, #3b82f6);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-database-gear" aria-hidden="true"></i></div>
+                    <h5 class="mb-0">Database Configuration</h5>
+                </div>
+                <p class="text-secondary small flex-grow-1">Switch between LocalDB and Azure SQL, configure connection parameters, generate per-service connection strings, and edit service endpoint URLs.</p>
+                <span class="badge bg-primary bg-opacity-15 text-primary align-self-start">Configure &rsaquo;</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a asp-page="/AppearanceSettings" class="text-decoration-none">
+            <div class="card-premium p-3 h-100 d-flex flex-column" style="border-color: var(--sl-accent, #3b82f6);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-palette" aria-hidden="true"></i></div>
+                    <h5 class="mb-0">Appearance &amp; Display</h5>
+                </div>
+                <p class="text-secondary small flex-grow-1">Theme (light / dark / system), default landing page, table rows per page, scan auto-refresh interval, and animation preferences.</p>
+                <span class="badge bg-primary bg-opacity-15 text-primary align-self-start">Configure &rsaquo;</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a asp-page="/NotificationSettings" class="text-decoration-none">
+            <div class="card-premium p-3 h-100 d-flex flex-column" style="border-color: var(--sl-accent, #3b82f6);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-bell" aria-hidden="true"></i></div>
+                    <h5 class="mb-0">Notifications</h5>
+                </div>
+                <p class="text-secondary small flex-grow-1">Email and webhook alerting for scan completion, scan failures, storage threshold alerts, and duplicate detection results.</p>
+                <span class="badge bg-primary bg-opacity-15 text-primary align-self-start">Configure &rsaquo;</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a asp-page="/ScannerSettings" class="text-decoration-none">
+            <div class="card-premium p-3 h-100 d-flex flex-column" style="border-color: var(--sl-accent, #3b82f6);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="kpi-icon kpi-icon-orange mb-0"><i class="bi bi-gear-wide-connected" aria-hidden="true"></i></div>
+                    <h5 class="mb-0">Scanner &amp; Performance</h5>
+                </div>
+                <p class="text-secondary small flex-grow-1">Fine-tune hashing worker parallelism and batch sizes, configure scanner path mappings, and download per-service appsettings snippets.</p>
+                <span class="badge bg-primary bg-opacity-15 text-primary align-self-start">Configure &rsaquo;</span>
+            </div>
+        </a>
+    </div>
+</section>
+
+<!-- Coming soon cards -->
+<section class="row g-3 reveal-item mt-0">
     <div class="col-md-6 col-lg-4">
         <div class="card-premium p-3 h-100 d-flex flex-column">
             <div class="d-flex align-items-center gap-2 mb-2">
@@ -24,16 +77,6 @@
                 <h5 class="mb-0">Cloud Connectors</h5>
             </div>
             <p class="text-secondary small flex-grow-1">Azure Blob Storage, AWS S3, and Google Cloud Storage integrations for cross-platform visibility.</p>
-            <span class="badge bg-secondary bg-opacity-25 text-secondary align-self-start">Coming soon</span>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-        <div class="card-premium p-3 h-100 d-flex flex-column">
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-bell" aria-hidden="true"></i></div>
-                <h5 class="mb-0">Notifications</h5>
-            </div>
-            <p class="text-secondary small flex-grow-1">Email and webhook alerting for scan completion, storage thresholds, and duplicate detection results.</p>
             <span class="badge bg-secondary bg-opacity-25 text-secondary align-self-start">Coming soon</span>
         </div>
     </div>
@@ -60,16 +103,6 @@
     <div class="col-md-6 col-lg-4">
         <div class="card-premium p-3 h-100 d-flex flex-column">
             <div class="d-flex align-items-center gap-2 mb-2">
-                <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-gear-wide-connected" aria-hidden="true"></i></div>
-                <h5 class="mb-0">Orchestration</h5>
-            </div>
-            <p class="text-secondary small flex-grow-1">Fine-tune scanner concurrency, hashing parallelism, and service-to-service communication settings.</p>
-            <span class="badge bg-secondary bg-opacity-25 text-secondary align-self-start">Coming soon</span>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-        <div class="card-premium p-3 h-100 d-flex flex-column">
-            <div class="d-flex align-items-center gap-2 mb-2">
                 <div class="kpi-icon kpi-icon-orange mb-0"><i class="bi bi-stars" aria-hidden="true"></i></div>
                 <h5 class="mb-0">AI Features</h5>
             </div>
@@ -78,3 +111,4 @@
         </div>
     </div>
 </section>
+

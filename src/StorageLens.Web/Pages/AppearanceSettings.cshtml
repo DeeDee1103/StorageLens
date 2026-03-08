@@ -1,0 +1,366 @@
+@page
+@model AppearanceSettingsModel
+
+<section class="mb-3 reveal-item">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a asp-page="/Settings">Settings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Appearance &amp; Display</li>
+        </ol>
+    </nav>
+    <h1 class="dashboard-title">Appearance &amp; Display</h1>
+    <p class="text-secondary mb-0">Personalize the look and behavior of StorageLens. All preferences are stored locally in your browser.</p>
+</section>
+
+<div id="saveSuccessBanner" class="alert alert-success alert-dismissible fade reveal-item" role="alert" style="display:none!important;">
+    <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
+    <span id="saveSuccessText">Preferences saved.</span>
+    <button type="button" class="btn-close" onclick="this.closest('.alert').style.setProperty('display','none','important')" aria-label="Close"></button>
+</div>
+
+<!-- ═══ 1. THEME ══════════════════════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-palette" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Theme</h5>
+    </div>
+    <p class="text-secondary small mb-3">Choose how StorageLens looks. The &ldquo;System default&rdquo; option follows your OS preference.</p>
+
+    <div class="d-flex flex-wrap gap-3" id="themeCards">
+        <label class="theme-option-card" id="themeCard-light">
+            <input type="radio" name="sl-theme" value="light" class="visually-hidden" onchange="applyThemePref('light')">
+            <div class="theme-preview theme-preview-light">
+                <div class="tp-sidebar"></div>
+                <div class="tp-content">
+                    <div class="tp-bar"></div>
+                    <div class="tp-bar tp-bar-short"></div>
+                </div>
+            </div>
+            <span class="theme-label">Light</span>
+        </label>
+
+        <label class="theme-option-card" id="themeCard-dark">
+            <input type="radio" name="sl-theme" value="dark" class="visually-hidden" onchange="applyThemePref('dark')">
+            <div class="theme-preview theme-preview-dark">
+                <div class="tp-sidebar"></div>
+                <div class="tp-content">
+                    <div class="tp-bar"></div>
+                    <div class="tp-bar tp-bar-short"></div>
+                </div>
+            </div>
+            <span class="theme-label">Dark</span>
+        </label>
+
+        <label class="theme-option-card" id="themeCard-system">
+            <input type="radio" name="sl-theme" value="system" class="visually-hidden" onchange="applyThemePref('system')">
+            <div class="theme-preview theme-preview-system">
+                <div class="tp-sidebar"></div>
+                <div class="tp-content">
+                    <div class="tp-bar"></div>
+                    <div class="tp-bar tp-bar-short"></div>
+                </div>
+            </div>
+            <span class="theme-label">System default</span>
+        </label>
+    </div>
+</div>
+
+<!-- ═══ 2. NAVIGATION & DEFAULTS ════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-layout-sidebar" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Navigation &amp; Defaults</h5>
+    </div>
+    <p class="text-secondary small mb-3">Configure the default landing page and sidebar behaviour.</p>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="defaultLandingPage">Default Landing Page</label>
+            <select class="form-select" id="defaultLandingPage" onchange="savePref('sl-landing-page', this.value)">
+                @foreach (var pagePath in AppearanceSettingsModel.LandingPages)
+                {
+                    var label = pagePath switch
+                    {
+                        "/Index" => "Dashboard",
+                        "/StorageLocations" => "Storage Locations",
+                        "/ScanJobs" => "Scan Jobs",
+                        "/FileInventory" => "File Inventory",
+                        "/Duplicates" => "Duplicates",
+                        "/Reports" => "Reports",
+                        _ => pagePath
+                    };
+                    <option value="@pagePath">@label</option>
+                }
+            </select>
+            <div class="form-text">The page shown when you first open StorageLens.</div>
+        </div>
+
+        <div class="col-md-6 d-flex flex-column justify-content-end">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="sidebarCollapsed"
+                       onchange="savePref('sl-sidebar-collapsed', this.checked ? 'true' : 'false')">
+                <label class="form-check-label" for="sidebarCollapsed">Collapse sidebar by default</label>
+            </div>
+            <div class="form-text mt-1">Hides text labels in the sidebar navigation on desktop.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ 3. TABLES & DATA DISPLAY ════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-table" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Tables &amp; Data Display</h5>
+    </div>
+    <p class="text-secondary small mb-3">Control how much data is shown in tables and how often live pages refresh.</p>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="tablePageSize">Rows Per Page</label>
+            <select class="form-select" id="tablePageSize" onchange="savePref('sl-table-page-size', this.value)">
+                @foreach (var (val, lbl) in AppearanceSettingsModel.TablePageSizes)
+                {
+                    <option value="@val">@lbl</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label" for="scanRefreshInterval">Scan Jobs Auto-Refresh</label>
+            <select class="form-select" id="scanRefreshInterval" onchange="savePref('sl-scan-refresh', this.value)">
+                @foreach (var (val, lbl) in AppearanceSettingsModel.RefreshIntervals)
+                {
+                    <option value="@val">@lbl</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label" for="dashboardDays">Dashboard Date Range</label>
+            <select class="form-select" id="dashboardDays" onchange="savePref('sl-dashboard-days', this.value)">
+                @foreach (var (val, lbl) in AppearanceSettingsModel.DashboardRanges)
+                {
+                    <option value="@val">@lbl</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ 4. ANIMATIONS & ACCESSIBILITY ══════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-orange mb-0"><i class="bi bi-stars" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Animations &amp; Accessibility</h5>
+    </div>
+    <p class="text-secondary small mb-3">Adjust motion and visual effects.</p>
+
+    <div class="d-flex flex-column gap-3">
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="kpiCountAnim"
+                   onchange="savePref('sl-kpi-count-anim', this.checked ? 'true' : 'false')">
+            <label class="form-check-label" for="kpiCountAnim">
+                KPI counter animation
+                <span class="text-secondary small ms-1">— counts up to the final value on page load</span>
+            </label>
+        </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="reduceMotion"
+                   onchange="savePref('sl-reduce-motion', this.checked ? 'true' : 'false')">
+            <label class="form-check-label" for="reduceMotion">
+                Reduce motion
+                <span class="text-secondary small ms-1">— disables page entrance animations and transitions</span>
+            </label>
+        </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="compactMode"
+                   onchange="savePref('sl-compact-mode', this.checked ? 'true' : 'false')">
+            <label class="form-check-label" for="compactMode">
+                Compact mode
+                <span class="text-secondary small ms-1">— reduces padding in cards and table rows</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ 5. RESET ═══════════════════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Reset Preferences</h5>
+    </div>
+    <p class="text-secondary small mb-3">Remove all locally-stored appearance preferences and return to the defaults.</p>
+    <button class="btn btn-outline-danger btn-sm" onclick="resetAllPrefs()">
+        <i class="bi bi-trash me-1" aria-hidden="true"></i>Reset to defaults
+    </button>
+
+    <div class="mt-3">
+        <label class="form-label text-secondary small fw-semibold">Current stored preferences</label>
+        <code id="storedPrefsDisplay"
+              class="d-block bg-body-secondary p-3 rounded small"
+              style="white-space:pre-wrap;word-break:break-all;font-family:monospace;min-height:3em;"></code>
+    </div>
+</div>
+
+@section Scripts {
+<style>
+/* ── Theme option cards ──────────────────────────────────────────────── */
+.theme-option-card { cursor: pointer; text-align: center; }
+.theme-option-card input:focus-visible + .theme-preview { outline: 2px solid var(--sl-accent, #3b82f6); outline-offset: 2px; }
+.theme-preview {
+    width: 110px; height: 72px; border-radius: 8px; overflow: hidden;
+    display: flex; border: 2px solid transparent; transition: border-color .15s;
+    margin: 0 auto 4px;
+}
+.theme-option-card.selected .theme-preview { border-color: var(--sl-accent, #3b82f6); }
+.theme-preview .tp-sidebar { width: 28px; flex-shrink: 0; }
+.theme-preview .tp-content { flex: 1; padding: 6px 6px 0; display: flex; flex-direction: column; gap: 5px; }
+.theme-preview .tp-bar { height: 8px; border-radius: 3px; }
+.theme-preview .tp-bar-short { width: 60%; }
+/* light */
+.theme-preview-light { background: #f8f9fa; }
+.theme-preview-light .tp-sidebar { background: #fff; border-right: 1px solid #e5e7eb; }
+.theme-preview-light .tp-bar { background: #e5e7eb; }
+/* dark */
+.theme-preview-dark { background: #0f172a; }
+.theme-preview-dark .tp-sidebar { background: #1e293b; border-right: 1px solid #334155; }
+.theme-preview-dark .tp-bar { background: #334155; }
+/* system */
+.theme-preview-system {
+    background: linear-gradient(135deg, #f8f9fa 50%, #0f172a 50%);
+}
+.theme-preview-system .tp-sidebar { background: linear-gradient(135deg, #fff 50%, #1e293b 50%); border-right: 1px solid #e5e7eb; }
+.theme-preview-system .tp-bar { background: linear-gradient(90deg, #e5e7eb 50%, #334155 50%); }
+.theme-label { font-size: .8rem; font-weight: 500; color: var(--bs-secondary-color); }
+.theme-option-card.selected .theme-label { color: var(--sl-accent, #3b82f6); font-weight: 600; }
+</style>
+<script>
+(function () {
+    // ── preference keys ────────────────────────────────────────────────
+    var KEYS = {
+        theme:            'storagelens-theme',
+        landingPage:      'sl-landing-page',
+        sidebarCollapsed: 'sl-sidebar-collapsed',
+        tablePageSize:    'sl-table-page-size',
+        scanRefresh:      'sl-scan-refresh',
+        dashboardDays:    'sl-dashboard-days',
+        kpiAnim:          'sl-kpi-count-anim',
+        reduceMotion:     'sl-reduce-motion',
+        compactMode:      'sl-compact-mode',
+    };
+
+    // ── helpers ────────────────────────────────────────────────────────
+    function getPref(key, def) {
+        var v = localStorage.getItem(key);
+        return v !== null ? v : def;
+    }
+
+    window.savePref = function (key, value) {
+        localStorage.setItem(key, value);
+        refreshDisplay();
+        showSaved(key);
+    };
+
+    window.applyThemePref = function (value) {
+        if (value === 'system') {
+            localStorage.removeItem(KEYS.theme);
+        } else {
+            localStorage.setItem(KEYS.theme, value);
+        }
+        // apply immediately
+        var dark = value === 'dark' || (value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.body.classList.toggle('dark-mode', dark);
+        refreshDisplay();
+        updateThemeCards(value);
+        showSaved('theme');
+    };
+
+    function updateThemeCards(selected) {
+        ['light', 'dark', 'system'].forEach(function (v) {
+            var card = document.getElementById('themeCard-' + v);
+            var radio = card && card.querySelector('input[type=radio]');
+            if (card) card.classList.toggle('selected', v === selected);
+            if (radio) radio.checked = v === selected;
+        });
+    }
+
+    function setSelectValue(id, value) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        for (var i = 0; i < el.options.length; i++) {
+            if (el.options[i].value === String(value)) { el.selectedIndex = i; return; }
+        }
+    }
+
+    function refreshDisplay() {
+        var display = document.getElementById('storedPrefsDisplay');
+        if (!display) return;
+        var lines = [];
+        Object.values(KEYS).forEach(function (k) {
+            var v = localStorage.getItem(k);
+            if (v !== null) lines.push(k + ' = ' + v);
+        });
+        display.textContent = lines.length ? lines.join('\n') : '(no preferences stored — using defaults)';
+    }
+
+    function showSaved(key) {
+        var banner = document.getElementById('saveSuccessBanner');
+        var text = document.getElementById('saveSuccessText');
+        if (!banner) return;
+        if (text) text.textContent = 'Preference saved: ' + key;
+        banner.style.removeProperty('display');
+        banner.classList.add('show');
+        clearTimeout(banner._timer);
+        banner._timer = setTimeout(function () {
+            banner.classList.remove('show');
+            banner.style.setProperty('display', 'none', 'important');
+        }, 2500);
+    }
+
+    window.resetAllPrefs = function () {
+        Object.values(KEYS).forEach(function (k) { localStorage.removeItem(k); });
+        // re-apply theme from system
+        var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.body.classList.toggle('dark-mode', dark);
+        loadPrefsIntoUI();
+        refreshDisplay();
+        var banner = document.getElementById('saveSuccessBanner');
+        var text = document.getElementById('saveSuccessText');
+        if (text) text.textContent = 'All preferences reset to defaults.';
+        if (banner) { banner.style.removeProperty('display'); banner.classList.add('show'); }
+        clearTimeout(banner && banner._timer);
+        if (banner) banner._timer = setTimeout(function () { banner.classList.remove('show'); banner.style.setProperty('display','none','important'); }, 2500);
+    };
+
+    function loadPrefsIntoUI() {
+        // theme
+        var storedTheme = localStorage.getItem(KEYS.theme);
+        var currentTheme = storedTheme || 'system';
+        updateThemeCards(currentTheme);
+
+        // selects
+        setSelectValue('defaultLandingPage', getPref(KEYS.landingPage, '@Model.DefaultLandingPage'));
+        setSelectValue('tablePageSize',       getPref(KEYS.tablePageSize, '@Model.TablePageSize'));
+        setSelectValue('scanRefreshInterval', getPref(KEYS.scanRefresh, '@Model.ScanAutoRefreshSeconds'));
+        setSelectValue('dashboardDays',        getPref(KEYS.dashboardDays, '@Model.DashboardDaysRange'));
+
+        // checkboxes
+        var sc = document.getElementById('sidebarCollapsed');
+        if (sc) sc.checked = getPref(KEYS.sidebarCollapsed, '@(Model.SidebarCollapsedByDefault ? "true" : "false")') === 'true';
+
+        var kpi = document.getElementById('kpiCountAnim');
+        if (kpi) kpi.checked = getPref(KEYS.kpiAnim, '@(Model.EnableKpiCountAnimation ? "true" : "false")') !== 'false';
+
+        var rm = document.getElementById('reduceMotion');
+        if (rm) rm.checked = getPref(KEYS.reduceMotion, 'false') === 'true';
+
+        var cm = document.getElementById('compactMode');
+        if (cm) cm.checked = getPref(KEYS.compactMode, 'false') === 'true';
+    }
+
+    // run on load
+    loadPrefsIntoUI();
+    refreshDisplay();
+}());
+</script>
+}
