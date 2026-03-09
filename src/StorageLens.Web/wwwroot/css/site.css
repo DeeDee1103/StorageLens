@@ -1166,3 +1166,174 @@ body.dark-mode .pricing-card:hover {
 body.dark-mode .pricing-highlight {
   background: rgba(56, 122, 220, 0.15);
 }
+
+/* ── About page ────────────────────────────────────── */
+.about-hero {
+  background: linear-gradient(135deg, rgba(17, 101, 216, 0.06) 0%, rgba(22, 181, 170, 0.06) 100%);
+  border: 1px solid var(--sl-border);
+}
+
+.about-version-box {
+  background: var(--sl-bg);
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius);
+  padding: 1.5rem;
+  max-width: 220px;
+}
+
+.about-version-number {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: var(--sl-primary);
+  line-height: 1.1;
+}
+
+/* Badges */
+.about-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35em 0.75em;
+  border-radius: 20px;
+}
+
+.about-badge-blue   { background: rgba(17, 101, 216, 0.12); color: var(--sl-primary); }
+.about-badge-teal   { background: rgba(22, 181, 170, 0.12); color: var(--sl-teal); }
+.about-badge-green  { background: rgba(20, 184, 93, 0.12);  color: var(--sl-green); }
+.about-badge-purple { background: rgba(111, 100, 231, 0.12); color: var(--sl-accent); }
+
+/* Values list */
+.about-values-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.about-value-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.about-value-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.about-dot-blue   { background: var(--sl-primary); }
+.about-dot-teal   { background: var(--sl-teal); }
+.about-dot-green  { background: var(--sl-green); }
+.about-dot-purple { background: var(--sl-accent); }
+
+/* Feature cards */
+.about-feature-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--sl-border);
+  background: var(--sl-bg);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.about-feature-card:hover {
+  box-shadow: 0 6px 20px rgba(17, 35, 56, 0.08);
+  transform: translateY(-2px);
+}
+
+.about-feature-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.about-feature-icon-blue   { background: rgba(17, 101, 216, 0.12); color: var(--sl-primary); }
+.about-feature-icon-teal   { background: rgba(22, 181, 170, 0.12); color: var(--sl-teal); }
+.about-feature-icon-orange { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.about-feature-icon-green  { background: rgba(20, 184, 93, 0.12);  color: var(--sl-green); }
+.about-feature-icon-purple { background: rgba(111, 100, 231, 0.12); color: var(--sl-accent); }
+
+/* Tech stack */
+.about-stack-item {
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--sl-border);
+  background: var(--sl-bg);
+  text-align: center;
+}
+
+.about-stack-icon {
+  font-size: 1.5rem;
+  color: var(--sl-primary);
+  margin-bottom: 0.4rem;
+}
+
+.about-stack-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--sl-muted);
+  margin-bottom: 0.2rem;
+}
+
+.about-stack-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Contact list */
+.about-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.about-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.about-contact-icon {
+  font-size: 1.2rem;
+  color: var(--sl-teal);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Release list */
+.about-release-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.about-release-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+/* Dark-mode adjustments */
+body.dark-mode .about-hero {
+  background: linear-gradient(135deg, rgba(56, 122, 220, 0.1) 0%, rgba(22, 181, 170, 0.1) 100%);
+}
+
+body.dark-mode .about-version-box,
+body.dark-mode .about-feature-card,
+body.dark-mode .about-stack-item {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.dark-mode .about-feature-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}

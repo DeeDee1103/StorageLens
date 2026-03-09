@@ -7,6 +7,15 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 ## [Unreleased]
 
 ### Added
+- **About page** (`/About`) — professional About Us page for StorageLens:
+  - Hero banner with product logo, description, version badge, and capability tags.
+  - KPI highlight cards: storage locations, files supported, scan engine, microservices count.
+  - Mission statement and Core Values sections.
+  - Key Features grid covering Dashboard, Scan Jobs, Duplicate Detection, File Inventory, Reports, and Configuration.
+  - Technology Stack panel (backend, frontend, database, deployment).
+  - Support & Contact section and Release Notes panel.
+  - **About** nav link added to sidebar navigation (desktop and mobile offcanvas).
+  - About page CSS styles added to `site.css` (hero, version box, badges, feature cards, stack items, contact list, release list, dark-mode variants).
 - **Pricing page** (`/Pricing`) — a public-facing pricing catalogue showing four configurable subscription tiers:
   - **Starter** ($29/month): File Inventory, Scan Jobs, Reports & Analytics, Email Support.
   - **Professional** ($79/month, *Most Popular*): Starter + Duplicate Detection, Notification Alerts.
