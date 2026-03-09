@@ -38,6 +38,8 @@ public class AnalyticsService(
             Math.Clamp((int)Math.Round(duplicateSummary.DuplicatePercent), 0, 100),
             duplicateSummary.WastedBytes);
 
+        var locationSizeById = locations.ToDictionary(l => l.Id, l => l.TotalSizeBytes);
+
         var storageGrowth = jobs
             .GroupBy(x => x.StartTime.UtcDateTime.ToString("yyyy-MM-dd"))
             .OrderBy(x => x.Key)
@@ -47,8 +49,8 @@ public class AnalyticsService(
                 Math.Round(
                     x.Select(j => j.StorageLocationId)
                      .Distinct()
-                     .Select(id => locations.FirstOrDefault(l => l.Id == id)?.TotalSizeBytes ?? 0L)
-                     .Sum() / (double)(1024L * 1024 * 1024 * 1024),
+                     .Sum(id => locationSizeById.TryGetValue(id, out var size) ? size : 0L)
+                     / (double)(1024L * 1024 * 1024 * 1024),
                     2)))
             .ToList();
 

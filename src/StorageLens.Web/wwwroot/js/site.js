@@ -94,13 +94,13 @@ window.openStoragePath = (event) => {
 	const candidates = buildStoragePathCandidates(rawPath);
 
 	for (const candidate of candidates) {
-		const openLink = document.createElement("a");
-		openLink.href = candidate;
-		openLink.target = "_self";
-		openLink.rel = "noopener noreferrer";
-		document.body.appendChild(openLink);
-		openLink.click();
-		openLink.remove();
+		const pathAnchor = document.createElement("a");
+		pathAnchor.href = candidate;
+		pathAnchor.target = "_self";
+		pathAnchor.rel = "noopener noreferrer";
+		document.body.appendChild(pathAnchor);
+		pathAnchor.click();
+		pathAnchor.remove();
 	}
 
 	return false;

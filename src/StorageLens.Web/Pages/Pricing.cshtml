@@ -1,0 +1,133 @@
+@page
+@model PricingModel
+
+<section class="mb-3 reveal-item">
+    <h1 class="dashboard-title">Pricing</h1>
+    <p class="text-secondary mb-0">Choose the plan that fits your organisation. All plans include a 14-day free trial — no credit card required.</p>
+</section>
+
+@{
+    var services = Model.AvailableServices;
+}
+
+<div class="row g-4 justify-content-center reveal-item">
+    @foreach (var tier in Model.Tiers)
+    {
+        var price = tier.ComputedMonthlyPrice(services);
+        var cardClass = tier.IsPopular ? "card-premium pricing-card pricing-card-popular" : "card-premium pricing-card";
+        var includedIds = new HashSet<string>(tier.IncludedServiceIds, StringComparer.OrdinalIgnoreCase);
+
+        <div class="col-md-6 col-xl-3 d-flex">
+            <div class="@cardClass p-4 d-flex flex-column w-100 position-relative">
+
+                @if (tier.IsPopular)
+                {
+                    <span class="pricing-popular-badge">Most Popular</span>
+                }
+
+                <!-- Tier header -->
+                <div class="mb-3">
+                    <h4 class="mb-1 pricing-tier-name">@tier.Name</h4>
+                    <p class="text-secondary small mb-3">@tier.Description</p>
+
+                    @if (tier.IsContactUs)
+                    {
+                        <div class="pricing-price-wrap">
+                            <span class="pricing-price-custom">Custom</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="pricing-price-wrap">
+                            <span class="pricing-price-currency">$</span>
+                            <span class="pricing-price-amount">@price.ToString("0.##")</span>
+                            <span class="pricing-price-period">/month</span>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(tier.Highlight))
+                    {
+                        <div class="pricing-highlight mt-2">
+                            <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i>@tier.Highlight
+                        </div>
+                    }
+                </div>
+
+                <!-- Divider -->
+                <hr class="my-2 pricing-divider">
+
+                <!-- Services list -->
+                <ul class="list-unstyled pricing-feature-list flex-grow-1 mb-3">
+                    @foreach (var svc in services)
+                    {
+                        var included = includedIds.Contains(svc.Id);
+                        <li class="pricing-feature-item @(included ? "" : "pricing-feature-excluded")">
+                            @if (included)
+                            {
+                                <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-x-circle text-secondary me-2" aria-hidden="true"></i>
+                            }
+                            <span title="@svc.Description">@svc.Name</span>
+                        </li>
+                    }
+                </ul>
+
+                <!-- CTA -->
+                @if (tier.IsContactUs)
+                {
+                    <a href="mailto:sales@storagelens.io?subject=Enterprise Pricing Enquiry" class="btn btn-outline-primary w-100 mt-auto">
+                        <i class="bi bi-envelope me-1" aria-hidden="true"></i>Contact Sales
+                    </a>
+                }
+                else if (tier.IsPopular)
+                {
+                    <button class="btn btn-gradient w-100 mt-auto" type="button">
+                        <i class="bi bi-rocket-takeoff me-1" aria-hidden="true"></i>Get Started
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-outline-primary w-100 mt-auto" type="button">
+                        <i class="bi bi-rocket-takeoff me-1" aria-hidden="true"></i>Get Started
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Service legend -->
+<div class="card-premium p-4 mt-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Service Details</h5>
+    </div>
+    <div class="row g-3">
+        @foreach (var svc in services)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="d-flex gap-2 align-items-start">
+                    <div class="kpi-icon kpi-icon-teal mb-0 flex-shrink-0" style="width:2.2rem;height:2.2rem;font-size:1rem;">
+                        <i class="bi @svc.Icon" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold small">
+                            @svc.Name
+                            @if (svc.MonthlyPrice > 0)
+                            {
+                                <span class="text-secondary fw-normal">&nbsp;·&nbsp;+$@svc.MonthlyPrice.ToString("0.##")/mo</span>
+                            }
+                        </div>
+                        <div class="text-secondary" style="font-size:.8rem;">@svc.Description</div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+}

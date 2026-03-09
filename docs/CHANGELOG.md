@@ -6,6 +6,67 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Fixed
+- **`DuplicatesService` build error** — `GroupBy` result was projected to `List<FileRecordDto>` via `.Select(g => g.OrderByDescending(...).ToList())`, causing the group key to be lost. The select now projects to a named tuple `(Key, Files)` so `HashValue` and the final `duplicateHashValues` collection are correctly populated.
+
+### Added
+- **UI screenshots** (`docs/screenshots/README.md`) — full-page captures of all 17 application screens taken from a live running instance, with descriptions of each page's purpose and content.
+- **Active subscription tier enforcement** — the application now tracks which pricing tier the current installation is subscribed to, and gates features accordingly:
+  - `Pricing:ActiveTierId` configuration key added to `appsettings.json` (default: `"professional"`); leave blank to disable tier enforcement and unlock all features.
+  - `ActiveTierId` property added to `PricingOptions` model.
+  - `ITierAccessService` / `TierAccessService` (`Services/TierAccessService.cs`) — scoped service that resolves the active tier from configuration and exposes `IsServiceAvailable(string serviceId)` for tier-based feature gating.
+  - `TierAccessService` registered in `Program.cs`.
+- **Duplicate Detection tier gate** (`/Duplicates`) — shows an upgrade banner with a link to `/Pricing` when the active tier does not include the `duplicate-detection` service (requires Professional plan or higher). The API is not called when the feature is unavailable.
+- **Notification Alerts tier gate** (`/NotificationSettings`) — shows an upgrade banner when the active tier does not include `notification-alerts` (requires Professional plan or higher). Settings form is hidden until the plan is upgraded.
+- **Subscription Plan card** on the Profile page (`/Profile`) — displays the active tier name, description, highlight tagline, and monthly price (or "Custom" for Enterprise). Includes a "View Plans" link to `/Pricing` and a "Choose a Plan" CTA when no tier is configured.
+- **Active Tier management** in Pricing Admin (`/PricingAdmin`) — new "Active Subscription Tier" section at the top of the owner-authenticated view:
+  - Dropdown selector showing all configured tiers with their prices.
+  - "Save Active Tier" button persists the selection to the target `appsettings.{Environment}.json`.
+  - Visual summary of services included in the currently selected tier.
+
+- **Pricing page screenshot** added to `docs/screenshots/pricing-page.png` — full-page capture of the `/Pricing` route showing all four subscription tiers (Starter, Professional, Business, Enterprise) and the Service Details reference panel.
+- **About page** (`/About`) — professional About Us page for StorageLens:
+  - Hero banner with product logo, description, version badge, and capability tags.
+  - KPI highlight cards: storage locations, files supported, scan engine, microservices count.
+  - Mission statement and Core Values sections.
+  - Key Features grid covering Dashboard, Scan Jobs, Duplicate Detection, File Inventory, Reports, and Configuration.
+  - Technology Stack panel (backend, frontend, database, deployment).
+  - Support & Contact section and Release Notes panel.
+  - **About** nav link added to sidebar navigation (desktop and mobile offcanvas).
+  - About page CSS styles added to `site.css` (hero, version box, badges, feature cards, stack items, contact list, release list, dark-mode variants).
+- **Pricing page** (`/Pricing`) — a public-facing pricing catalogue showing four configurable subscription tiers:
+  - **Starter** ($29/month): File Inventory, Scan Jobs, Reports & Analytics, Email Support.
+  - **Professional** ($79/month, *Most Popular*): Starter + Duplicate Detection, Notification Alerts.
+  - **Business** ($149/month): Professional + API Access, Scheduled Scans, Retention Policies, Priority Support.
+  - **Enterprise** (Contact Us): All services including AI Insights and Custom Integrations.
+  - Each tier card shows its monthly price (or "Custom" for Contact Us tiers), a highlight tagline, and a full feature checklist indicating which services are included or excluded.
+  - A *Service Details* reference panel beneath the cards explains every service and its individual add-on price.
+- **Pricing Admin page** (`/PricingAdmin`) — owner-only configuration interface for managing pricing:
+  - Protected by a PIN stored in `appsettings.json` (`Pricing:OwnerPin`); the correct PIN sets an HttpOnly `sl-owner-mode` cookie that grants the owner session without requiring server-side state.
+  - Tier editor: name, description, highlight tagline, Most-Popular / Contact-Us flags, calculated vs. manual price toggle, and a per-tier service checklist.
+  - Service editor: edit any existing service's name, description, Bootstrap-Icons icon class, and monthly price via an inline modal.
+  - Add-Service form: creates a new service (ID, name, description, icon, price) that immediately appears in all tier checklists — designed to accommodate future service additions without code changes.
+  - All changes are persisted to the target `appsettings.{Environment}.json` file, consistent with other settings pages.
+  - Lock button ends the owner session by clearing the `sl-owner-mode` cookie.
+- **Pricing Management card** added to the Settings hub (`/Settings`), linking directly to `/PricingAdmin` with an "Owner only" badge.
+- **Pricing link** added to the sidebar navigation (desktop and offcanvas mobile) between Reports and Settings.
+- `PricingOptions`, `PricingTier`, and `PricingService` classes (`Services/PricingOptions.cs`) — strongly-typed model for the `Pricing` configuration section.
+- `Pricing` configuration section added to `appsettings.json` with four default tiers and twelve configurable services (File Inventory, Scan Jobs, Reports & Analytics, Email Support, Duplicate Detection, Notification Alerts, API Access, Scheduled Scans, Retention Policies, Priority Support, AI Insights, Custom Integrations).
+- Pricing card CSS styles added to `site.css`: responsive card grid, popular-badge, price typography, feature list, and dark-mode adjustments.
+
+### Changed
+- `_Layout.cshtml` — both the desktop sidebar nav and the offcanvas mobile nav now include a Pricing link (`/Pricing`, `bi-tags` icon).
+
+
+  - `ScannerExecutionService`: renamed `info`→`fileInfo`, `errors`→`errorCount`, `batch`→`fileBatch`, `current`→`currentDirectory`, `files`→`filePaths`, `directories`→`subdirectories`, `progress`→`progressPercent`.
+  - `ScannerPathResolver`: renamed `current`→`currentOptions`, `fromRule`→`ruleResolvedPath`, `driveMapped`→`windowsDriveMappedPath`, `uncMapped`→`uncMappedPath`, `normalizedInput`→`normalizedInputPath`, `mode`→`mappingMode`, `replaced`→`regexReplacedPath`, `normalizedFrom`→`normalizedFromPattern`, `suffix`→`pathSuffix`, `mapped`→`resolvedReplacementPath`, and `rest`→`remainingPath` in both auto-map helpers.
+  - `HashingService`: renamed `sha`→`sha256` and `pending`→`pendingFiles`.
+  - `DuplicatesService`: renamed `candidates`→`filesWithCompletedHashes`, `stale`→`staleGroups`, `bucket`→`duplicateBucket`, `ordered`→`orderedGroupFiles`, `largest`→`largestFile`, and `hashes`→`duplicateHashValues`.
+  - `FileInventoryService`: renamed `paths`→`filePaths`, `changed`→`modifiedCount`, and `duplicate`→`isDuplicate`.
+  - `StartupDatabaseInitializer`: renamed `createTablesAsync`→`createTablesMethod`, `task`→`createTablesTask`, `current`→`currentException` (both exception-traversal helpers), and `number`→`sqlErrorNumber`.
+  - `ScannerSettingsModel.FormatBytes`: renamed single-letter `val`→`sizeValue` and `i`→`unitIndex`; renamed `s`→`settingsSection` in `LoadCurrentSettings`.
+  - `site.js`: renamed `openLink`→`pathAnchor` in `openStoragePath`.
+
 ### Added
 - **Environment Settings page** (`/EnvironmentSettings`) — lets engineers switch the active edit environment between **Development** and **Production**:
   - Displays the current runtime environment (from `ASPNETCORE_ENVIRONMENT`) with a badge.

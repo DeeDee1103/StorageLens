@@ -22,6 +22,8 @@ public class DuplicatesDbContext(DbContextOptions<DuplicatesDbContext> options) 
             entity.Property(x => x.LocationsCsv).HasMaxLength(500).IsRequired();
             entity.HasIndex(x => new { x.ScanJobId, x.HashValue }).IsUnique();
             entity.HasIndex(x => x.CorrelationId);
+            entity.HasIndex(x => x.WastedBytes);
+            entity.HasIndex(x => x.RecalculatedAtUtc);
         });
     }
 }

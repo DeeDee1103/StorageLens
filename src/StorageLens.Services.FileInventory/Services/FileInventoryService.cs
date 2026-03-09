@@ -10,7 +10,7 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
 {
     public async Task<IReadOnlyList<FileRecordDto>> GetAllAsync(string? search, string? extension, int page, int pageSize, CancellationToken cancellationToken)
     {
-        var query = dbContext.FileRecords.AsQueryable();
+        var query = dbContext.FileRecords.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -40,6 +40,7 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
     public async Task<IReadOnlyList<FileRecordDto>> GetByLocationAsync(Guid locationId, CancellationToken cancellationToken)
     {
         var items = await dbContext.FileRecords
+            .AsNoTracking()
             .Where(x => x.StorageLocationId == locationId)
             .OrderByDescending(x => x.LastModifiedDate)
             .Take(150)
@@ -55,9 +56,9 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
             return new FileBatchIngestResultDto(0, 0, 0, 0);
         }
 
-        var paths = request.Files.Select(x => x.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var filePaths = request.Files.Select(x => x.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var existingByPath = await dbContext.FileRecords
-            .Where(x => paths.Contains(x.FilePath))
+            .Where(x => filePaths.Contains(x.FilePath))
             .ToDictionaryAsync(x => x.FilePath, StringComparer.OrdinalIgnoreCase, cancellationToken);
 
         var inserted = 0;
@@ -123,6 +124,7 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
     public async Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(Guid? scanJobId, int take, CancellationToken cancellationToken)
     {
         var query = dbContext.FileRecords
+            .AsNoTracking()
             .Where(x => x.HashStatus == HashStatus.Pending.ToString() || x.HashStatus == HashStatus.Failed.ToString());
 
         if (scanJobId.HasValue)
@@ -178,24 +180,24 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
             .Where(x => x.ScanJobId == scanJobId && x.CorrelationId == correlationId)
             .ToListAsync(cancellationToken);
 
-        var changed = 0;
+        var modifiedCount = 0;
 
         foreach (var record in records)
         {
-            var duplicate = !string.IsNullOrWhiteSpace(record.HashValue) && duplicateHashes.Contains(record.HashValue);
-            if (record.IsDuplicate != duplicate)
+            var isDuplicate = !string.IsNullOrWhiteSpace(record.HashValue) && duplicateHashes.Contains(record.HashValue);
+            if (record.IsDuplicate != isDuplicate)
             {
-                record.IsDuplicate = duplicate;
-                changed++;
+                record.IsDuplicate = isDuplicate;
+                modifiedCount++;
             }
         }
 
-        if (changed > 0)
+        if (modifiedCount > 0)
         {
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        return changed;
+        return modifiedCount;
     }
 
     private static FileRecordDto Map(FileRecord entity) =>

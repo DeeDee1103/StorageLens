@@ -28,6 +28,22 @@
     </div>
 }
 
+@if (!Model.IsFeatureAvailable)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-3 reveal-item" role="alert">
+        <i class="bi bi-lock-fill fs-4 flex-shrink-0" aria-hidden="true"></i>
+        <div class="flex-grow-1">
+            <strong>Notification Alerts require the Professional plan or higher.</strong>
+            <p class="mb-0 small mt-1">Upgrade your subscription to configure email and webhook alerts for scan events and storage thresholds.</p>
+        </div>
+        <a asp-page="/Pricing" class="btn btn-warning btn-sm text-nowrap">
+            <i class="bi bi-arrow-up-circle me-1" aria-hidden="true"></i>View Plans
+        </a>
+    </div>
+}
+else
+{
+
 @if (!Model.IsDevelopmentEnvironment)
 {
     <div class="alert alert-warning reveal-item" role="alert">
@@ -233,6 +249,8 @@
         </div>
     }
 </form>
+
+}
 
 @section Scripts {
 <script>

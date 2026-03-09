@@ -26,30 +26,30 @@ public class ScannerPathResolver(
             return inputPath;
         }
 
-        var current = optionsMonitor.CurrentValue;
-        var fromRule = ResolveByRules(inputPath, current.Mappings);
-        if (!string.Equals(fromRule, inputPath, StringComparison.Ordinal))
+        var currentOptions = optionsMonitor.CurrentValue;
+        var ruleResolvedPath = ResolveByRules(inputPath, currentOptions.Mappings);
+        if (!string.Equals(ruleResolvedPath, inputPath, StringComparison.Ordinal))
         {
-            return fromRule;
+            return ruleResolvedPath;
         }
 
-        if (!ShouldUseAutoMapping(current))
+        if (!ShouldUseAutoMapping(currentOptions))
         {
             return inputPath;
         }
 
         // Auto-map any Windows drive path, for example C:\Users\User -> /host/drives/c/Users/User
-        var driveMapped = TryAutoMapWindowsDrive(inputPath);
-        if (driveMapped is not null)
+        var windowsDriveMappedPath = TryAutoMapWindowsDrive(inputPath);
+        if (windowsDriveMappedPath is not null)
         {
-            return driveMapped;
+            return windowsDriveMappedPath;
         }
 
         // Auto-map UNC path, for example \\server\share\foo -> /host/unc/server/share/foo
-        var uncMapped = TryAutoMapUnc(inputPath);
-        if (uncMapped is not null)
+        var uncMappedPath = TryAutoMapUnc(inputPath);
+        if (uncMappedPath is not null)
         {
-            return uncMapped;
+            return uncMappedPath;
         }
 
         return inputPath;
@@ -74,7 +74,7 @@ public class ScannerPathResolver(
 
     private string ResolveByRules(string inputPath, IReadOnlyList<ScannerPathMappingRule> mappings)
     {
-        var normalizedInput = NormalizePath(inputPath);
+        var normalizedInputPath = NormalizePath(inputPath);
 
         foreach (var mapping in mappings)
         {
@@ -83,16 +83,16 @@ public class ScannerPathResolver(
                 continue;
             }
 
-            var mode = mapping.Mode?.Trim() ?? "Prefix";
+            var mappingMode = mapping.Mode?.Trim() ?? "Prefix";
 
-            if (mode.Equals("Regex", StringComparison.OrdinalIgnoreCase))
+            if (mappingMode.Equals("Regex", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    var replaced = Regex.Replace(inputPath, mapping.Pattern, mapping.Replacement, RegexOptions.IgnoreCase);
-                    if (!string.Equals(replaced, inputPath, StringComparison.Ordinal))
+                    var regexReplacedPath = Regex.Replace(inputPath, mapping.Pattern, mapping.Replacement, RegexOptions.IgnoreCase);
+                    if (!string.Equals(regexReplacedPath, inputPath, StringComparison.Ordinal))
                     {
-                        return NormalizePath(replaced);
+                        return NormalizePath(regexReplacedPath);
                     }
                 }
                 catch (Exception ex)
@@ -103,12 +103,12 @@ public class ScannerPathResolver(
                 continue;
             }
 
-            var normalizedFrom = NormalizePath(mapping.Pattern);
-            if (normalizedInput.StartsWith(normalizedFrom, StringComparison.OrdinalIgnoreCase))
+            var normalizedFromPattern = NormalizePath(mapping.Pattern);
+            if (normalizedInputPath.StartsWith(normalizedFromPattern, StringComparison.OrdinalIgnoreCase))
             {
-                var suffix = normalizedInput[normalizedFrom.Length..].TrimStart('/');
-                var mapped = NormalizePath(mapping.Replacement);
-                return string.IsNullOrWhiteSpace(suffix) ? mapped : $"{mapped}/{suffix}";
+                var pathSuffix = normalizedInputPath[normalizedFromPattern.Length..].TrimStart('/');
+                var resolvedReplacementPath = NormalizePath(mapping.Replacement);
+                return string.IsNullOrWhiteSpace(pathSuffix) ? resolvedReplacementPath : $"{resolvedReplacementPath}/{pathSuffix}";
             }
         }
 
@@ -124,10 +124,10 @@ public class ScannerPathResolver(
         }
 
         var drive = match.Groups["drive"].Value.ToLowerInvariant();
-        var rest = NormalizePath(match.Groups["rest"].Value).TrimStart('/');
-        return string.IsNullOrWhiteSpace(rest)
+        var remainingPath = NormalizePath(match.Groups["rest"].Value).TrimStart('/');
+        return string.IsNullOrWhiteSpace(remainingPath)
             ? $"/host/drives/{drive}"
-            : $"/host/drives/{drive}/{rest}";
+            : $"/host/drives/{drive}/{remainingPath}";
     }
 
     private static string? TryAutoMapUnc(string inputPath)
@@ -140,10 +140,10 @@ public class ScannerPathResolver(
 
         var server = match.Groups["server"].Value;
         var share = match.Groups["share"].Value;
-        var rest = NormalizePath(match.Groups["rest"].Value).TrimStart('/');
+        var remainingPath = NormalizePath(match.Groups["rest"].Value).TrimStart('/');
 
         var basePath = $"/host/unc/{server}/{share}";
-        return string.IsNullOrWhiteSpace(rest) ? basePath : $"{basePath}/{rest}";
+        return string.IsNullOrWhiteSpace(remainingPath) ? basePath : $"{basePath}/{remainingPath}";
     }
 
     private static string NormalizePath(string path) =>
