@@ -1,4 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using StorageLens.Shared.Infrastructure;
 using StorageLens.Web.Clients;
+using StorageLens.Web.Data;
 using StorageLens.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +27,23 @@ builder.Services.Configure<PricingOptions>(
     builder.Configuration.GetSection(PricingOptions.SectionName));
 
 builder.Services.AddScoped<ITierAccessService, TierAccessService>();
+
+var dbCfg = builder.Configuration.GetSection(DatabaseConfigOptions.SectionName).Get<DatabaseConfigOptions>()
+            ?? new DatabaseConfigOptions();
+
+builder.Services.AddDbContext<ClientsDbContext>(options =>
+{
+    if (dbCfg.UseInMemory)
+    {
+        options.UseInMemoryDatabase("StorageLens_Clients");
+    }
+    else
+    {
+        var password = builder.Configuration["ClientsDbPassword"];
+        var connectionString = ClientsDatabaseConnectionBuilder.Build(dbCfg, password);
+        options.UseSqlServer(connectionString);
+    }
+});
 
 var endpoints = builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName).Get<ServiceEndpointsOptions>()
                ?? new ServiceEndpointsOptions();
@@ -53,5 +73,12 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapRazorPages();
+
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.ClientsDatabase");
+    var clientsDb = scope.ServiceProvider.GetRequiredService<ClientsDbContext>();
+    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(clientsDb, logger);
+}
 
 app.Run();
