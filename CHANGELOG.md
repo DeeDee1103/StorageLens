@@ -7,7 +7,9 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 ## [Unreleased]
 
 ### Added
-- `WorkflowProcessingOptions` configuration class for `StorageLens.Services.Orchestrator` to control concurrent scan workflow processing via `MaxConcurrentWorkflows` setting.
+- `WorkflowProcessingOptions` configuration class for `StorageLens.Services.Orchestrator` to control concurrent scan workflow processing via `MaxConcurrentWorkflows` setting (defaults to `Environment.ProcessorCount`; `appsettings.json` default: 4).
+- `WorkflowBackgroundService` updated to process workflows concurrently using a `SemaphoreSlim`, with graceful draining on shutdown.
+- Two new unit tests in `WorkflowBackgroundServiceTests` covering concurrent dispatch and cancellation behaviour.
 
 ### Changed
 - Frontend script organization improved: profile initialization moved from `site.js` to dedicated `profile.js` module, keeping page-specific initialization concerns separate from global initialization.
