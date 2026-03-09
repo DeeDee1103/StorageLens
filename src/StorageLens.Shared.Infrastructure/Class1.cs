@@ -10,4 +10,5 @@ public static class SqlSchemas
 	public const string Scanner = "scanner";
 	public const string Hashing = "hashing";
 	public const string Orchestration = "orchestration";
+	public const string Clients = "clients";
 }

@@ -10,6 +10,25 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 - **`DuplicatesService` build error** — `GroupBy` result was projected to `List<FileRecordDto>` via `.Select(g => g.OrderByDescending(...).ToList())`, causing the group key to be lost. The select now projects to a named tuple `(Key, Files)` so `HashValue` and the final `duplicateHashValues` collection are correctly populated.
 
 ### Added
+- **Client Management page** (`/ClientManagement`) — owner-only interface for adding and managing client companies and granting them service access:
+  - Protected by the same `sl-owner-mode` HttpOnly cookie used by Pricing Admin; enter the owner PIN to unlock.
+  - Summary KPI cards: Total Clients, Active Clients, New This Month.
+  - Client list table with: Account Number, Company, Primary Contact, Email, Tier, Status, Created date, and Edit/Delete actions.
+  - Add / Edit modal form with sections for:
+    - **Company Information**: company name, industry, website.
+    - **Primary Contact**: first name, last name, title, phone, email.
+    - **Billing Address**: street, city, state, postal code, country.
+    - **Service Access**: subscription tier selector (pulled from Pricing config), contract start/end dates, and per-service checkboxes for additional grants beyond the tier defaults.
+    - **Notification Settings**: comma-separated recipient email addresses; toggles for scan-complete, scan-failed, duplicates-detected, and storage-threshold alerts; configurable threshold percentage.
+    - **Account Status & Notes**: Active / Inactive / Suspended status selector and free-text notes field.
+  - Client records are persisted to the `clients.Clients` SQL Server table using EF Core (same database server as back-end services, configured via `DatabaseConfig`).
+  - Auto-generated account numbers in `SL-NNNNN` format.
+  - Client Management card added to the Settings page (`/Settings`) under the owner-only section.
+- **`ClientRecord` model** (`src/StorageLens.Web/Data/ClientRecord.cs`) — domain entity capturing all company, contact, billing, subscription, notification, and audit fields.
+- **`ClientsDbContext`** (`src/StorageLens.Web/Data/ClientsDbContext.cs`) — EF Core DbContext scoped to the `clients` SQL schema; registered in `Program.cs` with startup table initialisation via `StartupDatabaseInitializer`.
+- **`ClientsDatabaseConnectionBuilder`** (`src/StorageLens.Web/Services/ClientsDatabaseConnectionBuilder.cs`) — builds the SQL connection string for the Web project from the existing `DatabaseConfig` appsettings section; supports both LocalDB and Azure SQL providers.
+- **`clients` SQL schema constant** added to `StorageLens.Shared.Infrastructure.SqlSchemas`.
+- **`StorageLens.Web.csproj`** — added `Microsoft.EntityFrameworkCore.SqlServer` and `Microsoft.EntityFrameworkCore.InMemory` (v8.0.12) package references and a project reference to `StorageLens.Shared.Infrastructure`.
 - **UI screenshots** (`docs/screenshots/README.md`) — full-page captures of all 17 application screens taken from a live running instance, with descriptions of each page's purpose and content.
 - **Active subscription tier enforcement** — the application now tracks which pricing tier the current installation is subscribed to, and gates features accordingly:
   - `Pricing:ActiveTierId` configuration key added to `appsettings.json` (default: `"professional"`); leave blank to disable tier enforcement and unlock all features.
