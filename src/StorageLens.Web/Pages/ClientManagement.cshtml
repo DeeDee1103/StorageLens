@@ -233,7 +233,8 @@ else
                                         <i class="bi bi-pencil" aria-hidden="true"></i>
                                     </button>
                                     <form method="post" asp-page-handler="DeleteClient" class="d-inline"
-                                          onsubmit="return confirm('Delete client @Html.Raw(client.CompanyName.Replace("'", "\\'"))? This cannot be undone.');">
+                                          data-company-name="@client.CompanyName"
+                                          onsubmit="return confirmClientDelete(this);">
                                         <input type="hidden" name="clientId" value="@client.Id" />
                                         <button class="btn btn-sm btn-outline-danger" type="submit">
                                             <i class="bi bi-trash3" aria-hidden="true"></i>
@@ -536,6 +537,11 @@ else
     function setChk(id, val) {
         var el = document.getElementById(id);
         if (el) el.checked = !!val;
+    }
+
+    function confirmClientDelete(form) {
+        var name = form.getAttribute('data-company-name') || 'this client';
+        return confirm('Delete client "' + name + '"? This cannot be undone.');
     }
 </script>
 }

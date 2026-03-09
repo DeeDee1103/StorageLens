@@ -9,6 +9,7 @@ namespace StorageLens.Web.Pages;
 
 public class ClientManagementModel(
     IConfiguration configuration,
+    IWebHostEnvironment environment,
     ClientsDbContext db) : PageModel
 {
     // ── Cookie constants (shared with PricingAdmin) ──────────────────────────
@@ -96,6 +97,7 @@ public class ClientManagementModel(
         Response.Cookies.Append(PricingAdminModel.OwnerCookieName, OwnerCookieValue, new CookieOptions
         {
             HttpOnly = true,
+            Secure = !environment.IsDevelopment(),
             SameSite = SameSiteMode.Lax,
             IsEssential = true,
         });
@@ -241,22 +243,22 @@ public class ClientManagementModel(
 
     private void ApplyFormToRecord(ClientRecord record, string serviceIdsJson)
     {
-        record.CompanyName = FormCompanyName.Trim();
-        record.Industry = FormIndustry.Trim();
-        record.Website = FormWebsite.Trim();
-        record.ContactFirstName = FormContactFirstName.Trim();
-        record.ContactLastName = FormContactLastName.Trim();
-        record.ContactEmail = FormContactEmail.Trim();
-        record.ContactPhone = FormContactPhone.Trim();
-        record.ContactTitle = FormContactTitle.Trim();
-        record.BillingAddress = FormBillingAddress.Trim();
-        record.City = FormCity.Trim();
-        record.State = FormState.Trim();
-        record.PostalCode = FormPostalCode.Trim();
-        record.Country = FormCountry.Trim();
-        record.AssignedTierId = FormAssignedTierId.Trim();
+        record.CompanyName = (FormCompanyName ?? string.Empty).Trim();
+        record.Industry = (FormIndustry ?? string.Empty).Trim();
+        record.Website = (FormWebsite ?? string.Empty).Trim();
+        record.ContactFirstName = (FormContactFirstName ?? string.Empty).Trim();
+        record.ContactLastName = (FormContactLastName ?? string.Empty).Trim();
+        record.ContactEmail = (FormContactEmail ?? string.Empty).Trim();
+        record.ContactPhone = (FormContactPhone ?? string.Empty).Trim();
+        record.ContactTitle = (FormContactTitle ?? string.Empty).Trim();
+        record.BillingAddress = (FormBillingAddress ?? string.Empty).Trim();
+        record.City = (FormCity ?? string.Empty).Trim();
+        record.State = (FormState ?? string.Empty).Trim();
+        record.PostalCode = (FormPostalCode ?? string.Empty).Trim();
+        record.Country = (FormCountry ?? string.Empty).Trim();
+        record.AssignedTierId = (FormAssignedTierId ?? string.Empty).Trim();
         record.AssignedServiceIdsJson = serviceIdsJson;
-        record.NotificationEmails = FormNotificationEmails.Trim();
+        record.NotificationEmails = (FormNotificationEmails ?? string.Empty).Trim();
         record.NotifyOnScanComplete = FormNotifyOnScanComplete;
         record.NotifyOnScanFailed = FormNotifyOnScanFailed;
         record.NotifyOnDuplicatesFound = FormNotifyOnDuplicatesFound;
@@ -265,12 +267,24 @@ public class ClientManagementModel(
         record.ContractStartDate = DateTime.TryParse(FormContractStartDate, out var sd) ? (DateTime?)sd : null;
         record.ContractEndDate = DateTime.TryParse(FormContractEndDate, out var ed) ? (DateTime?)ed : null;
         record.Status = ClientStatus.All.Contains(FormStatus) ? FormStatus : ClientStatus.Active;
-        record.Notes = FormNotes.Trim();
+        record.Notes = (FormNotes ?? string.Empty).Trim();
     }
 
     private async Task<string> GenerateAccountNumberAsync()
     {
-        var count = await db.Clients.CountAsync();
-        return $"SL-{(count + 1):D5}";
+        // Query the highest existing sequence number to avoid gaps from deletions.
+        // The unique index on AccountNumber ensures the database rejects duplicates
+        // if two requests race; callers should retry on a uniqueness violation.
+        var accounts = await db.Clients.Select(c => c.AccountNumber).ToListAsync();
+        var maxSeq = accounts
+            .Select(a =>
+            {
+                var part = a.StartsWith("SL-", StringComparison.OrdinalIgnoreCase)
+                    ? a[3..] : a;
+                return int.TryParse(part, out var n) ? n : 0;
+            })
+            .DefaultIfEmpty(0)
+            .Max();
+        return $"SL-{(maxSeq + 1):D5}";
     }
 }
