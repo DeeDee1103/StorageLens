@@ -11,6 +11,7 @@ public class ScanJobsService(ScanJobsDbContext dbContext) : IScanJobsService
     public async Task<IReadOnlyList<ScanJobDto>> GetAllAsync(CancellationToken cancellationToken)
     {
         var entities = await dbContext.ScanJobs
+            .AsNoTracking()
             .OrderByDescending(x => x.StartTime)
             .ToListAsync(cancellationToken);
 
@@ -20,6 +21,7 @@ public class ScanJobsService(ScanJobsDbContext dbContext) : IScanJobsService
     public async Task<IReadOnlyList<ScanJobDto>> GetRecentAsync(CancellationToken cancellationToken)
     {
         var entities = await dbContext.ScanJobs
+            .AsNoTracking()
             .OrderByDescending(x => x.StartTime)
             .Take(6)
             .ToListAsync(cancellationToken);

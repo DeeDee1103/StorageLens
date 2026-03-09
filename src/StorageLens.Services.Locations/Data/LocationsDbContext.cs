@@ -21,6 +21,7 @@ public class LocationsDbContext(DbContextOptions<LocationsDbContext> options) : 
             entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(x => x.Name);
+            entity.HasIndex(x => x.TotalSizeBytes);
         });
     }
 }

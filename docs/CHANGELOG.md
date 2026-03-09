@@ -6,6 +6,20 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+- `AnalyticsService.GetDashboardAsync`: replaced O(n²) `locations.FirstOrDefault(l => l.Id == id)` linear scan inside the Storage Growth chart LINQ query with a pre-built `Dictionary<Guid, long>` for O(1) location-size lookups.
+- `DuplicatesService.RecalculateAsync`: replaced `g.Count() > 1` (full group enumeration) with `g.Skip(1).Any()` (short-circuits after the second element) when identifying duplicate hash buckets.
+- `DuplicatesService.RecalculateAsync`: eliminated redundant per-bucket sorting — each bucket is now sorted once into a `List<T>` before the save loop and the result-summary calculation both reuse that cached list, removing a second `OrderByDescending` pass.
+- `DuplicatesService.GetSummaryAsync`, `GetGroupsAsync`: added `.AsNoTracking()` to read-only EF Core queries to prevent unnecessary change-tracker overhead.
+- `FileInventoryService.GetAllAsync`, `GetByLocationAsync`, `GetPendingHashFilesAsync`: added `.AsNoTracking()` to all read-only queries.
+- `LocationService.GetAllAsync`: added `.AsNoTracking()` to prevent change-tracking of entities that are immediately projected to DTOs.
+- `ScanJobsService.GetAllAsync`, `GetRecentAsync`: added `.AsNoTracking()` to both list queries.
+- `DuplicatesDbContext`: added indexes on `WastedBytes` and `RecalculatedAtUtc` columns, which are used as `ORDER BY` targets in `GetGroupsAsync` and `GetSummaryAsync`.
+- `FileInventoryDbContext`: added indexes on `SizeBytes` and `LastModifiedDate` columns, which are used as `ORDER BY` targets in `GetAllAsync` and `GetByLocationAsync`.
+- `LocationsDbContext`: added index on `TotalSizeBytes`, which is used as the `ORDER BY` target in `GetAllAsync`.
+- `LocationsSeeder.SeedAsync`: replaced synchronous `dbContext.StorageLocations.Any()` blocking call with `await dbContext.StorageLocations.AnyAsync()` to avoid thread-pool starvation during startup.
+- `UpstreamApiClient.GetFilesAsync` (Analytics) and `DuplicatesService` file-inventory HTTP calls: raised the page-size parameter from 2,000 to 5,000 to match the `FileInventoryService` server-side ceiling, ensuring internal service calls are never silently truncated.
+
 ### Added
 - **Environment Settings page** (`/EnvironmentSettings`) — lets engineers switch the active edit environment between **Development** and **Production**:
   - Displays the current runtime environment (from `ASPNETCORE_ENVIRONMENT`) with a badge.
