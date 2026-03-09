@@ -84,7 +84,7 @@ public class DuplicatesService(
         var duplicateBuckets = filesWithCompletedHashes
             .GroupBy(x => x.HashValue, StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Skip(1).Any())
-            .Select(g => g.OrderByDescending(x => x.SizeBytes).ToList())
+            .Select(g => (Key: g.Key!, Files: g.OrderByDescending(x => x.SizeBytes).ToList()))
             .ToList();
 
         var staleGroups = await dbContext.DuplicateGroups
@@ -100,7 +100,7 @@ public class DuplicatesService(
 
         foreach (var duplicateBucket in duplicateBuckets)
         {
-            var orderedGroupFiles = duplicateBucket.OrderByDescending(x => x.SizeBytes).ToList();
+            var orderedGroupFiles = duplicateBucket.Files;
             var largestFile = orderedGroupFiles.First();
 
             dbContext.DuplicateGroups.Add(new DuplicateGroup
@@ -133,8 +133,8 @@ public class DuplicatesService(
             logger.LogWarning("Failed to mark duplicate flags in file inventory for scan job {ScanJobId}", scanJobId);
         }
 
-        var duplicateFileCount = duplicateBuckets.Sum(x => x.Count);
-        var wastedBytes = duplicateBuckets.Sum(x => x.Skip(1).Sum(v => v.SizeBytes));
+        var duplicateFileCount = duplicateBuckets.Sum(x => x.Files.Count);
+        var wastedBytes = duplicateBuckets.Sum(x => x.Files.Skip(1).Sum(v => v.SizeBytes));
 
         return new DuplicateRecalculationResultDto(
             scanJobId,
