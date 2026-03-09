@@ -23,6 +23,7 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
     public List<PricingTier> Tiers { get; private set; } = [];
     public List<PricingService> AvailableServices { get; private set; } = [];
     public string SelectedEditEnvironment { get; private set; } = EnvironmentSettingsModel.Development;
+    public string ActiveTierId { get; private set; } = string.Empty;
 
     // ── Bind properties (owner PIN form) ─────────────────────────────────────
 
@@ -114,6 +115,35 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
         return Page();
     }
 
+    // ── Active tier management ───────────────────────────────────────────────
+
+    public IActionResult OnPostSetActiveTier(string activeTierId)
+    {
+        SetPageDefaults();
+        LoadCurrentPricing();
+
+        if (!IsOwnerAuthenticated)
+        {
+            ErrorMessage = "Owner authentication required.";
+            return Page();
+        }
+
+        var id = (activeTierId ?? string.Empty).Trim().ToLowerInvariant();
+        if (!string.IsNullOrEmpty(id) && !Tiers.Any(t => string.Equals(t.Id, id, StringComparison.OrdinalIgnoreCase)))
+        {
+            ErrorMessage = $"Tier '{id}' not found.";
+            return Page();
+        }
+
+        ActiveTierId = id;
+        PersistPricing();
+        var label = string.IsNullOrEmpty(id)
+            ? "Subscription tier cleared (open access mode)."
+            : $"Active subscription tier set to \"{Tiers.FirstOrDefault(t => t.Id == id)?.Name ?? id}\".";
+        SuccessMessage = label;
+        return Page();
+    }
+
     // ── Service management ───────────────────────────────────────────────────
 
     public IActionResult OnPostSaveService(
@@ -198,6 +228,7 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
         var section = configuration.GetSection(PricingOptions.SectionName);
         Tiers = section.GetSection("Tiers").Get<List<PricingTier>>() ?? [];
         AvailableServices = section.GetSection("AvailableServices").Get<List<PricingService>>() ?? [];
+        ActiveTierId = section["ActiveTierId"] ?? string.Empty;
     }
 
     private void PersistPricing()
@@ -211,6 +242,7 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
         var pricingNode = JsonSerializer.SerializeToNode(new
         {
             OwnerPin = configuration[$"{PricingOptions.SectionName}:OwnerPin"] ?? string.Empty,
+            ActiveTierId,
             Tiers,
             AvailableServices,
         }, writeOpts);

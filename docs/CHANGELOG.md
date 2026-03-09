@@ -7,6 +7,19 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 ## [Unreleased]
 
 ### Added
+- **Active subscription tier enforcement** — the application now tracks which pricing tier the current installation is subscribed to, and gates features accordingly:
+  - `Pricing:ActiveTierId` configuration key added to `appsettings.json` (default: `"professional"`); leave blank to disable tier enforcement and unlock all features.
+  - `ActiveTierId` property added to `PricingOptions` model.
+  - `ITierAccessService` / `TierAccessService` (`Services/TierAccessService.cs`) — scoped service that resolves the active tier from configuration and exposes `IsServiceAvailable(string serviceId)` for tier-based feature gating.
+  - `TierAccessService` registered in `Program.cs`.
+- **Duplicate Detection tier gate** (`/Duplicates`) — shows an upgrade banner with a link to `/Pricing` when the active tier does not include the `duplicate-detection` service (requires Professional plan or higher). The API is not called when the feature is unavailable.
+- **Notification Alerts tier gate** (`/NotificationSettings`) — shows an upgrade banner when the active tier does not include `notification-alerts` (requires Professional plan or higher). Settings form is hidden until the plan is upgraded.
+- **Subscription Plan card** on the Profile page (`/Profile`) — displays the active tier name, description, highlight tagline, and monthly price (or "Custom" for Enterprise). Includes a "View Plans" link to `/Pricing` and a "Choose a Plan" CTA when no tier is configured.
+- **Active Tier management** in Pricing Admin (`/PricingAdmin`) — new "Active Subscription Tier" section at the top of the owner-authenticated view:
+  - Dropdown selector showing all configured tiers with their prices.
+  - "Save Active Tier" button persists the selection to the target `appsettings.{Environment}.json`.
+  - Visual summary of services included in the currently selected tier.
+
 - **Pricing page screenshot** added to `docs/screenshots/pricing-page.png` — full-page capture of the `/Pricing` route showing all four subscription tiers (Starter, Professional, Business, Enterprise) and the Service Details reference panel.
 - **About page** (`/About`) — professional About Us page for StorageLens:
   - Hero banner with product logo, description, version badge, and capability tags.

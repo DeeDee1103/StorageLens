@@ -187,6 +187,63 @@
             </div>
         </div>
 
+        <!-- Subscription Plan -->
+        <div class="card-premium p-3 reveal-item">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="kpi-icon kpi-icon-orange mb-0"><i class="bi bi-tags" aria-hidden="true"></i></div>
+                <h5 class="mb-0">Subscription Plan</h5>
+            </div>
+            @if (Model.ActiveTier is not null)
+            {
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div>
+                        <div class="fw-semibold">
+                            @Model.ActiveTier.Name
+                            @if (Model.ActiveTier.IsContactUs)
+                            {
+                                <span class="badge bg-secondary bg-opacity-20 text-secondary ms-1">Enterprise</span>
+                            }
+                            else if (Model.ActiveTier.IsPopular)
+                            {
+                                <span class="badge bg-warning bg-opacity-20 text-warning ms-1">Most Popular</span>
+                            }
+                        </div>
+                        <div class="text-secondary small">@Model.ActiveTier.Description</div>
+                        @if (!string.IsNullOrWhiteSpace(Model.ActiveTier.Highlight))
+                        {
+                            <div class="text-secondary small mt-1">
+                                <i class="bi bi-lightning-charge-fill me-1 text-warning" aria-hidden="true"></i>@Model.ActiveTier.Highlight
+                            </div>
+                        }
+                    </div>
+                    <div class="ms-auto">
+                        @if (Model.ActiveTier.IsContactUs)
+                        {
+                            <span class="badge bg-primary bg-opacity-15 text-primary px-3 py-2">Custom</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success bg-opacity-15 text-success px-3 py-2 fs-6">
+                                $@Model.ActiveTier.ManualMonthlyPrice.ToString("0.##")<span class="fw-normal">/mo</span>
+                            </span>
+                        }
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3 flex-wrap">
+                    <a asp-page="/Pricing" class="btn btn-outline-soft btn-sm">
+                        <i class="bi bi-arrow-up-circle me-1" aria-hidden="true"></i>View Plans
+                    </a>
+                </div>
+            }
+            else
+            {
+                <p class="text-secondary small mb-2">No active subscription tier is configured for this installation.</p>
+                <a asp-page="/Pricing" class="btn btn-gradient btn-sm">
+                    <i class="bi bi-tags me-1" aria-hidden="true"></i>Choose a Plan
+                </a>
+            }
+        </div>
+
         <!-- Recent Activity -->
         <div class="card-premium p-3 reveal-item">
             <div class="d-flex align-items-center gap-2 mb-3">

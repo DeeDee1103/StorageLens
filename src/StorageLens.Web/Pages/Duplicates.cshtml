@@ -6,6 +6,22 @@
     <p class="text-secondary mb-0">Identify duplicate waste and triage high-impact groups for cleanup.</p>
 </section>
 
+@if (!Model.IsFeatureAvailable)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-3 reveal-item" role="alert">
+        <i class="bi bi-lock-fill fs-4 flex-shrink-0" aria-hidden="true"></i>
+        <div class="flex-grow-1">
+            <strong>Duplicate Detection requires the Professional plan or higher.</strong>
+            <p class="mb-0 small mt-1">Upgrade your subscription to unlock automatic duplicate file detection and reclaim wasted storage space.</p>
+        </div>
+        <a asp-page="/Pricing" class="btn btn-warning btn-sm text-nowrap">
+            <i class="bi bi-arrow-up-circle me-1" aria-hidden="true"></i>View Plans
+        </a>
+    </div>
+}
+else
+{
+
 <section class="row g-3 mb-3">
     <div class="col-md-4 reveal-item">
         <div class="card-premium kpi-card">
@@ -63,3 +79,5 @@
         </table>
     </div>
 </section>
+
+}
