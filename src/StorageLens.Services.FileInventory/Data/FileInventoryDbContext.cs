@@ -33,6 +33,8 @@ public class FileInventoryDbContext(DbContextOptions<FileInventoryDbContext> opt
             entity.HasIndex(x => x.FilePath).IsUnique();
             entity.HasIndex(x => x.HashStatus);
             entity.HasIndex(x => x.HashValue);
+            entity.HasIndex(x => x.SizeBytes);
+            entity.HasIndex(x => x.LastModifiedDate);
         });
     }
 }

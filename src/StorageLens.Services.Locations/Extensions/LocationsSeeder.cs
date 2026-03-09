@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.Locations.Data;
 using StorageLens.Services.Locations.Models;
 using StorageLens.Shared.Contracts;
@@ -8,7 +9,7 @@ public static class LocationsSeeder
 {
     public static async Task SeedAsync(LocationsDbContext dbContext)
     {
-        if (dbContext.StorageLocations.Any())
+        if (await dbContext.StorageLocations.AnyAsync())
         {
             return;
         }

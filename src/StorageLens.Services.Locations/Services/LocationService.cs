@@ -11,6 +11,7 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
     public async Task<IReadOnlyList<StorageLocationDto>> GetAllAsync(CancellationToken cancellationToken)
     {
         var entities = await dbContext.StorageLocations
+            .AsNoTracking()
             .OrderByDescending(x => x.TotalSizeBytes)
             .ToListAsync(cancellationToken);
 
