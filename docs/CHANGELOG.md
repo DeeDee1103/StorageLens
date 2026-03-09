@@ -7,6 +7,7 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 ## [Unreleased]
 
 ### Added
+- **Pricing page screenshot** added to `docs/screenshots/pricing-page.png` — full-page capture of the `/Pricing` route showing all four subscription tiers (Starter, Professional, Business, Enterprise) and the Service Details reference panel.
 - **About page** (`/About`) — professional About Us page for StorageLens:
   - Hero banner with product logo, description, version badge, and capability tags.
   - KPI highlight cards: storage locations, files supported, scan engine, microservices count.
