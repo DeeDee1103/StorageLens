@@ -1,0 +1,315 @@
+@page
+@model AboutModel
+
+<section class="mb-4 reveal-item">
+    <h1 class="dashboard-title">About StorageLens</h1>
+    <p class="text-secondary mb-0">Intelligent storage management — built for modern infrastructure teams.</p>
+</section>
+
+<!-- Hero banner -->
+<div class="card-premium p-4 mb-4 reveal-item about-hero">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <img src="~/images/storagelens-logo.png" alt="StorageLens Logo" style="width:56px;height:auto;" />
+                <div>
+                    <h2 class="mb-0 fw-bold">StorageLens</h2>
+                    <span class="text-secondary small">Storage Intelligence Platform</span>
+                </div>
+            </div>
+            <p class="mb-3" style="font-size:1.05rem;line-height:1.7;">
+                StorageLens is an enterprise-grade storage observability platform that gives IT and infrastructure
+                teams real-time visibility into capacity utilisation, duplicate waste, and file inventory across
+                all on-premises and hybrid storage environments. Powered by a .NET 8 microservices backend and
+                an intuitive web dashboard, StorageLens turns raw storage telemetry into actionable intelligence.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge about-badge about-badge-blue"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Production-Ready</span>
+                <span class="badge about-badge about-badge-teal"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Enterprise-Grade</span>
+                <span class="badge about-badge about-badge-green"><i class="bi bi-cloud-check me-1" aria-hidden="true"></i>Cloud &amp; On-Premises</span>
+                <span class="badge about-badge about-badge-purple"><i class="bi bi-lightning me-1" aria-hidden="true"></i>Real-Time Scanning</span>
+            </div>
+        </div>
+        <div class="col-lg-4 text-center">
+            <div class="about-version-box mx-auto">
+                <div class="about-version-label text-secondary small text-uppercase fw-semibold mb-1" style="letter-spacing:.07em;">Current Version</div>
+                <div class="about-version-number">1.0</div>
+                <div class="text-secondary small mb-2">MVP Release</div>
+                <div class="text-secondary" style="font-size:0.78rem;">
+                    <i class="bi bi-calendar2-check me-1" aria-hidden="true"></i>March 2026
+                </div>
+                <hr class="my-3" style="border-color:var(--sl-border);" />
+                <div class="text-secondary" style="font-size:0.78rem;">
+                    <i class="bi bi-code-slash me-1" aria-hidden="true"></i>Built on .NET 8 &amp; ASP.NET Core
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI highlights -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3 reveal-item">
+        <div class="card-premium kpi-card text-center">
+            <div class="kpi-icon kpi-icon-blue mx-auto mb-2"><i class="bi bi-hdd-stack" aria-hidden="true"></i></div>
+            <div class="kpi-value">∞</div>
+            <div class="kpi-label">Storage Locations</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3 reveal-item">
+        <div class="card-premium kpi-card text-center">
+            <div class="kpi-icon kpi-icon-teal mx-auto mb-2"><i class="bi bi-files" aria-hidden="true"></i></div>
+            <div class="kpi-value">Billions</div>
+            <div class="kpi-label">Files Supported</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3 reveal-item">
+        <div class="card-premium kpi-card text-center">
+            <div class="kpi-icon kpi-icon-green mx-auto mb-2"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
+            <div class="kpi-value">Real-Time</div>
+            <div class="kpi-label">Scan Engine</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3 reveal-item">
+        <div class="card-premium kpi-card text-center">
+            <div class="kpi-icon kpi-icon-orange mx-auto mb-2"><i class="bi bi-diagram-3" aria-hidden="true"></i></div>
+            <div class="kpi-value">5+</div>
+            <div class="kpi-label">Microservices</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Mission -->
+    <div class="col-lg-6 reveal-item">
+        <div class="card-premium p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-bullseye" aria-hidden="true"></i></div>
+                <h5 class="mb-0">Our Mission</h5>
+            </div>
+            <p class="text-secondary mb-2">
+                We believe storage chaos is a solved problem — it just needs the right lens. Our mission is to
+                eliminate wasted capacity, surface hidden costs, and give every infrastructure team the
+                confidence to make data-driven storage decisions without writing a single SQL query.
+            </p>
+            <p class="text-secondary mb-0">
+                Whether you manage a single server room or a globally distributed hybrid estate, StorageLens
+                adapts to your scale and delivers clarity in minutes.
+            </p>
+        </div>
+    </div>
+
+    <!-- Core values -->
+    <div class="col-lg-6 reveal-item">
+        <div class="card-premium p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-stars" aria-hidden="true"></i></div>
+                <h5 class="mb-0">Core Values</h5>
+            </div>
+            <ul class="list-unstyled mb-0 about-values-list">
+                <li class="about-value-item">
+                    <span class="about-value-dot about-dot-blue"></span>
+                    <div>
+                        <strong>Transparency</strong>
+                        <p class="text-secondary small mb-0">Every metric is traceable back to raw scan data. No black boxes.</p>
+                    </div>
+                </li>
+                <li class="about-value-item">
+                    <span class="about-value-dot about-dot-teal"></span>
+                    <div>
+                        <strong>Performance</strong>
+                        <p class="text-secondary small mb-0">Designed from the ground up for speed at petabyte scale.</p>
+                    </div>
+                </li>
+                <li class="about-value-item">
+                    <span class="about-value-dot about-dot-green"></span>
+                    <div>
+                        <strong>Simplicity</strong>
+                        <p class="text-secondary small mb-0">Powerful insights delivered through a clean, intuitive interface.</p>
+                    </div>
+                </li>
+                <li class="about-value-item">
+                    <span class="about-value-dot about-dot-purple"></span>
+                    <div>
+                        <strong>Security-First</strong>
+                        <p class="text-secondary small mb-0">Built with zero-trust principles and Microsoft SSO integration.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Key features -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-4">
+        <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-grid-1x2" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Key Features</h5>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-6 col-xl-4">
+            <div class="about-feature-card">
+                <div class="about-feature-icon about-feature-icon-blue">
+                    <i class="bi bi-speedometer2" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold mb-1">Executive Dashboard</div>
+                    <p class="text-secondary small mb-0">At-a-glance KPIs covering total storage, duplicate waste, and potential savings across your entire estate.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-4">
+            <div class="about-feature-card">
+                <div class="about-feature-icon about-feature-icon-teal">
+                    <i class="bi bi-activity" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold mb-1">Automated Scan Jobs</div>
+                    <p class="text-secondary small mb-0">Schedule and monitor deep filesystem scans with real-time progress tracking and historical job history.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-4">
+            <div class="about-feature-card">
+                <div class="about-feature-icon about-feature-icon-orange">
+                    <i class="bi bi-files" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold mb-1">Duplicate Detection</div>
+                    <p class="text-secondary small mb-0">SHA-256 hash-based deduplication identifies exact file copies and quantifies the reclaimable storage.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-4">
+            <div class="about-feature-card">
+                <div class="about-feature-icon about-feature-icon-green">
+                    <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold mb-1">File Inventory</div>
+                    <p class="text-secondary small mb-0">Searchable, filterable inventory of every file across all registered storage locations.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-4">
+            <div class="about-feature-card">
+                <div class="about-feature-icon about-feature-icon-purple">
+                    <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold mb-1">Analytics &amp; Reports</div>
+                    <p class="text-secondary small mb-0">Trend charts, growth projections, and exportable reports to support capacity planning decisions.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-4">
+            <div class="about-feature-card">
+                <div class="about-feature-icon about-feature-icon-blue">
+                    <i class="bi bi-gear" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold mb-1">Flexible Configuration</div>
+                    <p class="text-secondary small mb-0">Per-environment settings, notification policies, and appearance preferences all configurable from the UI.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Technology stack -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-4">
+        <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-layers" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Technology Stack</h5>
+    </div>
+    <div class="row g-3">
+        <div class="col-sm-6 col-lg-3">
+            <div class="about-stack-item">
+                <div class="about-stack-icon"><i class="bi bi-code-slash" aria-hidden="true"></i></div>
+                <div class="about-stack-label">Backend</div>
+                <div class="about-stack-value">.NET 8 / C# 12</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="about-stack-item">
+                <div class="about-stack-icon"><i class="bi bi-window" aria-hidden="true"></i></div>
+                <div class="about-stack-label">Frontend</div>
+                <div class="about-stack-value">ASP.NET Razor Pages</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="about-stack-item">
+                <div class="about-stack-icon"><i class="bi bi-database" aria-hidden="true"></i></div>
+                <div class="about-stack-label">Database</div>
+                <div class="about-stack-value">Microsoft SQL Server</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="about-stack-item">
+                <div class="about-stack-icon"><i class="bi bi-box" aria-hidden="true"></i></div>
+                <div class="about-stack-label">Deployment</div>
+                <div class="about-stack-value">Docker Compose</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact & support -->
+<div class="row g-4 mb-2">
+    <div class="col-lg-6 reveal-item">
+        <div class="card-premium p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-headset" aria-hidden="true"></i></div>
+                <h5 class="mb-0">Support &amp; Contact</h5>
+            </div>
+            <ul class="list-unstyled mb-0 about-contact-list">
+                <li class="about-contact-item">
+                    <i class="bi bi-envelope-fill about-contact-icon" aria-hidden="true"></i>
+                    <div>
+                        <div class="fw-semibold small">Email Support</div>
+                        <span class="text-secondary small">support@storagelens.io</span>
+                    </div>
+                </li>
+                <li class="about-contact-item">
+                    <i class="bi bi-github about-contact-icon" aria-hidden="true"></i>
+                    <div>
+                        <div class="fw-semibold small">GitHub Issues</div>
+                        <span class="text-secondary small">github.com/DeeDee1103/StorageLens</span>
+                    </div>
+                </li>
+                <li class="about-contact-item">
+                    <i class="bi bi-book-fill about-contact-icon" aria-hidden="true"></i>
+                    <div>
+                        <div class="fw-semibold small">Documentation</div>
+                        <span class="text-secondary small">Available in the /docs directory</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-lg-6 reveal-item">
+        <div class="card-premium p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="kpi-icon kpi-icon-orange mb-0"><i class="bi bi-journal-text" aria-hidden="true"></i></div>
+                <h5 class="mb-0">Release Notes</h5>
+            </div>
+            <ul class="list-unstyled mb-0 about-release-list">
+                <li class="about-release-item">
+                    <span class="badge about-badge about-badge-blue me-2">v1.0</span>
+                    <div>
+                        <div class="fw-semibold small">MVP Release — March 2026</div>
+                        <p class="text-secondary small mb-0">Dashboard, Scan Jobs, File Inventory, Duplicate Detection, Reports, Pricing, Profile &amp; About pages.</p>
+                    </div>
+                </li>
+                <li class="about-release-item">
+                    <span class="badge about-badge about-badge-teal me-2">Soon</span>
+                    <div>
+                        <div class="fw-semibold small">v1.1 — Planned</div>
+                        <p class="text-secondary small mb-0">Role-based access control, REST API, enhanced reporting exports, and Kubernetes manifests.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
