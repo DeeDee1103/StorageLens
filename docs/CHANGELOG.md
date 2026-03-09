@@ -22,6 +22,7 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 - `SettingsModel` now accepts `IWebHostEnvironment` to expose the runtime environment and selected edit environment to the Settings hub view.
 
 
+- **Appearance & Display settings page** (`/AppearanceSettings`) — fully functional browser-side preference manager:
   - Visual theme picker cards (Light, Dark, System default) with miniature UI previews; applies the theme immediately and persists to `localStorage`.
   - Default landing page dropdown (Dashboard, Storage Locations, Scan Jobs, File Inventory, Duplicates, Reports).
   - Sidebar collapse-by-default toggle.
