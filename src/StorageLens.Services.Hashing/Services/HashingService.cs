@@ -39,14 +39,14 @@ public class HashingService(
             new UpdateScanJobStatusRequest(ScanJobStatus.Hashing, "Hashing", "Calculating SHA-256 hashes"),
             cancellationToken);
 
-        var pending = await fileInventoryClient.GetFromJsonAsync<List<PendingHashFileDto>>(
+        var pendingFiles = await fileInventoryClient.GetFromJsonAsync<List<PendingHashFileDto>>(
                           $"api/files/pending-hash?scanJobId={scanJobId}&take={Math.Clamp(options.BatchSize, 50, 5000)}",
                           cancellationToken) ?? [];
 
-        execution.Attempted = pending.Count;
+        execution.Attempted = pendingFiles.Count;
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        if (pending.Count == 0)
+        if (pendingFiles.Count == 0)
         {
             execution.Status = "Completed";
             execution.CompletedAtUtc = DateTimeOffset.UtcNow;
@@ -55,7 +55,7 @@ public class HashingService(
         }
 
         using var semaphore = new SemaphoreSlim(Math.Clamp(options.MaxDegreeOfParallelism, 1, 16));
-        var tasks = pending.Select(async file =>
+        var tasks = pendingFiles.Select(async file =>
         {
             await semaphore.WaitAsync(cancellationToken);
             try
@@ -127,8 +127,8 @@ public class HashingService(
                 cancellationToken);
 
             await using var stream = new FileStream(file.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var sha = SHA256.Create();
-            var hashBytes = await sha.ComputeHashAsync(stream, cancellationToken);
+            using var sha256 = SHA256.Create();
+            var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
             var hashValue = Convert.ToHexString(hashBytes).ToLowerInvariant();
 
             await fileInventoryClient.PostAsJsonAsync(

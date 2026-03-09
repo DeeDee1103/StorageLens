@@ -6,6 +6,17 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+- Improved variable and function naming throughout the codebase for clarity:
+  - `ScannerExecutionService`: renamed `info`→`fileInfo`, `errors`→`errorCount`, `batch`→`fileBatch`, `current`→`currentDirectory`, `files`→`filePaths`, `directories`→`subdirectories`, `progress`→`progressPercent`.
+  - `ScannerPathResolver`: renamed `current`→`currentOptions`, `fromRule`→`ruleResolvedPath`, `driveMapped`→`windowsDriveMappedPath`, `uncMapped`→`uncMappedPath`, `normalizedInput`→`normalizedInputPath`, `mode`→`mappingMode`, `replaced`→`regexReplacedPath`, `normalizedFrom`→`normalizedFromPattern`, `suffix`→`pathSuffix`, `mapped`→`resolvedReplacementPath`, and `rest`→`remainingPath` in both auto-map helpers.
+  - `HashingService`: renamed `sha`→`sha256` and `pending`→`pendingFiles`.
+  - `DuplicatesService`: renamed `candidates`→`filesWithCompletedHashes`, `stale`→`staleGroups`, `bucket`→`duplicateBucket`, `ordered`→`orderedGroupFiles`, `largest`→`largestFile`, and `hashes`→`duplicateHashValues`.
+  - `FileInventoryService`: renamed `paths`→`filePaths`, `changed`→`modifiedCount`, and `duplicate`→`isDuplicate`.
+  - `StartupDatabaseInitializer`: renamed `createTablesAsync`→`createTablesMethod`, `task`→`createTablesTask`, `current`→`currentException` (both exception-traversal helpers), and `number`→`sqlErrorNumber`.
+  - `ScannerSettingsModel.FormatBytes`: renamed single-letter `val`→`sizeValue` and `i`→`unitIndex`; renamed `s`→`settingsSection` in `LoadCurrentSettings`.
+  - `site.js`: renamed `openLink`→`pathAnchor` in `openStoragePath`.
+
 ### Added
 - **Environment Settings page** (`/EnvironmentSettings`) — lets engineers switch the active edit environment between **Development** and **Production**:
   - Displays the current runtime environment (from `ASPNETCORE_ENVIRONMENT`) with a badge.

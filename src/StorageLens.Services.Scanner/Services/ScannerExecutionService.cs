@@ -53,9 +53,9 @@ public class ScannerExecutionService(
             new UpdateScanJobStatusRequest(ScanJobStatus.Scanning, "Scanning", "Enumerating files"),
             cancellationToken);
 
-        var errors = 0;
+        var errorCount = 0;
         var filesDiscovered = 0L;
-        var batch = new List<FileMetadataDto>(Math.Max(50, request.BatchSize));
+        var fileBatch = new List<FileMetadataDto>(Math.Max(50, request.BatchSize));
 
         try
         {
@@ -65,45 +65,45 @@ public class ScannerExecutionService(
             while (pendingDirectories.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var current = pendingDirectories.Pop();
+                var currentDirectory = pendingDirectories.Pop();
 
-                IEnumerable<string> directories;
+                IEnumerable<string> subdirectories;
                 try
                 {
-                    directories = Directory.EnumerateDirectories(current);
+                    subdirectories = Directory.EnumerateDirectories(currentDirectory);
                 }
                 catch (Exception ex)
                 {
-                    await RecordErrorAsync(execution.Id, current, ex, cancellationToken);
-                    errors++;
+                    await RecordErrorAsync(execution.Id, currentDirectory, ex, cancellationToken);
+                    errorCount++;
                     continue;
                 }
 
-                foreach (var directory in directories)
+                foreach (var directory in subdirectories)
                 {
                     pendingDirectories.Push(directory);
                 }
 
-                IEnumerable<string> files;
+                IEnumerable<string> filePaths;
                 try
                 {
-                    files = Directory.EnumerateFiles(current);
+                    filePaths = Directory.EnumerateFiles(currentDirectory);
                 }
                 catch (Exception ex)
                 {
-                    await RecordErrorAsync(execution.Id, current, ex, cancellationToken);
-                    errors++;
+                    await RecordErrorAsync(execution.Id, currentDirectory, ex, cancellationToken);
+                    errorCount++;
                     continue;
                 }
 
-                foreach (var filePath in files)
+                foreach (var filePath in filePaths)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
                     try
                     {
-                        var info = new FileInfo(filePath);
-                        if (!info.Exists)
+                        var fileInfo = new FileInfo(filePath);
+                        if (!fileInfo.Exists)
                         {
                             continue;
                         }
@@ -114,45 +114,45 @@ public class ScannerExecutionService(
                             request.ScanJobId,
                             request.CorrelationId,
                             request.LocationName,
-                            info.Name,
-                            info.FullName,
-                            NormalizeExtension(info.Extension),
-                            info.Length,
-                            info.LastWriteTimeUtc,
-                            info.CreationTimeUtc == DateTime.MinValue ? null : info.CreationTimeUtc,
-                            info.LastAccessTimeUtc == DateTime.MinValue ? null : info.LastAccessTimeUtc,
+                            fileInfo.Name,
+                            fileInfo.FullName,
+                            NormalizeExtension(fileInfo.Extension),
+                            fileInfo.Length,
+                            fileInfo.LastWriteTimeUtc,
+                            fileInfo.CreationTimeUtc == DateTime.MinValue ? null : fileInfo.CreationTimeUtc,
+                            fileInfo.LastAccessTimeUtc == DateTime.MinValue ? null : fileInfo.LastAccessTimeUtc,
                             DateTimeOffset.UtcNow,
                             resolvedRootPath);
 
-                        batch.Add(metadata);
+                        fileBatch.Add(metadata);
                         filesDiscovered++;
 
-                        if (batch.Count >= request.BatchSize)
+                        if (fileBatch.Count >= request.BatchSize)
                         {
-                            await FlushBatchAsync(request, batch, cancellationToken);
-                            batch.Clear();
+                            await FlushBatchAsync(request, fileBatch, cancellationToken);
+                            fileBatch.Clear();
                         }
 
                         if (filesDiscovered % Math.Max(50, request.ProgressUpdateInterval) == 0)
                         {
-                            var progress = Math.Min(70, 10 + (int)(filesDiscovered / 500));
-                            await UpdateScanJobProgressAsync(request.ScanJobId, filesDiscovered, progress, errors, cancellationToken);
+                            var progressPercent = Math.Min(70, 10 + (int)(filesDiscovered / 500));
+                            await UpdateScanJobProgressAsync(request.ScanJobId, filesDiscovered, progressPercent, errorCount, cancellationToken);
                         }
                     }
                     catch (Exception ex)
                     {
                         await RecordErrorAsync(execution.Id, filePath, ex, cancellationToken);
-                        errors++;
+                        errorCount++;
                     }
                 }
             }
 
-            if (batch.Count > 0)
+            if (fileBatch.Count > 0)
             {
-                await FlushBatchAsync(request, batch, cancellationToken);
+                await FlushBatchAsync(request, fileBatch, cancellationToken);
             }
 
-            if (filesDiscovered == 0 && errors > 0)
+            if (filesDiscovered == 0 && errorCount > 0)
             {
                 execution.Status = "Failed";
                 execution.Notes = "Scanner could not enumerate files from the target path. Check UNC permissions and service identity.";
@@ -168,8 +168,8 @@ public class ScannerExecutionService(
             }
             else
             {
-                execution.Status = errors == 0 ? "Completed" : "PartiallyCompleted";
-                execution.Notes = errors == 0 ? "Scan completed" : "Scan completed with some errors";
+                execution.Status = errorCount == 0 ? "Completed" : "PartiallyCompleted";
+                execution.Notes = errorCount == 0 ? "Scan completed" : "Scan completed with some errors";
             }
         }
         catch (OperationCanceledException)
@@ -191,14 +191,14 @@ public class ScannerExecutionService(
         }
 
         execution.FilesDiscovered = filesDiscovered;
-        execution.ErrorCount = errors;
+        execution.ErrorCount = errorCount;
         execution.CompletedAtUtc = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         if (!string.Equals(execution.Status, "Failed", StringComparison.OrdinalIgnoreCase))
         {
-            await UpdateScanJobProgressAsync(request.ScanJobId, filesDiscovered, 75, errors, cancellationToken);
+            await UpdateScanJobProgressAsync(request.ScanJobId, filesDiscovered, 75, errorCount, cancellationToken);
         }
 
         return Map(execution);

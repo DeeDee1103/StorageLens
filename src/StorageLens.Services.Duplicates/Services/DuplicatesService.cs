@@ -73,51 +73,51 @@ public class DuplicatesService(
             $"api/files?page=1&pageSize=2000",
             cancellationToken) ?? [];
 
-        var candidates = files
+        var filesWithCompletedHashes = files
             .Where(x => x.ScanJobId == scanJobId && x.CorrelationId == correlationId)
             .Where(x => !string.IsNullOrWhiteSpace(x.HashValue) && x.HashStatus == HashStatus.Completed.ToString())
             .ToList();
 
-        var duplicateBuckets = candidates
+        var duplicateBuckets = filesWithCompletedHashes
             .GroupBy(x => x.HashValue, StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() > 1)
             .ToList();
 
-        var stale = await dbContext.DuplicateGroups
+        var staleGroups = await dbContext.DuplicateGroups
             .Where(x => x.ScanJobId == scanJobId && x.CorrelationId == correlationId)
             .ToListAsync(cancellationToken);
 
-        if (stale.Count > 0)
+        if (staleGroups.Count > 0)
         {
-            dbContext.DuplicateGroups.RemoveRange(stale);
+            dbContext.DuplicateGroups.RemoveRange(staleGroups);
         }
 
         var recalculatedAtUtc = DateTimeOffset.UtcNow;
 
-        foreach (var bucket in duplicateBuckets)
+        foreach (var duplicateBucket in duplicateBuckets)
         {
-            var ordered = bucket.OrderByDescending(x => x.SizeBytes).ToList();
-            var largest = ordered.First();
+            var orderedGroupFiles = duplicateBucket.OrderByDescending(x => x.SizeBytes).ToList();
+            var largestFile = orderedGroupFiles.First();
 
             dbContext.DuplicateGroups.Add(new DuplicateGroup
             {
                 Id = Guid.NewGuid(),
                 ScanJobId = scanJobId,
                 CorrelationId = correlationId,
-                HashValue = bucket.Key,
-                FileCount = ordered.Count,
-                TotalSizeBytes = ordered.Sum(x => x.SizeBytes),
-                WastedBytes = ordered.Skip(1).Sum(x => x.SizeBytes),
-                ExampleFileName = largest.FileName,
-                LocationsCsv = string.Join(",", ordered.Select(x => x.LocationName).Distinct(StringComparer.OrdinalIgnoreCase)),
+                HashValue = duplicateBucket.Key,
+                FileCount = orderedGroupFiles.Count,
+                TotalSizeBytes = orderedGroupFiles.Sum(x => x.SizeBytes),
+                WastedBytes = orderedGroupFiles.Skip(1).Sum(x => x.SizeBytes),
+                ExampleFileName = largestFile.FileName,
+                LocationsCsv = string.Join(",", orderedGroupFiles.Select(x => x.LocationName).Distinct(StringComparer.OrdinalIgnoreCase)),
                 RecalculatedAtUtc = recalculatedAtUtc
             });
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var hashes = duplicateBuckets.Select(x => x.Key).ToList();
-        var markRequest = new MarkDuplicateHashesRequest(scanJobId, correlationId, hashes);
+        var duplicateHashValues = duplicateBuckets.Select(x => x.Key).ToList();
+        var markRequest = new MarkDuplicateHashesRequest(scanJobId, correlationId, duplicateHashValues);
 
         using var markResponse = await fileInventoryClient.PostAsJsonAsync(
             $"api/files/mark-duplicates/{scanJobId}",
