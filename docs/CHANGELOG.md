@@ -6,8 +6,31 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Added
+- **Pricing page** (`/Pricing`) — a public-facing pricing catalogue showing four configurable subscription tiers:
+  - **Starter** ($29/month): File Inventory, Scan Jobs, Reports & Analytics, Email Support.
+  - **Professional** ($79/month, *Most Popular*): Starter + Duplicate Detection, Notification Alerts.
+  - **Business** ($149/month): Professional + API Access, Scheduled Scans, Retention Policies, Priority Support.
+  - **Enterprise** (Contact Us): All services including AI Insights and Custom Integrations.
+  - Each tier card shows its monthly price (or "Custom" for Contact Us tiers), a highlight tagline, and a full feature checklist indicating which services are included or excluded.
+  - A *Service Details* reference panel beneath the cards explains every service and its individual add-on price.
+- **Pricing Admin page** (`/PricingAdmin`) — owner-only configuration interface for managing pricing:
+  - Protected by a PIN stored in `appsettings.json` (`Pricing:OwnerPin`); the correct PIN sets an HttpOnly `sl-owner-mode` cookie that grants the owner session without requiring server-side state.
+  - Tier editor: name, description, highlight tagline, Most-Popular / Contact-Us flags, calculated vs. manual price toggle, and a per-tier service checklist.
+  - Service editor: edit any existing service's name, description, Bootstrap-Icons icon class, and monthly price via an inline modal.
+  - Add-Service form: creates a new service (ID, name, description, icon, price) that immediately appears in all tier checklists — designed to accommodate future service additions without code changes.
+  - All changes are persisted to the target `appsettings.{Environment}.json` file, consistent with other settings pages.
+  - Lock button ends the owner session by clearing the `sl-owner-mode` cookie.
+- **Pricing Management card** added to the Settings hub (`/Settings`), linking directly to `/PricingAdmin` with an "Owner only" badge.
+- **Pricing link** added to the sidebar navigation (desktop and offcanvas mobile) between Reports and Settings.
+- `PricingOptions`, `PricingTier`, and `PricingService` classes (`Services/PricingOptions.cs`) — strongly-typed model for the `Pricing` configuration section.
+- `Pricing` configuration section added to `appsettings.json` with four default tiers and twelve configurable services (File Inventory, Scan Jobs, Reports & Analytics, Email Support, Duplicate Detection, Notification Alerts, API Access, Scheduled Scans, Retention Policies, Priority Support, AI Insights, Custom Integrations).
+- Pricing card CSS styles added to `site.css`: responsive card grid, popular-badge, price typography, feature list, and dark-mode adjustments.
+
 ### Changed
-- Improved variable and function naming throughout the codebase for clarity:
+- `_Layout.cshtml` — both the desktop sidebar nav and the offcanvas mobile nav now include a Pricing link (`/Pricing`, `bi-tags` icon).
+
+
   - `ScannerExecutionService`: renamed `info`→`fileInfo`, `errors`→`errorCount`, `batch`→`fileBatch`, `current`→`currentDirectory`, `files`→`filePaths`, `directories`→`subdirectories`, `progress`→`progressPercent`.
   - `ScannerPathResolver`: renamed `current`→`currentOptions`, `fromRule`→`ruleResolvedPath`, `driveMapped`→`windowsDriveMappedPath`, `uncMapped`→`uncMappedPath`, `normalizedInput`→`normalizedInputPath`, `mode`→`mappingMode`, `replaced`→`regexReplacedPath`, `normalizedFrom`→`normalizedFromPattern`, `suffix`→`pathSuffix`, `mapped`→`resolvedReplacementPath`, and `rest`→`remainingPath` in both auto-map helpers.
   - `HashingService`: renamed `sha`→`sha256` and `pending`→`pendingFiles`.
