@@ -20,6 +20,11 @@ builder.Services.Configure<NotificationOptions>(
 builder.Services.Configure<ScannerPerformanceOptions>(
     builder.Configuration.GetSection(ScannerPerformanceOptions.SectionName));
 
+builder.Services.Configure<PricingOptions>(
+    builder.Configuration.GetSection(PricingOptions.SectionName));
+
+builder.Services.AddScoped<ITierAccessService, TierAccessService>();
+
 var endpoints = builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName).Get<ServiceEndpointsOptions>()
                ?? new ServiceEndpointsOptions();
 

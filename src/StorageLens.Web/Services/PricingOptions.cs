@@ -10,6 +10,13 @@ public class PricingOptions
     /// </summary>
     public string OwnerPin { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The ID of the tier this installation is currently subscribed to
+    /// (e.g. "starter", "professional", "business", "enterprise").
+    /// Leave empty to disable tier enforcement and allow all features.
+    /// </summary>
+    public string ActiveTierId { get; set; } = string.Empty;
+
     /// <summary>The four (or more) pricing tiers shown on the public Pricing page.</summary>
     public List<PricingTier> Tiers { get; set; } = [];
 
@@ -18,6 +25,26 @@ public class PricingOptions
     /// Adding a service here makes it available to select from the admin UI.
     /// </summary>
     public List<PricingService> AvailableServices { get; set; } = [];
+}
+
+/// <summary>
+/// Well-known service IDs that map to features in the application.
+/// These match the <see cref="PricingService.Id"/> values configured in appsettings.json.
+/// </summary>
+public static class ServiceIds
+{
+    public const string FileInventory = "file-inventory";
+    public const string ScanJobs = "scan-jobs";
+    public const string ReportsAnalytics = "reports-analytics";
+    public const string EmailSupport = "email-support";
+    public const string DuplicateDetection = "duplicate-detection";
+    public const string NotificationAlerts = "notification-alerts";
+    public const string ApiAccess = "api-access";
+    public const string ScheduledScans = "scheduled-scans";
+    public const string RetentionPolicies = "retention-policies";
+    public const string PrioritySupport = "priority-support";
+    public const string AiInsights = "ai-insights";
+    public const string CustomIntegrations = "custom-integrations";
 }
 
 public class PricingTier

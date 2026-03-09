@@ -6,7 +6,7 @@ using StorageLens.Web.Services;
 
 namespace StorageLens.Web.Pages;
 
-public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnvironment environment) : PageModel
+public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnvironment environment, ITierAccessService tierAccess) : PageModel
 {
     // ── Page state ───────────────────────────────────────────────────────────
 
@@ -15,6 +15,8 @@ public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnv
     public string SelectedEditEnvironment { get; private set; } = EnvironmentSettingsModel.Development;
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
+
+    public bool IsFeatureAvailable { get; private set; } = true;
 
     // ── Email settings ───────────────────────────────────────────────────────
 
@@ -46,6 +48,8 @@ public class NotificationSettingsModel(IConfiguration configuration, IWebHostEnv
     public void OnGet()
     {
         SetPageDefaults();
+        IsFeatureAvailable = tierAccess.IsServiceAvailable(ServiceIds.NotificationAlerts);
+        if (!IsFeatureAvailable) return;
         LoadCurrentSettings();
     }
 
