@@ -55,17 +55,17 @@ public static class StartupDatabaseInitializer
         try
         {
             var creator = dbContext.Database.GetService<IDatabaseCreator>();
-            var createTablesAsync = creator.GetType().GetMethod("CreateTablesAsync", [typeof(CancellationToken)]);
+            var createTablesMethod = creator.GetType().GetMethod("CreateTablesAsync", [typeof(CancellationToken)]);
 
-            if (createTablesAsync is null)
+            if (createTablesMethod is null)
             {
                 return;
             }
 
-            var task = createTablesAsync.Invoke(creator, [cancellationToken]) as Task;
-            if (task is not null)
+            var createTablesTask = createTablesMethod.Invoke(creator, [cancellationToken]) as Task;
+            if (createTablesTask is not null)
             {
-                await task;
+                await createTablesTask;
             }
         }
         catch (Exception ex) when (TableAlreadyExists(ex))
@@ -77,18 +77,18 @@ public static class StartupDatabaseInitializer
 
     private static bool IsRetryableStartupError(Exception ex)
     {
-        var current = ex;
-        while (current is not null)
+        var currentException = ex;
+        while (currentException is not null)
         {
-            if (current.GetType().Name == "SqlException")
+            if (currentException.GetType().Name == "SqlException")
             {
-                var number = GetSqlErrorNumber(current);
-                if (number == 1801 || number == -2)
+                var sqlErrorNumber = GetSqlErrorNumber(currentException);
+                if (sqlErrorNumber == 1801 || sqlErrorNumber == -2)
                 {
                     return true;
                 }
 
-                var message = current.Message;
+                var message = currentException.Message;
                 if (message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
                     message.Contains("timeout", StringComparison.OrdinalIgnoreCase) ||
                     message.Contains("pre-login handshake", StringComparison.OrdinalIgnoreCase) ||
@@ -101,18 +101,18 @@ public static class StartupDatabaseInitializer
                 }
             }
 
-            if (current is System.Net.Sockets.SocketException)
+            if (currentException is System.Net.Sockets.SocketException)
             {
                 return true;
             }
 
-            if (current is System.IO.IOException ioEx &&
+            if (currentException is System.IO.IOException ioEx &&
                 ioEx.InnerException is System.Net.Sockets.SocketException)
             {
                 return true;
             }
 
-            current = current.InnerException;
+            currentException = currentException.InnerException;
         }
 
         return false;
@@ -131,17 +131,17 @@ public static class StartupDatabaseInitializer
 
     private static bool TableAlreadyExists(Exception ex)
     {
-        var current = ex;
-        while (current is not null)
+        var currentException = ex;
+        while (currentException is not null)
         {
-            var message = current.Message;
+            var message = currentException.Message;
             if (message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
                 message.Contains("already an object named", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
-            current = current.InnerException;
+            currentException = currentException.InnerException;
         }
 
         return false;

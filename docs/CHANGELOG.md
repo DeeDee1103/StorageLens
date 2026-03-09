@@ -7,18 +7,15 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 ## [Unreleased]
 
 ### Changed
-- `AnalyticsService.GetDashboardAsync`: replaced O(n²) `locations.FirstOrDefault(l => l.Id == id)` linear scan inside the Storage Growth chart LINQ query with a pre-built `Dictionary<Guid, long>` for O(1) location-size lookups.
-- `DuplicatesService.RecalculateAsync`: replaced `g.Count() > 1` (full group enumeration) with `g.Skip(1).Any()` (short-circuits after the second element) when identifying duplicate hash buckets.
-- `DuplicatesService.RecalculateAsync`: eliminated redundant per-bucket sorting — each bucket is now sorted once into a `List<T>` before the save loop and the result-summary calculation both reuse that cached list, removing a second `OrderByDescending` pass.
-- `DuplicatesService.GetSummaryAsync`, `GetGroupsAsync`: added `.AsNoTracking()` to read-only EF Core queries to prevent unnecessary change-tracker overhead.
-- `FileInventoryService.GetAllAsync`, `GetByLocationAsync`, `GetPendingHashFilesAsync`: added `.AsNoTracking()` to all read-only queries.
-- `LocationService.GetAllAsync`: added `.AsNoTracking()` to prevent change-tracking of entities that are immediately projected to DTOs.
-- `ScanJobsService.GetAllAsync`, `GetRecentAsync`: added `.AsNoTracking()` to both list queries.
-- `DuplicatesDbContext`: added indexes on `WastedBytes` and `RecalculatedAtUtc` columns, which are used as `ORDER BY` targets in `GetGroupsAsync` and `GetSummaryAsync`.
-- `FileInventoryDbContext`: added indexes on `SizeBytes` and `LastModifiedDate` columns, which are used as `ORDER BY` targets in `GetAllAsync` and `GetByLocationAsync`.
-- `LocationsDbContext`: added index on `TotalSizeBytes`, which is used as the `ORDER BY` target in `GetAllAsync`.
-- `LocationsSeeder.SeedAsync`: replaced synchronous `dbContext.StorageLocations.Any()` blocking call with `await dbContext.StorageLocations.AnyAsync()` to avoid thread-pool starvation during startup.
-- `UpstreamApiClient.GetFilesAsync` (Analytics) and `DuplicatesService` file-inventory HTTP calls: raised the page-size parameter from 2,000 to 5,000 to match the `FileInventoryService` server-side ceiling, ensuring internal service calls are never silently truncated.
+- Improved variable and function naming throughout the codebase for clarity:
+  - `ScannerExecutionService`: renamed `info`→`fileInfo`, `errors`→`errorCount`, `batch`→`fileBatch`, `current`→`currentDirectory`, `files`→`filePaths`, `directories`→`subdirectories`, `progress`→`progressPercent`.
+  - `ScannerPathResolver`: renamed `current`→`currentOptions`, `fromRule`→`ruleResolvedPath`, `driveMapped`→`windowsDriveMappedPath`, `uncMapped`→`uncMappedPath`, `normalizedInput`→`normalizedInputPath`, `mode`→`mappingMode`, `replaced`→`regexReplacedPath`, `normalizedFrom`→`normalizedFromPattern`, `suffix`→`pathSuffix`, `mapped`→`resolvedReplacementPath`, and `rest`→`remainingPath` in both auto-map helpers.
+  - `HashingService`: renamed `sha`→`sha256` and `pending`→`pendingFiles`.
+  - `DuplicatesService`: renamed `candidates`→`filesWithCompletedHashes`, `stale`→`staleGroups`, `bucket`→`duplicateBucket`, `ordered`→`orderedGroupFiles`, `largest`→`largestFile`, and `hashes`→`duplicateHashValues`.
+  - `FileInventoryService`: renamed `paths`→`filePaths`, `changed`→`modifiedCount`, and `duplicate`→`isDuplicate`.
+  - `StartupDatabaseInitializer`: renamed `createTablesAsync`→`createTablesMethod`, `task`→`createTablesTask`, `current`→`currentException` (both exception-traversal helpers), and `number`→`sqlErrorNumber`.
+  - `ScannerSettingsModel.FormatBytes`: renamed single-letter `val`→`sizeValue` and `i`→`unitIndex`; renamed `s`→`settingsSection` in `LoadCurrentSettings`.
+  - `site.js`: renamed `openLink`→`pathAnchor` in `openStoragePath`.
 
 ### Added
 - **Environment Settings page** (`/EnvironmentSettings`) — lets engineers switch the active edit environment between **Development** and **Production**:

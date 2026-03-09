@@ -121,10 +121,10 @@ public class ScannerSettingsModel(IConfiguration configuration, IWebHostEnvironm
     {
         if (bytes <= 0) return "No limit";
         string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double val = bytes;
-        int i = 0;
-        while (val >= 1024 && i < units.Length - 1) { val /= 1024; i++; }
-        return $"{val:0.##} {units[i]}";
+        double sizeValue = bytes;
+        int unitIndex = 0;
+        while (sizeValue >= 1024 && unitIndex < units.Length - 1) { sizeValue /= 1024; unitIndex++; }
+        return $"{sizeValue:0.##} {units[unitIndex]}";
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -140,12 +140,12 @@ public class ScannerSettingsModel(IConfiguration configuration, IWebHostEnvironm
 
     private void LoadCurrentSettings()
     {
-        var s = configuration.GetSection(ScannerPerformanceOptions.SectionName);
-        HashingMaxDegreeOfParallelism = s.GetValue("HashingMaxDegreeOfParallelism", 4);
-        HashingBatchSize = s.GetValue("HashingBatchSize", 500);
-        HashingMaxFileSizeBytes = s.GetValue("HashingMaxFileSizeBytes", 2_147_483_648L);
-        ScannerEnableAutoMapping = s.GetValue("ScannerEnableAutoMapping", true);
-        ScannerAutoMapInContainerOnly = s.GetValue("ScannerAutoMapInContainerOnly", true);
+        var settingsSection = configuration.GetSection(ScannerPerformanceOptions.SectionName);
+        HashingMaxDegreeOfParallelism = settingsSection.GetValue("HashingMaxDegreeOfParallelism", 4);
+        HashingBatchSize = settingsSection.GetValue("HashingBatchSize", 500);
+        HashingMaxFileSizeBytes = settingsSection.GetValue("HashingMaxFileSizeBytes", 2_147_483_648L);
+        ScannerEnableAutoMapping = settingsSection.GetValue("ScannerEnableAutoMapping", true);
+        ScannerAutoMapInContainerOnly = settingsSection.GetValue("ScannerAutoMapInContainerOnly", true);
     }
 
     private void MergeIntoTargetSettings(string sectionName, object value)
