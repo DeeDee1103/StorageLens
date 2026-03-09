@@ -1,5 +1,12 @@
 namespace StorageLens.Services.Orchestrator.Clients;
 
-// NOTE: The previous WorkflowProcessingOptions class was removed because it was
-// not referenced anywhere (no configuration binding, DI registration, or usage),
-// and was flagged as dead code by static analysis.
+public class WorkflowProcessingOptions
+{
+    public const string SectionName = "WorkflowProcessing";
+
+    /// <summary>
+    /// Maximum number of workflow jobs that may execute concurrently.
+    /// Defaults to the number of logical processors on the host machine.
+    /// </summary>
+    public int MaxConcurrentWorkflows { get; set; } = Environment.ProcessorCount;
+}

@@ -7,8 +7,12 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 ## [Unreleased]
 
 ### Added
-- **Pricing page screenshot** added to `docs/screenshots/pricing-page.png` — full-page capture of the `/Pricing` route showing all four subscription tiers (Starter, Professional, Business, Enterprise) and the Service Details reference panel.
-- **About page** (`/About`) — professional About Us page for StorageLens:
+- **Concurrent workflow processing** in `StorageLens.Services.Orchestrator`:
+  - `WorkflowProcessingOptions` class (`Clients/WorkflowProcessingOptions.cs`) with `MaxConcurrentWorkflows` setting (defaults to `Environment.ProcessorCount`).
+  - `WorkflowBackgroundService` now uses a `SemaphoreSlim` to dispatch up to `MaxConcurrentWorkflows` scan jobs simultaneously, eliminating the previous sequential bottleneck.
+  - `WorkflowProcessing` configuration section added to `appsettings.json` with a default of `MaxConcurrentWorkflows: 4`.
+  - Graceful shutdown: the background service waits for all in-flight workflows to complete before the host tears down.
+  - Two new unit tests in `WorkflowBackgroundServiceTests` validating concurrent dispatch and cancellation behaviour.
   - Hero banner with product logo, description, version badge, and capability tags.
   - KPI highlight cards: storage locations, files supported, scan engine, microservices count.
   - Mission statement and Core Values sections.

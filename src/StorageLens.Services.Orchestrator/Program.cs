@@ -28,6 +28,9 @@ builder.Services.AddDbContext<OrchestratorDbContext>(options =>
 builder.Services.Configure<OrchestratorUpstreamOptions>(
     builder.Configuration.GetSection(OrchestratorUpstreamOptions.SectionName));
 
+builder.Services.Configure<WorkflowProcessingOptions>(
+    builder.Configuration.GetSection(WorkflowProcessingOptions.SectionName));
+
 var upstream = builder.Configuration.GetSection(OrchestratorUpstreamOptions.SectionName).Get<OrchestratorUpstreamOptions>()
               ?? new OrchestratorUpstreamOptions();
 
