@@ -159,7 +159,8 @@ else
                                         <div class="form-check mb-2">
                                             <input class="form-check-input" type="checkbox" id="tierContact-@i"
                                                    name="tierIsContactUs" value="true" @(tier.IsContactUs ? "checked" : "")
-                                                   onchange="toggleTierPriceFields('@i', this.checked)" />
+                                                   data-tier-index="@i"
+                                                   onchange="toggleTierPriceFields(this.dataset.tierIndex, this.checked)" />
                                             <label class="form-check-label" for="tierContact-@i">Contact Us</label>
                                         </div>
                                     </div>
@@ -168,7 +169,8 @@ else
                                             <input class="form-check-input" type="checkbox" id="tierCalcPrice-@i"
                                                    name="tierUseCalculatedPrice" value="true"
                                                    @(tier.UseCalculatedPrice ? "checked" : "")
-                                                   onchange="toggleManualPrice('@i', !this.checked)" />
+                                                   data-tier-index="@i"
+                                                   onchange="toggleManualPrice(this.dataset.tierIndex, !this.checked)" />
                                             <label class="form-check-label small" for="tierCalcPrice-@i">Calculated price</label>
                                         </div>
                                         <div id="manualPriceWrap-@i" @(tier.UseCalculatedPrice ? "style=\"display:none\"" : "")>

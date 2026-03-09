@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
@@ -44,7 +46,13 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
 
         var storedPin = configuration[$"{PricingOptions.SectionName}:OwnerPin"] ?? string.Empty;
 
-        if (string.IsNullOrWhiteSpace(storedPin) || OwnerPin != storedPin)
+        // Use constant-time comparison to prevent timing-based PIN enumeration.
+        var storedBytes = Encoding.UTF8.GetBytes(storedPin);
+        var enteredBytes = Encoding.UTF8.GetBytes(OwnerPin ?? string.Empty);
+        var pinsMatch = storedBytes.Length > 0
+                        && CryptographicOperations.FixedTimeEquals(storedBytes, enteredBytes);
+
+        if (!pinsMatch)
         {
             ErrorMessage = "Incorrect owner PIN. Please try again.";
             return Page();
@@ -53,6 +61,7 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
         Response.Cookies.Append(OwnerCookieName, OwnerCookieValue, new CookieOptions
         {
             HttpOnly = true,
+            Secure = !environment.IsDevelopment(),
             SameSite = SameSiteMode.Lax,
             IsEssential = true,
         });
@@ -209,7 +218,16 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
         doc[PricingOptions.SectionName] = pricingNode;
 
         var tempPath = path + ".tmp";
-        System.IO.File.WriteAllText(tempPath, doc.ToJsonString(writeOpts));
-        System.IO.File.Move(tempPath, path, overwrite: true);
+        try
+        {
+            System.IO.File.WriteAllText(tempPath, doc.ToJsonString(writeOpts));
+            System.IO.File.Move(tempPath, path, overwrite: true);
+        }
+        catch
+        {
+            if (System.IO.File.Exists(tempPath))
+                System.IO.File.Delete(tempPath);
+            throw;
+        }
     }
 }
