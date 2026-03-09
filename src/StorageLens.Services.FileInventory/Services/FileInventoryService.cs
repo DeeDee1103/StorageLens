@@ -10,7 +10,7 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
 {
     public async Task<IReadOnlyList<FileRecordDto>> GetAllAsync(string? search, string? extension, int page, int pageSize, CancellationToken cancellationToken)
     {
-        var query = dbContext.FileRecords.AsQueryable();
+        var query = dbContext.FileRecords.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -40,6 +40,7 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
     public async Task<IReadOnlyList<FileRecordDto>> GetByLocationAsync(Guid locationId, CancellationToken cancellationToken)
     {
         var items = await dbContext.FileRecords
+            .AsNoTracking()
             .Where(x => x.StorageLocationId == locationId)
             .OrderByDescending(x => x.LastModifiedDate)
             .Take(150)
@@ -123,6 +124,7 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
     public async Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(Guid? scanJobId, int take, CancellationToken cancellationToken)
     {
         var query = dbContext.FileRecords
+            .AsNoTracking()
             .Where(x => x.HashStatus == HashStatus.Pending.ToString() || x.HashStatus == HashStatus.Failed.ToString());
 
         if (scanJobId.HasValue)
