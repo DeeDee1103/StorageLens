@@ -11,6 +11,8 @@ public class DuplicatesModel(DuplicatesApiClient duplicatesApiClient, ITierAcces
     public DuplicateSummaryDto Summary { get; private set; } = new(0, 0, 0, 0);
     public IReadOnlyList<DuplicateGroupDto> Groups { get; private set; } = [];
 
+    public bool ServiceUnavailable { get; private set; }
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Duplicate Files";
@@ -19,7 +21,16 @@ public class DuplicatesModel(DuplicatesApiClient duplicatesApiClient, ITierAcces
         IsFeatureAvailable = tierAccess.IsServiceAvailable(ServiceIds.DuplicateDetection);
         if (!IsFeatureAvailable) return;
 
-        Summary = await duplicatesApiClient.GetSummaryAsync(cancellationToken);
-        Groups = await duplicatesApiClient.GetGroupsAsync(cancellationToken);
+        var summary = await duplicatesApiClient.GetSummaryAsync(cancellationToken);
+        var groups = await duplicatesApiClient.GetGroupsAsync(cancellationToken);
+
+        if (summary is null || groups is null)
+        {
+            ServiceUnavailable = true;
+            return;
+        }
+
+        Summary = summary;
+        Groups = groups;
     }
 }

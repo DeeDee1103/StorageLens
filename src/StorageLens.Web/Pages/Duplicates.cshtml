@@ -19,6 +19,13 @@
         </a>
     </div>
 }
+else if (Model.ServiceUnavailable)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
+        <span>Duplicates service is currently unavailable. Please check your service configuration and try again.</span>
+    </div>
+}
 else
 {
 
