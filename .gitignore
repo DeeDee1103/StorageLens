@@ -7,3 +7,5 @@ obj/
 *.pdb
 *.cache
 .env
+.azure/*
+!.azure/plan.copilotmd
