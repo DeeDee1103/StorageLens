@@ -1,0 +1,67 @@
+name: storagelens
+metadata:
+  template: storagelens@0.0.1-beta
+services:
+  web:
+    project: src/StorageLens.Web
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
+  locations:
+    project: src/StorageLens.Services.Locations
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
+  scanjobs:
+    project: src/StorageLens.Services.ScanJobs
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
+  fileinventory:
+    project: src/StorageLens.Services.FileInventory
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
+  duplicates:
+    project: src/StorageLens.Services.Duplicates
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
+  analytics:
+    project: src/StorageLens.Services.Analytics
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
+  scanner:
+    project: src/StorageLens.Services.Scanner
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
+  hashing:
+    project: src/StorageLens.Services.Hashing
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
+  orchestrator:
+    project: src/StorageLens.Services.Orchestrator
+    language: dotnet
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ../../
