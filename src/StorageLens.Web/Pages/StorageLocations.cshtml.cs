@@ -20,11 +20,20 @@ public class StorageLocationsModel(
 
     public IReadOnlyList<StorageLocationDto> Locations { get; private set; } = [];
 
+    public bool ServiceUnavailable { get; private set; }
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Storage Locations";
         ViewData["Nav"] = "Locations";
-        Locations = await locationsApiClient.GetLocationsAsync(cancellationToken);
+        var result = await locationsApiClient.GetLocationsAsync(cancellationToken);
+        if (result is null)
+        {
+            ServiceUnavailable = true;
+            return;
+        }
+
+        Locations = result;
     }
 
     public async Task<IActionResult> OnPostAddAsync(CancellationToken cancellationToken)

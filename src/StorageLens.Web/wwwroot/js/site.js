@@ -59,6 +59,22 @@
 				easing: "ease-out"
 			});
 	});
+
+	// Form submit loading state: disable submit button and show spinner
+	document.querySelectorAll("form[method='post']").forEach((form) => {
+		form.addEventListener("submit", (e) => {
+			const submitBtn = form.querySelector("button[type='submit']");
+			if (!submitBtn || submitBtn.disabled) return;
+			submitBtn.disabled = true;
+			const originalHtml = submitBtn.innerHTML;
+			submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Working…';
+			// Re-enable after 8 s as a safety net (e.g. validation failure keeps page alive)
+			setTimeout(() => {
+				submitBtn.disabled = false;
+				submitBtn.innerHTML = originalHtml;
+			}, 8000);
+		});
+	});
 });
 
 const buildStoragePathCandidates = (rawPath) => {

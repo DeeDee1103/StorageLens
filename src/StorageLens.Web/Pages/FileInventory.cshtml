@@ -6,6 +6,14 @@
     <p class="text-secondary mb-0">Browse metadata from scanned content and filter by type, name, or path.</p>
 </section>
 
+@if (Model.ServiceUnavailable)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
+        <span>File Inventory service is currently unavailable. Please check your service configuration and try again.</span>
+    </div>
+}
+
 <section class="card-premium p-3 mb-3 reveal-item">
     <form method="get" class="row g-2 align-items-end">
         <div class="col-md-5">
