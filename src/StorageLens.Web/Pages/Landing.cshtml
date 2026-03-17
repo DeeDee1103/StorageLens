@@ -1,0 +1,304 @@
+@page
+@model StorageLens.Web.Pages.LandingModel
+@{
+    Layout = "_MarketingLayout";
+}
+
+<section class="marketing-hero">
+    <div class="marketing-container">
+        <div class="marketing-hero-grid">
+            <div class="marketing-hero-copy reveal-item">
+                <div class="marketing-pill-row">
+                    <span class="badge about-badge about-badge-blue"><i class="bi bi-eye me-1" aria-hidden="true"></i>Unified storage visibility</span>
+                    <span class="badge about-badge about-badge-teal"><i class="bi bi-lightning-charge me-1" aria-hidden="true"></i>Workflow-driven scanning</span>
+                </div>
+
+                <h1 class="marketing-hero-title">See duplicate waste, capacity pressure, and scan progress before they turn into expensive storage decisions.</h1>
+                <p class="marketing-hero-text">
+                    StorageLens gives infrastructure and operations teams a clean control surface for distributed storage.
+                    Track growth, expose duplicate-heavy data, and move from scan execution to actionable reporting without stitching together spreadsheets or ad hoc scripts.
+                </p>
+
+                <div class="marketing-hero-actions">
+                    <a class="btn btn-gradient btn-lg" asp-page="/Index">
+                        <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Open Dashboard
+                    </a>
+                    <a class="btn btn-outline-soft btn-lg" href="#workflow">
+                        <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>See How It Works
+                    </a>
+                </div>
+
+                <div class="marketing-proof-grid">
+                    <div class="marketing-proof-card card-premium">
+                        <div class="marketing-proof-value">4-stage</div>
+                        <div class="marketing-proof-label">scan orchestration with resume-ready workflow states</div>
+                    </div>
+                    <div class="marketing-proof-card card-premium">
+                        <div class="marketing-proof-value">Live KPIs</div>
+                        <div class="marketing-proof-label">capacity, duplicate pressure, and reclaimable storage</div>
+                    </div>
+                    <div class="marketing-proof-card card-premium">
+                        <div class="marketing-proof-value">API-first</div>
+                        <div class="marketing-proof-label">.NET 8 microservices built for independently scalable operations</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="marketing-hero-visual reveal-item" aria-hidden="true">
+                <div class="marketing-hero-panel card-premium">
+                    <div class="marketing-hero-panel-top">
+                        <span class="marketing-panel-label">Storage posture</span>
+                        <span class="marketing-panel-badge">Updated 2m ago</span>
+                    </div>
+                    <div class="marketing-scoreband">
+                        <div>
+                            <div class="marketing-scoreband-value">31%</div>
+                            <div class="marketing-scoreband-label">duplicate exposure</div>
+                        </div>
+                        <div>
+                            <div class="marketing-scoreband-value">18.4 TB</div>
+                            <div class="marketing-scoreband-label">potential savings</div>
+                        </div>
+                    </div>
+                    <div class="marketing-mini-chart">
+                        <span style="height: 30%"></span>
+                        <span style="height: 44%"></span>
+                        <span style="height: 52%"></span>
+                        <span style="height: 66%"></span>
+                        <span style="height: 79%"></span>
+                        <span style="height: 88%"></span>
+                    </div>
+                    <div class="marketing-signal-list">
+                        <div class="marketing-signal-item">
+                            <span class="marketing-signal-dot marketing-signal-dot-blue"></span>
+                            <div>
+                                <strong>Locations indexed</strong>
+                                <span>Cross-estate visibility without manual reconciliation.</span>
+                            </div>
+                        </div>
+                        <div class="marketing-signal-item">
+                            <span class="marketing-signal-dot marketing-signal-dot-teal"></span>
+                            <div>
+                                <strong>Workflow telemetry</strong>
+                                <span>Track scanning, hashing, duplicate detection, and analytics refresh.</span>
+                            </div>
+                        </div>
+                        <div class="marketing-signal-item">
+                            <span class="marketing-signal-dot marketing-signal-dot-green"></span>
+                            <div>
+                                <strong>Actionable reporting</strong>
+                                <span>Move from raw file inventory to prioritized remediation quickly.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="marketing-section">
+    <div class="marketing-container">
+        <div class="marketing-section-intro reveal-item">
+            <span class="marketing-section-eyebrow">Why teams use it</span>
+            <h2 class="marketing-section-title">StorageLens is designed for the operational gap between raw scans and confident action.</h2>
+            <p class="marketing-section-text">Instead of treating storage analysis as a one-off project, the platform turns it into a repeatable operating rhythm for infrastructure teams, IT operations, and governance stakeholders.</p>
+        </div>
+
+        <div class="marketing-outcome-grid">
+            <article class="card-premium marketing-outcome-card reveal-item">
+                <div class="kpi-icon kpi-icon-blue"><i class="bi bi-speedometer2" aria-hidden="true"></i></div>
+                <h3>Executive visibility</h3>
+                <p>See storage growth, duplicate pressure, and file distribution from one dashboard instead of reconstructing the picture from multiple tools.</p>
+            </article>
+            <article class="card-premium marketing-outcome-card reveal-item">
+                <div class="kpi-icon kpi-icon-teal"><i class="bi bi-activity" aria-hidden="true"></i></div>
+                <h3>Reliable scan operations</h3>
+                <p>Track each scan through a structured pipeline with operational checkpoints that make progress, delay, and failure states obvious.</p>
+            </article>
+            <article class="card-premium marketing-outcome-card reveal-item">
+                <div class="kpi-icon kpi-icon-green"><i class="bi bi-files" aria-hidden="true"></i></div>
+                <h3>Quantified duplicate waste</h3>
+                <p>Prioritize clean-up using duplicate groups, reclaimable byte counts, and location-level context instead of rough estimates.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="marketing-section marketing-section-alt" id="capabilities">
+    <div class="marketing-container">
+        <div class="marketing-section-intro reveal-item">
+            <span class="marketing-section-eyebrow">Capabilities</span>
+            <h2 class="marketing-section-title">Built for teams that need storage analytics, not just file counts.</h2>
+        </div>
+
+        <div class="marketing-capability-grid">
+            <article class="card-premium marketing-capability-card reveal-item">
+                <div class="marketing-capability-header">
+                    <div class="kpi-icon kpi-icon-blue"><i class="bi bi-hdd-stack" aria-hidden="true"></i></div>
+                    <h3>Storage locations</h3>
+                </div>
+                <p>Register and organize storage targets across shared drives, network locations, and operational estates that need regular inspection.</p>
+            </article>
+            <article class="card-premium marketing-capability-card reveal-item">
+                <div class="marketing-capability-header">
+                    <div class="kpi-icon kpi-icon-teal"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></div>
+                    <h3>Scan orchestration</h3>
+                </div>
+                <p>Move through scanning, hashing, duplicate detection, and analytics refresh with observable transitions and fast troubleshooting context.</p>
+            </article>
+            <article class="card-premium marketing-capability-card reveal-item">
+                <div class="marketing-capability-header">
+                    <div class="kpi-icon kpi-icon-orange"><i class="bi bi-folder2-open" aria-hidden="true"></i></div>
+                    <h3>Deep file inventory</h3>
+                </div>
+                <p>Search files by extension, size, dates, and hash state so operational questions can be answered without manual exports.</p>
+            </article>
+            <article class="card-premium marketing-capability-card reveal-item">
+                <div class="marketing-capability-header">
+                    <div class="kpi-icon kpi-icon-green"><i class="bi bi-pie-chart" aria-hidden="true"></i></div>
+                    <h3>Reporting and trends</h3>
+                </div>
+                <p>Follow storage growth, file-type mix, duplicate clusters, and high-impact locations through visual reporting aimed at decisions.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="marketing-section" id="workflow">
+    <div class="marketing-container">
+        <div class="marketing-workflow card-premium reveal-item">
+            <div class="marketing-workflow-copy">
+                <span class="marketing-section-eyebrow">Workflow</span>
+                <h2 class="marketing-section-title">A predictable path from scan execution to usable storage intelligence.</h2>
+                <p class="marketing-section-text">The platform is structured around an operational flow, so teams can understand where a job is, what data is ready, and when insights are safe to act on.</p>
+            </div>
+            <div class="marketing-workflow-steps">
+                <div class="marketing-step">
+                    <span class="marketing-step-number">01</span>
+                    <div>
+                        <h3>Register locations</h3>
+                        <p>Bring new storage targets into scope with enough metadata to manage them consistently.</p>
+                    </div>
+                </div>
+                <div class="marketing-step">
+                    <span class="marketing-step-number">02</span>
+                    <div>
+                        <h3>Run structured scans</h3>
+                        <p>Capture inventory and file state while monitoring progress and operational health in real time.</p>
+                    </div>
+                </div>
+                <div class="marketing-step">
+                    <span class="marketing-step-number">03</span>
+                    <div>
+                        <h3>Detect duplicate waste</h3>
+                        <p>Hash and group files to surface reclaimable capacity with clear example files and impact sizing.</p>
+                    </div>
+                </div>
+                <div class="marketing-step">
+                    <span class="marketing-step-number">04</span>
+                    <div>
+                        <h3>Act from the dashboard</h3>
+                        <p>Use KPIs, trend views, and reports to decide where cleanup, review, or storage planning should happen first.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="marketing-section marketing-section-alt" id="pricing">
+    <div class="marketing-container">
+        <div class="marketing-section-intro reveal-item">
+            <span class="marketing-section-eyebrow">Pricing</span>
+            <h2 class="marketing-section-title">Start with the plan that matches your storage footprint and operational maturity.</h2>
+            <p class="marketing-section-text">All plans keep the same product foundation. As teams grow, they unlock more automation, duplicate analysis depth, and workflow flexibility.</p>
+        </div>
+
+        <div class="row g-4 justify-content-center reveal-item">
+            @foreach (var tier in Model.Tiers)
+            {
+                var price = tier.ComputedMonthlyPrice(Model.AvailableServices);
+                var cardClass = tier.IsPopular ? "card-premium pricing-card pricing-card-popular" : "card-premium pricing-card";
+
+                <div class="col-md-6 col-xl-3 d-flex">
+                    <div class="@cardClass p-4 d-flex flex-column w-100 position-relative marketing-pricing-card">
+                        @if (tier.IsPopular)
+                        {
+                            <span class="pricing-popular-badge">Most Popular</span>
+                        }
+
+                        <div class="mb-3">
+                            <h3 class="mb-1 pricing-tier-name">@tier.Name</h3>
+                            <p class="text-secondary small mb-3">@tier.Description</p>
+
+                            @if (tier.IsContactUs)
+                            {
+                                <div class="pricing-price-wrap">
+                                    <span class="pricing-price-custom">Custom</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="pricing-price-wrap">
+                                    <span class="pricing-price-currency">$</span>
+                                    <span class="pricing-price-amount">@price.ToString("0.##")</span>
+                                    <span class="pricing-price-period">/month</span>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(tier.Highlight))
+                            {
+                                <div class="pricing-highlight mt-2">
+                                    <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i>@tier.Highlight
+                                </div>
+                            }
+                        </div>
+
+                        <hr class="my-2 pricing-divider">
+
+                        <ul class="list-unstyled pricing-feature-list flex-grow-1 mb-3">
+                            @foreach (var serviceId in tier.IncludedServiceIds.Take(5))
+                            {
+                                var service = Model.AvailableServices.FirstOrDefault(s => s.Id == serviceId);
+                                if (service is null)
+                                {
+                                    continue;
+                                }
+
+                                <li class="pricing-feature-item">
+                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
+                                    <span>@service.Name</span>
+                                </li>
+                            }
+                        </ul>
+
+                        <a class="@(tier.IsPopular ? "btn btn-gradient w-100 mt-auto" : "btn btn-outline-primary w-100 mt-auto")" asp-page="/Index">
+                            <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Open Dashboard
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="marketing-section">
+    <div class="marketing-container">
+        <div class="marketing-cta card-premium reveal-item">
+            <div>
+                <span class="marketing-section-eyebrow">Ready to explore the product</span>
+                <h2 class="marketing-section-title mb-2">Open the dashboard and see how StorageLens presents storage pressure, duplicate waste, and operational flow.</h2>
+                <p class="marketing-section-text mb-0">The landing page stays lightweight and product-focused. The dashboard is where the live operational picture takes over.</p>
+            </div>
+            <div class="marketing-cta-actions">
+                <a class="btn btn-gradient btn-lg" asp-page="/Index">
+                    <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>Go to Dashboard
+                </a>
+                <a class="btn btn-outline-soft btn-lg" asp-page="/About">
+                    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>About StorageLens
+                </a>
+            </div>
+        </div>
+    </div>
+</section>

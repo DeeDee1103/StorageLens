@@ -6,7 +6,10 @@ using StorageLens.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AddPageRoute("/Landing", "");
+});
 
 builder.Services.Configure<ServiceEndpointsOptions>(
     builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName));

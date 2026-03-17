@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Storage Lens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="icon" type="image/png" href="~/images/storagelens-icon.png" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/StorageLens.Web.styles.css" asp-append-version="true" />
+</head>
+<body class="marketing-body">
+    <script>
+        (function () {
+            var t = localStorage.getItem('storagelens-theme');
+            var d = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (t === 'dark' || (!t && d)) { document.body.classList.add('dark-mode'); }
+            document.body.classList.add('preload');
+            window.addEventListener('load', function () { document.body.classList.remove('preload'); });
+        }());
+    </script>
+
+    <header class="marketing-header">
+        <div class="marketing-container marketing-header-inner">
+            <a class="marketing-brand" asp-page="/Landing" aria-label="StorageLens landing page">
+                <img src="~/images/storagelens-logo.png" alt="StorageLens" class="marketing-brand-logo" />
+                <span class="marketing-brand-copy">
+                    <span class="marketing-brand-name">StorageLens</span>
+                    <span class="marketing-brand-subtitle">Storage intelligence for modern operations</span>
+                </span>
+            </a>
+
+            <nav class="marketing-nav" aria-label="Primary">
+                <a href="#capabilities">Capabilities</a>
+                <a href="#workflow">Workflow</a>
+                <a href="#pricing">Pricing</a>
+                <a asp-page="/About">About</a>
+            </nav>
+
+            <div class="marketing-header-actions">
+                <button class="btn icon-btn theme-toggle-btn" id="darkModeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="false" title="Switch to dark mode">
+                    <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+                    <span class="theme-toggle-label">Theme</span>
+                </button>
+                <a class="btn btn-outline-soft marketing-header-link" asp-page="/Pricing">Compare Plans</a>
+                <a class="btn btn-gradient marketing-header-cta" asp-page="/Index">Open Dashboard</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        @RenderBody()
+    </main>
+
+    <footer class="marketing-footer">
+        <div class="marketing-container marketing-footer-inner">
+            <div>
+                <div class="marketing-footer-title">StorageLens MVP</div>
+                <p class="marketing-footer-copy mb-0">Enterprise visibility into storage growth, duplicate waste, and scan execution.</p>
+            </div>
+            <div class="marketing-footer-links">
+                <a asp-page="/Landing">Landing</a>
+                <a asp-page="/Pricing">Pricing</a>
+                <a asp-page="/About">About</a>
+                <a asp-page="/Index">Dashboard</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

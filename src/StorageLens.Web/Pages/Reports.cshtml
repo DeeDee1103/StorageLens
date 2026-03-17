@@ -3,6 +3,9 @@
 @{
     var typeLabels = System.Text.Json.JsonSerializer.Serialize(Model.Reports.MostCommonFileTypes.Select(x => x.Label));
     var typeValues = System.Text.Json.JsonSerializer.Serialize(Model.Reports.MostCommonFileTypes.Select(x => x.Value));
+    var duplicateHeavy = Model.Reports.DuplicateHeavyLocations?.ToList() ?? [];
+    var duplicateMax = duplicateHeavy.Any() ? duplicateHeavy.Max(x => x.Value) : 0;
+    var duplicateTotal = duplicateHeavy.Sum(x => x.Value);
 }
 
 <section class="mb-3 reveal-item">
@@ -13,7 +16,10 @@
 <section class="row g-3 mb-3">
     <div class="col-lg-8 reveal-item">
         <div class="card-premium p-3 h-100">
-            <div class="section-title">Most Common File Types</div>
+            <div class="section-title d-flex justify-content-between align-items-center">
+                <span>Most Common File Types</span>
+                <span class="chart-hint">Click bars for details</span>
+            </div>
             <div class="chart-box">
                 <canvas id="reportTypeChart"></canvas>
             </div>
@@ -21,16 +27,44 @@
     </div>
     <div class="col-lg-4 reveal-item">
         <div class="card-premium p-3 h-100">
-            <div class="section-title">Duplicate-Heavy Locations</div>
-            <ul class="list-group list-group-flush">
-                @foreach (var item in Model.Reports.DuplicateHeavyLocations)
-                {
-                    <li class="list-group-item d-flex justify-content-between px-0">
-                        <span>@item.Label</span>
-                        <span class="badge-soft">@item.Value</span>
-                    </li>
-                }
-            </ul>
+            <div class="section-title d-flex justify-content-between align-items-center">
+                <span>Duplicate-Heavy Locations</span>
+                <span class="chart-hint">Ranked by duplicate load</span>
+            </div>
+
+            @if (!duplicateHeavy.Any())
+            {
+                <div class="duplicate-empty-state text-center text-secondary py-4">
+                    <i class="bi bi-check-circle d-block mb-2" aria-hidden="true"></i>
+                    No duplicate-heavy locations detected.
+                </div>
+            }
+            else
+            {
+                <div class="duplicate-heavy-list">
+                    @for (var i = 0; i < duplicateHeavy.Count; i++)
+                    {
+                        var item = duplicateHeavy[i];
+                        var impactPct = duplicateMax > 0 ? (item.Value / duplicateMax) * 100 : 0;
+                        var sharePct = duplicateTotal > 0 ? (item.Value / duplicateTotal) * 100 : 0;
+
+                        <article class="duplicate-heavy-card">
+                            <div class="duplicate-heavy-head">
+                                <div class="duplicate-heavy-rank">#@(i + 1)</div>
+                                <div class="duplicate-heavy-label-wrap">
+                                    <div class="duplicate-heavy-label">@item.Label</div>
+                                    <div class="duplicate-heavy-subtext">@sharePct.ToString("0.0")% of duplicate-heavy footprint</div>
+                                </div>
+                                <div class="duplicate-heavy-value">@item.Value.ToString("N0")</div>
+                            </div>
+
+                            <div class="duplicate-heavy-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@impactPct.ToString("0")">
+                                <div class="duplicate-heavy-fill" style="width:@impactPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
         </div>
     </div>
 </section>
@@ -70,6 +104,20 @@
     </div>
 </section>
 
+<div class="modal fade" id="reportChartDetailModal" tabindex="-1" aria-labelledby="reportChartDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content chart-detail-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportChartDetailModalLabel">File Type Detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-unstyled mb-0" id="reportChartDetailList"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         const typeLabels = @Html.Raw(typeLabels);
@@ -80,15 +128,180 @@
             Chart.defaults.borderColor = '#2a3a56';
         }
 
-        new Chart(document.getElementById("reportTypeChart"), {
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        const detailModalElement = document.getElementById('reportChartDetailModal');
+        const detailModalTitle = document.getElementById('reportChartDetailModalLabel');
+        const detailModalList = document.getElementById('reportChartDetailList');
+        const detailModal = detailModalElement ? new bootstrap.Modal(detailModalElement) : null;
+
+        const darkenHexColor = (hex, intensity = 0.35) => {
+            if (typeof hex !== 'string' || !hex.startsWith('#')) {
+                return '#1d2f4e';
+            }
+
+            const normalized = hex.length === 4
+                ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
+                : hex;
+
+            const r = Math.max(0, Math.floor(parseInt(normalized.slice(1, 3), 16) * (1 - intensity)));
+            const g = Math.max(0, Math.floor(parseInt(normalized.slice(3, 5), 16) * (1 - intensity)));
+            const b = Math.max(0, Math.floor(parseInt(normalized.slice(5, 7), 16) * (1 - intensity)));
+
+            return `rgb(${r}, ${g}, ${b})`;
+        };
+
+        const formatPercent = (part, whole) => {
+            if (!whole) {
+                return '0%';
+            }
+
+            return `${((Number(part) / Number(whole)) * 100).toFixed(1)}%`;
+        };
+
+        const openDetailModal = (title, lines) => {
+            if (!detailModal || !detailModalTitle || !detailModalList) {
+                return;
+            }
+
+            detailModalTitle.textContent = title;
+            detailModalList.innerHTML = lines.map((line) => `<li class="chart-detail-row">${line}</li>`).join('');
+            detailModal.show();
+        };
+
+        const reportBar3dPlugin = {
+            id: 'reportBar3dPlugin',
+            afterDatasetDraw(chart, args, pluginOptions) {
+                if (chart.config.type !== 'bar' || args.index !== 0) {
+                    return;
+                }
+
+                const dataset = chart.data.datasets[args.index];
+                const bars = chart.getDatasetMeta(args.index).data;
+                const depth = pluginOptions?.depth ?? 8;
+                const { ctx } = chart;
+
+                bars.forEach((bar, index) => {
+                    const props = bar.getProps(['x', 'y', 'base', 'width'], true);
+                    const left = props.x - props.width / 2;
+                    const right = props.x + props.width / 2;
+                    const top = props.y;
+                    const base = props.base;
+                    const baseColor = Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[index] : dataset.backgroundColor;
+                    const sideColor = darkenHexColor(baseColor, isDarkMode ? 0.52 : 0.38);
+                    const topColor = darkenHexColor(baseColor, isDarkMode ? 0.32 : 0.2);
+
+                    ctx.save();
+
+                    ctx.beginPath();
+                    ctx.moveTo(right, top);
+                    ctx.lineTo(right + depth, top - depth);
+                    ctx.lineTo(right + depth, base - depth);
+                    ctx.lineTo(right, base);
+                    ctx.closePath();
+                    ctx.fillStyle = sideColor;
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(left, top);
+                    ctx.lineTo(right, top);
+                    ctx.lineTo(right + depth, top - depth);
+                    ctx.lineTo(left + depth, top - depth);
+                    ctx.closePath();
+                    ctx.fillStyle = topColor;
+                    ctx.fill();
+
+                    ctx.restore();
+                });
+            }
+        };
+
+        const reportBarValueLabelsPlugin = {
+            id: 'reportBarValueLabelsPlugin',
+            afterDatasetsDraw(chart) {
+                if (chart.config.type !== 'bar') {
+                    return;
+                }
+
+                const dataset = chart.data.datasets[0];
+                const bars = chart.getDatasetMeta(0).data;
+                const { ctx } = chart;
+
+                bars.forEach((bar, index) => {
+                    const value = Number(dataset.data[index] || 0);
+                    const props = bar.getProps(['x', 'y'], true);
+
+                    ctx.save();
+                    ctx.fillStyle = isDarkMode ? '#d8e4f7' : '#183255';
+                    ctx.font = '700 11px Manrope, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${value.toLocaleString()}`, props.x + 5, props.y - 8);
+                    ctx.restore();
+                });
+            }
+        };
+
+        Chart.register(reportBar3dPlugin, reportBarValueLabelsPlugin);
+
+        const reportTypeChart = new Chart(document.getElementById("reportTypeChart"), {
             type: "bar",
             data: {
                 labels: typeLabels,
-                datasets: [{ data: typeValues, backgroundColor: ["#1165d8", "#16b5aa", "#14b85d", "#6f64e7", "#0ea5e9", "#2fb5ad", "#3497f3"] }]
+                datasets: [{
+                    data: typeValues,
+                    backgroundColor: ["#1165d8", "#16b5aa", "#14b85d", "#6f64e7", "#0ea5e9", "#2fb5ad", "#3497f3"],
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
             },
             options: {
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
+                animation: {
+                    duration: 1200,
+                    easing: 'easeOutCubic'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => Number(value).toLocaleString()
+                        }
+                    }
+                },
+                onHover: (event, elements, chart) => {
+                    chart.canvas.style.cursor = elements.length ? 'pointer' : 'default';
+                },
+                onClick: (event, elements) => {
+                    if (!elements.length) {
+                        return;
+                    }
+
+                    const index = elements[0].index;
+                    const value = Number(typeValues[index] || 0);
+                    const total = typeValues.reduce((sum, item) => sum + Number(item || 0), 0);
+                    const label = typeLabels[index] || 'Unknown';
+
+                    openDetailModal('Most Common File Type', [
+                        `<strong>File Type:</strong> ${label}`,
+                        `<strong>Count:</strong> ${value.toLocaleString()}`,
+                        `<strong>Share:</strong> ${formatPercent(value, total)}`,
+                        '<span class="text-secondary">Use this insight to prioritize retention and cleanup policies by dominant format.</span>'
+                    ]);
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const total = context.dataset.data.reduce((sum, item) => sum + Number(item || 0), 0);
+                                const value = Number(context.raw || 0);
+                                return `${value.toLocaleString()} (${formatPercent(value, total)})`;
+                            }
+                        }
+                    },
+                    reportBar3dPlugin: {
+                        depth: 8
+                    }
+                }
             }
         });
     </script>

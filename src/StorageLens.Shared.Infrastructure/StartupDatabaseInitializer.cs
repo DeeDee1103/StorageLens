@@ -54,6 +54,12 @@ public static class StartupDatabaseInitializer
     {
         try
         {
+            var hasAnyTables = await DatabaseHasAnyTablesAsync(dbContext, cancellationToken);
+            if (hasAnyTables == true)
+            {
+                return;
+            }
+
             var creator = dbContext.Database.GetService<IDatabaseCreator>();
             var createTablesMethod = creator.GetType().GetMethod("CreateTablesAsync", [typeof(CancellationToken)]);
 
@@ -72,6 +78,31 @@ public static class StartupDatabaseInitializer
         {
             // Another instance may have already created these tables.
             logger.LogDebug(ex, "Database tables for current context already exist.");
+        }
+    }
+
+    private static async Task<bool?> DatabaseHasAnyTablesAsync(DbContext dbContext, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var creator = dbContext.Database.GetService<IDatabaseCreator>();
+            var hasTablesMethod = creator.GetType().GetMethod("HasTablesAsync", [typeof(CancellationToken)]);
+            if (hasTablesMethod is null)
+            {
+                return null;
+            }
+
+            var hasTablesTask = hasTablesMethod.Invoke(creator, [cancellationToken]) as Task<bool>;
+            if (hasTablesTask is null)
+            {
+                return null;
+            }
+
+            return await hasTablesTask;
+        }
+        catch
+        {
+            return null;
         }
     }
 
