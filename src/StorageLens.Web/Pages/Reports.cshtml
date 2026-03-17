@@ -13,6 +13,14 @@
     <p class="text-secondary mb-0">Surface operational hotspots, old data, and heavy storage consumers.</p>
 </section>
 
+@if (Model.ServiceUnavailable)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
+        <span>Analytics service is currently unavailable. Report data may be incomplete. Please check your service configuration.</span>
+    </div>
+}
+
 <section class="row g-3 mb-3">
     <div class="col-lg-8 reveal-item">
         <div class="card-premium p-3 h-100">

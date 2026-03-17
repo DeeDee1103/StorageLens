@@ -8,6 +8,8 @@ public class ReportsModel(AnalyticsApiClient analyticsApiClient) : PageModel
 {
     public ReportsDto Reports { get; private set; } = new([], [], [], [], []);
 
+    public bool ServiceUnavailable { get; private set; }
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Reports";
@@ -17,6 +19,9 @@ public class ReportsModel(AnalyticsApiClient analyticsApiClient) : PageModel
         if (payload is not null)
         {
             Reports = payload;
+            return;
         }
+
+        ServiceUnavailable = true;
     }
 }

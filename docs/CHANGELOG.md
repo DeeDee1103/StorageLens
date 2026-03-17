@@ -22,9 +22,16 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 - **Interaction hints** on chart headers (e.g., "Click bars for details", "Click points for details") to make interactivity discoverable.
 
 ### Fixed
+- **Service-unavailable error handling** — all API client methods (`LocationsApiClient`, `ScanJobsApiClient`, `FileInventoryApiClient`, `DuplicatesApiClient`, `AnalyticsApiClient`, `OrchestratorApiClient`) now catch `HttpRequestException` and log a warning instead of propagating the exception to the error page. Pages that fail to load backend data now display a clear yellow alert banner rather than crashing.
 - **`DuplicatesService` build error** — `GroupBy` result was projected to `List<FileRecordDto>` via `.Select(g => g.OrderByDescending(...).ToList())`, causing the group key to be lost. The select now projects to a named tuple `(Key, Files)` so `HashValue` and the final `duplicateHashValues` collection are correctly populated.
 
 ### Added
+- **`StorageLens.Web.Tests` project** — new xUnit test project covering page model behaviour for `IndexModel`, `StorageLocationsModel`, `ScanJobsModel`, and `DuplicatesModel`:
+  - Happy-path tests verifying that data returned by API clients is correctly exposed via page model properties.
+  - Service-unavailable tests verifying that `ServiceUnavailable = true` is set when a downstream service throws `HttpRequestException`, ensuring no unhandled exception propagates to the user.
+  - Validation tests verifying that required-field errors are raised before any API call is made.
+- **`ServiceUnavailable` property** added to all key page models (`IndexModel`, `StorageLocationsModel`, `ScanJobsModel`, `FileInventoryModel`, `DuplicatesModel`, `ReportsModel`). When set, each page renders a Bootstrap warning alert banner informing the user that a backend service is temporarily unavailable.
+- **Form-submit loading state** (`site.js`) — POST forms now disable their submit button and display a `spinner-border` spinner with a "Working…" label on click, preventing double-submits and giving clear feedback during server round-trips.
 - **Client Management page** (`/ClientManagement`) — owner-only interface for adding and managing client companies and granting them service access:
   - Protected by the same `sl-owner-mode` HttpOnly cookie used by Pricing Admin; enter the owner PIN to unlock.
   - Summary KPI cards: Total Clients, Active Clients, New This Month.
@@ -89,6 +96,8 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 - Pricing card CSS styles added to `site.css`: responsive card grid, popular-badge, price typography, feature list, and dark-mode adjustments.
 
 ### Changed
+- **Footer** — removed "MVP" label; footer now reads "StorageLens | Built on .NET 8 microservices".
+- **API client constructors** — all six HTTP API clients now accept `ILogger<T>` alongside `HttpClient`. The ILogger is automatically injected by the existing `AddHttpClient<T>` registrations and is used to log warnings when downstream services are unreachable.
 - `_Layout.cshtml` — both the desktop sidebar nav and the offcanvas mobile nav now include a Pricing link (`/Pricing`, `bi-tags` icon).
 
 

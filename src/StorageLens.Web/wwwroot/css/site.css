@@ -1382,7 +1382,7 @@ body.dark-mode .marketing-step {
 
 @media (max-width: 575.98px) {
   .marketing-container {
-    width: min(100% - 1rem, 1180px);
+    width: min(1180px, calc(100% - 1rem));
   }
 
   .marketing-header {

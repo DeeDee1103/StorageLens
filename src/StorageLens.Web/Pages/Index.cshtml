@@ -14,6 +14,14 @@
     <p class="text-secondary mb-0">Executive overview of capacity, duplicate waste, and scan performance.</p>
 </section>
 
+@if (Model.ServiceUnavailable)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
+        <span>Analytics service is currently unavailable. Dashboard data may be incomplete. Please check your service configuration.</span>
+    </div>
+}
+
 <section class="row g-3 mb-3">
     <div class="col-md-6 col-xl-3 reveal-item">
         <div class="card-premium kpi-card">
@@ -235,12 +243,26 @@
             }
 
             modalTitleElement.textContent = title;
-            modalListElement.innerHTML = detailRows
-                .map((row) => `<li class="chart-detail-row">${row}</li>`)
-                .join('');
+            // Clear existing items
+            modalListElement.innerHTML = '';
+
+            // Safely append each detail row as text to avoid XSS
+            detailRows.forEach((row) => {
+                const li = document.createElement('li');
+                li.className = 'chart-detail-row';
+                li.textContent = String(row);
+                modalListElement.appendChild(li);
+            });
 
             chartDetailModal.show();
         };
+
+        // Expose shared helpers on a single global namespace so they can be reused
+        // across pages (e.g., Index and Reports) and later extracted to a shared script.
+        window.StorageLensHelpers = window.StorageLensHelpers || {};
+        window.StorageLensHelpers.darkenHexColor = window.StorageLensHelpers.darkenHexColor || darkenHexColor;
+        window.StorageLensHelpers.formatPercent = window.StorageLensHelpers.formatPercent || formatPercent;
+        window.StorageLensHelpers.openChartDetails = window.StorageLensHelpers.openChartDetails || openChartDetails;
 
         const doughnut3dPlugin = {
             id: 'doughnut3dPlugin',

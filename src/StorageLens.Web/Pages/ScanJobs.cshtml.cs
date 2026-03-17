@@ -19,6 +19,8 @@ public class ScanJobsModel(
     public IReadOnlyList<ScanJobDto> Jobs { get; private set; } = [];
     public IReadOnlyList<StorageLocationDto> Locations { get; private set; } = [];
 
+    public bool ServiceUnavailable { get; private set; }
+
     private static readonly HashSet<string> ActiveStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
         "Running", "Scanning", "Hashing", "DetectingDuplicates", "RefreshingAnalytics", "InProgress", "Queued"
@@ -31,8 +33,17 @@ public class ScanJobsModel(
         ViewData["Title"] = "Scan Jobs";
         ViewData["Nav"] = "ScanJobs";
 
-        Jobs = await scanJobsApiClient.GetScanJobsAsync(cancellationToken);
-        Locations = await locationsApiClient.GetLocationsAsync(cancellationToken);
+        var jobs = await scanJobsApiClient.GetScanJobsAsync(cancellationToken);
+        var locations = await locationsApiClient.GetLocationsAsync(cancellationToken);
+
+        if (jobs is null || locations is null)
+        {
+            ServiceUnavailable = true;
+            return;
+        }
+
+        Jobs = jobs;
+        Locations = locations;
         if (SelectedLocationId == Guid.Empty)
         {
             SelectedLocationId = Locations.FirstOrDefault()?.Id ?? Guid.Empty;
