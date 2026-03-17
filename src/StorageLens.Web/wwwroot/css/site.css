@@ -2011,3 +2011,30 @@ body.dark-mode .about-stack-item {
 body.dark-mode .about-feature-card:hover {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
+
+/* Alerts page */
+.threshold-grid {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.alerts-progress {
+  height: 12px;
+  background: rgba(17, 101, 216, 0.1);
+}
+
+.alerts-progress .progress-bar {
+  background: linear-gradient(90deg, #16b5aa 0%, #1165d8 50%, #e07b00 100%);
+}
+
+.alerts-status-card {
+  background: linear-gradient(180deg, rgba(17, 101, 216, 0.06), rgba(22, 181, 170, 0.03));
+}
+
+body.dark-mode .alerts-progress {
+  background: rgba(56, 122, 220, 0.2);
+}
+
+body.dark-mode .alerts-status-card {
+  background: linear-gradient(180deg, rgba(56, 122, 220, 0.18), rgba(22, 181, 170, 0.08));
+}

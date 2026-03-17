@@ -1,0 +1,137 @@
+@page
+@model StorageLens.Web.Pages.AlertsModel
+
+<section class="mb-3 reveal-item">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+        <div>
+            <h1 class="dashboard-title mb-1">Alerts</h1>
+            <p class="text-secondary mb-0">Configure threshold boundaries and trigger automatic email when usage reaches the maximum threshold.</p>
+        </div>
+        <span class="badge bg-primary bg-opacity-15 text-primary px-3 py-2">
+            <i class="bi bi-envelope-check me-1" aria-hidden="true"></i>
+            Test recipient: dddevacct16783@gmail.com
+        </span>
+    </div>
+</section>
+
+@if (!Model.IsFeatureAvailable)
+{
+    <div class="alert alert-warning shadow-sm reveal-item" role="alert">
+        <div class="fw-semibold mb-1"><i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Notification Alerts are not included in your current plan.</div>
+        Upgrade your subscription tier in <a asp-page="/Pricing" class="alert-link">Pricing</a> to enable threshold-based alert automation.
+    </div>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success reveal-item" role="alert">@Model.SuccessMessage</div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning reveal-item" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <section class="row g-3 reveal-item">
+        <div class="col-lg-8">
+            <div class="card-premium p-4 h-100">
+                <h5 class="mb-2">Threshold Range</h5>
+                <p class="text-secondary small mb-4">Set min and max boundaries from 1% to 100%. Emails are sent automatically when current usage reaches the max threshold.</p>
+
+                <form method="post" asp-page-handler="Save">
+                    <div class="mb-3">
+                        <label asp-for="RecipientEmail" class="form-label">Alert Recipient</label>
+                        <input asp-for="RecipientEmail" class="form-control" type="email" />
+                        <span asp-validation-for="RecipientEmail" class="text-danger small"></span>
+                    </div>
+
+                    <div class="threshold-grid mb-2">
+                        <div>
+                            <div class="d-flex justify-content-between">
+                                <label asp-for="MinThresholdPercent" class="form-label">Minimum Threshold</label>
+                                <span class="fw-semibold" id="minThresholdValue">@Model.MinThresholdPercent%</span>
+                            </div>
+                            <input asp-for="MinThresholdPercent" class="form-range" type="range" min="1" max="99" id="minThresholdRange" />
+                            <span asp-validation-for="MinThresholdPercent" class="text-danger small"></span>
+                        </div>
+                        <div>
+                            <div class="d-flex justify-content-between">
+                                <label asp-for="MaxThresholdPercent" class="form-label">Maximum Threshold</label>
+                                <span class="fw-semibold" id="maxThresholdValue">@Model.MaxThresholdPercent%</span>
+                            </div>
+                            <input asp-for="MaxThresholdPercent" class="form-range" type="range" min="2" max="100" id="maxThresholdRange" />
+                            <span asp-validation-for="MaxThresholdPercent" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="small text-secondary mb-3">Tip: Keep a healthy buffer between min and max (for example, 70% and 90%) to avoid noisy alerts.</div>
+
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-save me-1" aria-hidden="true"></i>Save Alert Thresholds
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card-premium p-4 h-100 alerts-status-card">
+                <h5 class="mb-3">Live Threshold Status</h5>
+
+                <div class="mb-3">
+                    <div class="text-secondary small">Current usage</div>
+                    <div class="display-6 fw-bold">@Model.CurrentUsagePercent%</div>
+                </div>
+
+                <div class="progress alerts-progress mb-3" role="progressbar" aria-label="Usage threshold" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Model.CurrentUsagePercent">
+                    <div class="progress-bar" style="width:@Model.CurrentUsagePercent%"></div>
+                </div>
+
+                <div class="small mb-2"><span class="text-secondary">Min:</span> <span class="fw-semibold">@Model.MinThresholdPercent%</span></div>
+                <div class="small mb-3"><span class="text-secondary">Max:</span> <span class="fw-semibold">@Model.MaxThresholdPercent%</span></div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.AutoAlertMessage))
+                {
+                    <div class="alert alert-light border small mb-0" role="alert">@Model.AutoAlertMessage</div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var minRange = document.getElementById('minThresholdRange');
+            var maxRange = document.getElementById('maxThresholdRange');
+            var minLabel = document.getElementById('minThresholdValue');
+            var maxLabel = document.getElementById('maxThresholdValue');
+            if (!minRange || !maxRange || !minLabel || !maxLabel) {
+                return;
+            }
+
+            function syncLabels() {
+                var min = parseInt(minRange.value || '1', 10);
+                var max = parseInt(maxRange.value || '100', 10);
+
+                if (min >= max) {
+                    if (document.activeElement === minRange) {
+                        max = Math.min(100, min + 1);
+                        maxRange.value = String(max);
+                    } else {
+                        min = Math.max(1, max - 1);
+                        minRange.value = String(min);
+                    }
+                }
+
+                minLabel.textContent = min + '%';
+                maxLabel.textContent = max + '%';
+            }
+
+            minRange.addEventListener('input', syncLabels);
+            maxRange.addEventListener('input', syncLabels);
+            syncLabels();
+        })();
+    </script>
+}

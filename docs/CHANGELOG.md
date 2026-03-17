@@ -20,6 +20,9 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 ### Added
 - **Chart details modal patterns** on Dashboard and Reports pages for chart click-drill interactions.
 - **Interaction hints** on chart headers (e.g., "Click bars for details", "Click points for details") to make interactivity discoverable.
+- **Alerts page** (`/Alerts`) with adjustable min/max threshold sliders, test recipient support, and automatic threshold-check email dispatch when usage reaches the max threshold.
+- **SMTP alert service** (`SmtpAlertEmailService`) with cooldown protection to avoid repeated email sends on page refresh.
+- **`AlertsModelTests`** unit test validating that threshold crossing triggers an email dispatch call.
 
 ### Fixed
 - **Service-unavailable error handling** — all API client methods (`LocationsApiClient`, `ScanJobsApiClient`, `FileInventoryApiClient`, `DuplicatesApiClient`, `AnalyticsApiClient`, `OrchestratorApiClient`) now catch `HttpRequestException` and log a warning instead of propagating the exception to the error page. Pages that fail to load backend data now display a clear yellow alert banner rather than crashing.
