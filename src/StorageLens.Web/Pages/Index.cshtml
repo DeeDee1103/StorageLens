@@ -257,6 +257,13 @@
             chartDetailModal.show();
         };
 
+        // Expose shared helpers on a single global namespace so they can be reused
+        // across pages (e.g., Index and Reports) and later extracted to a shared script.
+        window.StorageLensHelpers = window.StorageLensHelpers || {};
+        window.StorageLensHelpers.darkenHexColor = window.StorageLensHelpers.darkenHexColor || darkenHexColor;
+        window.StorageLensHelpers.formatPercent = window.StorageLensHelpers.formatPercent || formatPercent;
+        window.StorageLensHelpers.openChartDetails = window.StorageLensHelpers.openChartDetails || openChartDetails;
+
         const doughnut3dPlugin = {
             id: 'doughnut3dPlugin',
             beforeDatasetDraw(chart, args, pluginOptions) {
