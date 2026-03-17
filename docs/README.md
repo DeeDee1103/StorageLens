@@ -86,5 +86,5 @@ Documentation should be updated in the same pull request as source-code changes.
 Recommended governance:
 - Treat documentation as a release artifact
 - Require impacted docs updates in PR reviews
-- Require `docs/CHANGELOG.md` updates for user-visible behavior, API, or operational changes
-- Use CI docs guard (`.github/workflows/docs-guard.yml`) to fail PRs when source/config changes are not reflected in `docs/`
+- Require `docs/CHANGELOG.md` updates for user-visible behavior, API, operational, or workflow-impacting changes
+- Use CI docs guard (`.github/workflows/docs-guard.yml`) to fail PRs when source/config/workflow/test changes are not reflected in `docs/`

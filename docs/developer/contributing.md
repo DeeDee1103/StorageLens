@@ -18,5 +18,9 @@
 
 Any change to services, contracts, workflows, or deployment behavior must update relevant files under `docs/` before merge.
 
+Guard enforcement rules:
+- If source/config/workflow/test files change, at least one file under `docs/` must also change.
+- If source/config/workflow/test files change, `docs/CHANGELOG.md` must be updated in the same PR.
+
 CI enforces this rule through:
 - `.github/workflows/docs-guard.yml`
