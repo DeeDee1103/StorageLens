@@ -6,6 +6,14 @@
     <p class="text-secondary mb-0">Track current and historical scans with progress and outcomes.</p>
 </section>
 
+@if (Model.ServiceUnavailable)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
+        <span>One or more services are currently unavailable. Please check your service configuration and try again.</span>
+    </div>
+}
+
 <section class="card-premium p-3 mb-3 reveal-item">
     <div class="section-title">Start New Scan</div>
     <form method="post" asp-page-handler="Start" class="row g-2 align-items-end">

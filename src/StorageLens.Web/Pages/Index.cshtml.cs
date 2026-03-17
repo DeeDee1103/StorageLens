@@ -24,6 +24,8 @@ public class IndexModel : PageModel
         [],
         []);
 
+    public bool ServiceUnavailable { get; private set; }
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Dashboard";
@@ -36,6 +38,7 @@ public class IndexModel : PageModel
             return;
         }
 
+        ServiceUnavailable = true;
         _logger.LogWarning("Analytics service returned no dashboard payload.");
     }
 }

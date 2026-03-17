@@ -19,10 +19,19 @@ public class FileInventoryModel(FileInventoryApiClient fileInventoryApiClient) :
     public int PageSize { get; } = 25;
     public IReadOnlyList<FileRecordDto> Files { get; private set; } = [];
 
+    public bool ServiceUnavailable { get; private set; }
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         ViewData["Title"] = "File Inventory";
         ViewData["Nav"] = "FileInventory";
-        Files = await fileInventoryApiClient.GetFilesAsync(Search, Extension, PageNumber, PageSize, cancellationToken);
+        var result = await fileInventoryApiClient.GetFilesAsync(Search, Extension, PageNumber, PageSize, cancellationToken);
+        if (result is null)
+        {
+            ServiceUnavailable = true;
+            return;
+        }
+
+        Files = result;
     }
 }
