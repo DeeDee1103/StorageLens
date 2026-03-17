@@ -243,9 +243,16 @@
             }
 
             modalTitleElement.textContent = title;
-            modalListElement.innerHTML = detailRows
-                .map((row) => `<li class="chart-detail-row">${row}</li>`)
-                .join('');
+            // Clear existing items
+            modalListElement.innerHTML = '';
+
+            // Safely append each detail row as text to avoid XSS
+            detailRows.forEach((row) => {
+                const li = document.createElement('li');
+                li.className = 'chart-detail-row';
+                li.textContent = String(row);
+                modalListElement.appendChild(li);
+            });
 
             chartDetailModal.show();
         };
