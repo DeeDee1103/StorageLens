@@ -26,6 +26,10 @@ Guard enforcement rules:
 CI enforces this rule through:
 - `.github/workflows/docs-guard.yml`
 
+**For detailed information about the documentation guardrail system**, see:
+- [`docs/developer/documentation-guardrail.md`](documentation-guardrail.md) — How the guardrail works, enforcement rules, and requirement categories
+- [`docs/DeveloperChecklist.md`](../DeveloperChecklist.md) — Phase 10 covers documentation validation
+
 ## Copilot Customization
 
 StorageLens is enhanced with specialized Copilot agents and skills:

@@ -14,6 +14,33 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
   - **Documentation**: New guide at `docs/developer/copilot-agents-guide.md` with agent descriptions and usage scenarios
   - **CI integration**: Updated `docs-guard.yml` to enforce documentation updates for Copilot configuration changes
   - See [`docs/developer/copilot-agents-guide.md`](docs/developer/copilot-agents-guide.md) for complete agent documentation and development scenarios.
+- **Developer Rebuild Checklist** — Comprehensive checklist at `docs/DeveloperChecklist.md` covering:
+  - Prerequisites and environment setup
+  - Solution structure and project validation
+  - Database and infrastructure configuration
+  - Shared infrastructure (contracts, DI, logging)
+  - Web frontend setup (Razor Pages, scripts, assets)
+  - Service development (all 8 services with specific requirements)
+  - Testing setup and verification
+  - Local development environment (Docker Compose)
+  - Build and compilation
+  - Complete documentation validation
+  - Git and version control setup
+  - Configuration and secrets management
+  - Deployment preparation and verification
+  - Copilot configuration
+  - Final sign-off criteria
+  - Troubleshooting guide and quick commands
+  - Estimated time: 4-8 hours for complete rebuild
+- **Documentation Guardrail System** — Comprehensive guide at `docs/developer/documentation-guardrail.md` explaining:
+  - How the automated documentation guardrail works
+  - File monitoring and enforcement rules
+  - Documentation requirements by change type (user-visible, developer-facing, operational, workflow)
+  - Typical PR workflow with guardrail validation
+  - Special cases (documentation-only changes, refactoring, hotfixes)
+  - FAQ and troubleshooting
+  - Best practices for documentation updates
+  - See [`docs/developer/documentation-guardrail.md`](docs/developer/documentation-guardrail.md) for complete reference
 
 ### Changed
 - **Landing page is now the default home route** (`/`) and the dashboard remains available at `/Index`.

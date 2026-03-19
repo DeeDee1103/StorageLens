@@ -58,6 +58,30 @@ StorageLens is powered by specialized Copilot agents that understand the project
 
 **Pro tip**: Just ask Copilot about your task—it will suggest the right agent and guide you!
 
+## Complete Rebuild Checklist
+
+If you need to rebuild StorageLens from scratch or set up a fresh development environment, see **[Developer Rebuild Checklist](../DeveloperChecklist.md)** for a comprehensive 18-phase checklist covering:
+- Environment setup and prerequisites
+- All services (8 services with specific requirements)
+- Database and infrastructure
+- Testing and verification
+- Documentation
+- Copilot configuration
+- Final sign-off criteria
+
+Estimated time: 4-8 hours depending on experience level.
+
+## Documentation Guardrail System
+
+StorageLens uses an automated CI/CD workflow to ensure code changes are always accompanied by documentation updates. For a complete guide on:
+- How the guardrail works
+- What files trigger documentation requirements
+- Which documentation files to update for different change types
+- PR workflow with guardrail validation
+- Troubleshooting failed guardrail checks
+
+See **[Documentation Guardrail Guide](documentation-guardrail.md)** for detailed information.
+
 ---
 
 ## Engineering Practices

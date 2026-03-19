@@ -24,21 +24,29 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
+            # Documentation files (must be updated when source/config changes)
             docs:
               - 'docs/**'
+            # CHANGELOG specifically (always required for any source/config change)
             docs_changelog:
               - 'docs/CHANGELOG.md'
+            # Files that trigger documentation requirement
+            # If any of these change, docs/ must be updated and CHANGELOG.md must have entry
             source_or_config:
+              # Source code and tests
               - 'src/**'
               - 'tests/**'
+              # Infrastructure and deployment
               - 'infra/**'
               - 'scripts/**'
               - '.github/workflows/**'
-              - 'azure.yaml'
               - 'docker-compose.yml'
-              - 'README.md'
+              - 'azure.yaml'
               - 'StorageLens.sln'
               - 'StorageLens.slnx'
+              # README (part of docs)
+              - 'README.md'
+              # Copilot configuration (treated as source code for guardrail purposes)
               - '.instructions.md'
               - '.prompt.md'
               - '.agent.md'
@@ -53,16 +61,38 @@ jobs:
           echo "docs changelog changed: ${{ steps.changes.outputs.docs_changelog }}"
           echo "source/config changed: ${{ steps.changes.outputs.source_or_config }}"
 
+          # Rule 1: If source/config changed, at least one docs file must change
           if [[ "${{ steps.changes.outputs.source_or_config }}" == "true" && "${{ steps.changes.outputs.docs }}" != "true" ]]; then
-            echo "Documentation update required: source or configuration changed, but no files under docs/ were updated."
-            echo "Please update relevant documentation in docs/ before merging."
+            echo "❌ GUARD FAILURE: Documentation update required"
+            echo ""
+            echo "You changed source/config/workflow files but did not update any files in docs/"
+            echo ""
+            echo "What to do:"
+            echo "1. Update relevant documentation in docs/ folder"
+            echo "   - API changes? → Update docs/technical/api-specification.md"
+            echo "   - Service changes? → Update docs/architecture/microservices-architecture.md"
+            echo "   - Deployment changes? → Update docs/operations/deployment-guide.md"
+            echo "   - See: docs/developer/documentation-guardrail.md for full requirements"
+            echo ""
+            echo "2. Update docs/CHANGELOG.md with your change (required separately)"
+            echo ""
+            echo "3. Push the documentation changes to this PR"
+            echo ""
             exit 1
           fi
 
+          # Rule 2: If source/config changed, CHANGELOG must be updated
           if [[ "${{ steps.changes.outputs.source_or_config }}" == "true" && "${{ steps.changes.outputs.docs_changelog }}" != "true" ]]; then
-            echo "Documentation update required: source/config changed, but docs/CHANGELOG.md was not updated."
-            echo "Please add a concise entry to docs/CHANGELOG.md describing user-visible, API, operational, or workflow-impacting changes."
+            echo "❌ GUARD FAILURE: CHANGELOG update required"
+            echo ""
+            echo "You changed source/config/workflow files but did not update docs/CHANGELOG.md"
+            echo ""
+            echo "What to do:"
+            echo "1. Add an entry to docs/CHANGELOG.md under [Unreleased] → ### Added/Changed/Fixed/Removed"
+            echo "2. Include a concise but clear description of your change"
+            echo "3. Push the CHANGELOG update to this PR"
+            echo ""
             exit 1
           fi
 
-          echo "Documentation guard passed."
+          echo "✅ Documentation guard passed"
