@@ -6,7 +6,10 @@ using StorageLens.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AddPageRoute("/Landing", "");
+});
 
 builder.Services.Configure<ServiceEndpointsOptions>(
     builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName));
@@ -20,11 +23,17 @@ builder.Services.Configure<AppearanceOptions>(
 builder.Services.Configure<NotificationOptions>(
     builder.Configuration.GetSection(NotificationOptions.SectionName));
 
+builder.Services.Configure<AlertThresholdOptions>(
+    builder.Configuration.GetSection(AlertThresholdOptions.SectionName));
+
 builder.Services.Configure<ScannerPerformanceOptions>(
     builder.Configuration.GetSection(ScannerPerformanceOptions.SectionName));
 
 builder.Services.Configure<PricingOptions>(
     builder.Configuration.GetSection(PricingOptions.SectionName));
+
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IAlertEmailService, SmtpAlertEmailService>();
 
 builder.Services.AddScoped<ITierAccessService, TierAccessService>();
 

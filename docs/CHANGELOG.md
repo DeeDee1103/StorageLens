@@ -6,6 +6,24 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+- **Landing page is now the default home route** (`/`) and the dashboard remains available at `/Index`.
+- **App navigation updated**: a new **Home** entry is shown above **Dashboard** in both desktop sidebar and mobile offcanvas nav, linking users back to the landing page.
+- **Dashboard chart UX refresh**:
+  - **Storage Growth Trend** upgraded with pseudo-3D rendering, animated load, on-point value labels, and click-to-open detail modal interactions.
+  - **File Type Distribution** upgraded with pseudo-3D doughnut rendering, animated load, percentage labels, and click-to-open detail modal interactions.
+  - **Largest Locations** upgraded with pseudo-3D bars, animated load, TB value labels, and click-to-open detail modal interactions.
+- **Reports page chart UX refresh**:
+  - **Most Common File Types** bar chart upgraded with pseudo-3D rendering, animated load, numeric labels, and click-to-open detail modal interactions.
+  - **Duplicate-Heavy Locations** panel redesigned from a plain list to a ranked visual impact view with rank badges, share percentages, and proportional impact bars.
+
+### Added
+- **Chart details modal patterns** on Dashboard and Reports pages for chart click-drill interactions.
+- **Interaction hints** on chart headers (e.g., "Click bars for details", "Click points for details") to make interactivity discoverable.
+- **Alerts page** (`/Alerts`) with adjustable min/max threshold sliders, test recipient support, and automatic threshold-check email dispatch when usage reaches the max threshold.
+- **SMTP alert service** (`SmtpAlertEmailService`) with cooldown protection to avoid repeated email sends on page refresh.
+- **`AlertsModelTests`** unit test validating that threshold crossing triggers an email dispatch call.
+
 ### Fixed
 - **Service-unavailable error handling** — all API client methods (`LocationsApiClient`, `ScanJobsApiClient`, `FileInventoryApiClient`, `DuplicatesApiClient`, `AnalyticsApiClient`, `OrchestratorApiClient`) now catch `HttpRequestException` and log a warning instead of propagating the exception to the error page. Pages that fail to load backend data now display a clear yellow alert banner rather than crashing.
 - **`DuplicatesService` build error** — `GroupBy` result was projected to `List<FileRecordDto>` via `.Select(g => g.OrderByDescending(...).ToList())`, causing the group key to be lost. The select now projects to a named tuple `(Key, Files)` so `HashValue` and the final `duplicateHashValues` collection are correctly populated.

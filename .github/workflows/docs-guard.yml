@@ -26,8 +26,15 @@ jobs:
           filters: |
             docs:
               - 'docs/**'
+            docs_changelog:
+              - 'docs/CHANGELOG.md'
             source_or_config:
               - 'src/**'
+              - 'tests/**'
+              - 'infra/**'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - 'azure.yaml'
               - 'docker-compose.yml'
               - 'README.md'
               - 'StorageLens.sln'
@@ -37,11 +44,18 @@ jobs:
         shell: bash
         run: |
           echo "docs changed: ${{ steps.changes.outputs.docs }}"
+          echo "docs changelog changed: ${{ steps.changes.outputs.docs_changelog }}"
           echo "source/config changed: ${{ steps.changes.outputs.source_or_config }}"
 
           if [[ "${{ steps.changes.outputs.source_or_config }}" == "true" && "${{ steps.changes.outputs.docs }}" != "true" ]]; then
             echo "Documentation update required: source or configuration changed, but no files under docs/ were updated."
             echo "Please update relevant documentation in docs/ before merging."
+            exit 1
+          fi
+
+          if [[ "${{ steps.changes.outputs.source_or_config }}" == "true" && "${{ steps.changes.outputs.docs_changelog }}" != "true" ]]; then
+            echo "Documentation update required: source/config changed, but docs/CHANGELOG.md was not updated."
+            echo "Please add a concise entry to docs/CHANGELOG.md describing user-visible, API, operational, or workflow-impacting changes."
             exit 1
           fi
 
