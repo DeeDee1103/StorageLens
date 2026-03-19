@@ -645,6 +645,83 @@ This comprehensive checklist covers all aspects needed to rebuild the StorageLen
 
 ---
 
+## Phase 12.5: Security Best Practices
+
+### Authorization & Authentication
+
+- [ ] **API Endpoint Authorization**
+  - [ ] All service controllers have `[Authorize]` attribute
+  - [ ] Public endpoints explicitly marked with `[AllowAnonymous]` (with documentation)
+  - [ ] Service-to-service calls include `X-API-Key` header in requests
+  - [ ] Review `docs/developer/SECURITY-FIXES.md` for authorization patterns
+
+- [ ] **Input Validation**
+  - [ ] Email validation uses `EmailValidation.IsValidEmail()` utility (RFC 5322 compliant)
+  - [ ] File paths validated with `FileSecurityValidation.IsPathSafe()` before file operations
+  - [ ] File sizes validated BEFORE opening streams: `FileSecurityValidation.ValidateFileBeforeProcessing()`
+  - [ ] User input sanitized before database queries
+
+### Secrets & Configuration
+
+- [ ] **Credential Management**
+  - [ ] No hardcoded passwords, API keys, or credentials in source code
+  - [ ] Production secrets stored in Azure Key Vault (not in `appsettings.json`)
+  - [ ] Local development uses environment variables or `.env.local` (never committed)
+  - [ ] Use `KeyVaultIntegration` class for Key Vault access with fallback
+  - [ ] Verify `.gitignore` excludes `.env`, `.env.local`, `secrets.json`
+
+- [ ] **Configuration Practices**
+  - [ ] Sensitive values loaded via `IConfiguration` injected at runtime
+  - [ ] No secrets in version control history (check git log if migrating from old .env)
+  - [ ] `appsettings.Example.json` or `.env.example` shows structure without secrets
+
+### Resource Management
+
+- [ ] **HTTP Client Timeouts**
+  - [ ] All HTTP clients have explicit `Timeout` set (30 seconds default, 4 hours for long-running)
+  - [ ] No `Timeout.InfiniteTimeSpan` (prevents resource exhaustion)
+  - [ ] Verify in each service `Program.cs`: `client.Timeout = TimeSpan.FromSeconds(30);`
+
+- [ ] **Database Access**
+  - [ ] Large queries paginated (no loading entire result sets into memory)
+  - [ ] Use `.Take()` and `.Skip()` for cursor-based pagination
+  - [ ] Async/await used for all I/O operations to prevent thread starvation
+
+### Security Utilities
+
+- [ ] **Verify Security Utilities Available**
+  - [ ] `StorageLens.Shared.Infrastructure/Security/EmailValidation.cs` accessible
+  - [ ] `StorageLens.Shared.Infrastructure/Security/FileSecurityValidation.cs` accessible
+  - [ ] `StorageLens.Shared.Infrastructure/Security/KeyVaultIntegration.cs` accessible
+  - [ ] `StorageLens.Shared.Infrastructure/Security/RateLimitingMiddleware.cs` accessible
+
+### Logging & Monitoring
+
+- [ ] **Sensitive Data Protection**
+  - [ ] Credentials never logged (no API keys, passwords, or PII in logs)
+  - [ ] Correlation IDs included in all service-to-service calls for tracing
+  - [ ] Authorization successes logged at DEBUG level
+  - [ ] Authorization failures logged at WARNING level
+
+- [ ] **Review Logging Examples**
+  - [ ] Good example: `logger.LogWarning("File validation failed for {FileName}", filename);`
+  - [ ] Bad example: `logger.LogError("Auth failed with API key: {ApiKey}", apiKey);` ❌
+
+### Security Documentation
+
+- [ ] **Read Security Documentation**
+  - [ ] Complete read of `docs/developer/SECURITY-FIXES.md`
+  - [ ] Understand "Checklist for New Features" section
+  - [ ] Understand "Pending Implementation" items (P2, P3 priority)
+  - [ ] Bookmark for future reference when implementing new features
+
+- [ ] **Security Training**
+  - [ ] Reviewed external code review feedback (11 issues, 7/10 rating)
+  - [ ] Understand which issues are FIXED (P0, P1, P2 timeouts) and which are PENDING (N+1, audit trail, rate limiting, symlinks, reflection)
+  - [ ] Know how to find TODO comments: grep `TODO (P2 Security)` or `TODO (P3 Security)`
+
+---
+
 ## Phase 13: Frontend Assets & Build
 
 ### Static Assets

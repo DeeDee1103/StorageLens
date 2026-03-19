@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StorageLens.Web.Clients;
 using StorageLens.Web.Services;
+using StorageLens.Shared.Infrastructure.Security;
 
 namespace StorageLens.Web.Pages;
 
@@ -109,7 +110,8 @@ public class AlertsModel(
             ModelState.AddModelError(nameof(MaxThresholdPercent), "Maximum threshold must be greater than minimum threshold.");
         }
 
-        if (!IsValidEmail(RecipientEmail))
+        // SECURITY: Use RFC 5322 compliant email validation from shared utility (P1 fix)
+        if (!EmailValidation.IsValidEmail(RecipientEmail))
         {
             ModelState.AddModelError(nameof(RecipientEmail), "A valid recipient email address is required.");
         }
@@ -166,22 +168,6 @@ public class AlertsModel(
         var tempPath = path + ".tmp";
         System.IO.File.WriteAllText(tempPath, doc.ToJsonString(writeOpts));
         System.IO.File.Move(tempPath, path, overwrite: true);
-    }
-
-    private static bool IsValidEmail(string email)
-    {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            return false;
-        }
-        try
-        {
-            var addr = new System.Net.Mail.MailAddress(email);
-            return string.Equals(addr.Address, email.Trim(), StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
+        // TODO (P2 Security): Add audit logging for config file modifications
     }
 }

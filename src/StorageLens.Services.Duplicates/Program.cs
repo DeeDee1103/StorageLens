@@ -54,6 +54,7 @@ var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
 builder.Services.AddHttpClient("fileinventory", client =>
 {
     client.BaseAddress = new Uri(upstream.FileInventory);
+    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
     if (!string.IsNullOrWhiteSpace(serviceApiKey))
         client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
 });
