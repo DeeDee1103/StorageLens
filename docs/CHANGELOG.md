@@ -6,6 +6,15 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
 
 ## [Unreleased]
 
+### Added
+- **Copilot Agents & Skills Framework** — Enhanced Copilot integration with 6 specialized agents and 9 domain-specific skills for StorageLens development:
+  - **Agents**: Microservice-Developer, Cross-Service-Integrator, Contract-Steward, Test-and-Docs-Guardian, Architecture-Reviewer, DevOps-and-Deployment
+  - **Skills**: Service boundaries, contract design, cross-service communication, documentation compliance, testing patterns, anti-pattern detection, Docker/Kubernetes, deployment/infrastructure, and workflow orchestration
+  - **Configuration files**: `.instructions.md`, `.prompt.md`, `.agent.md`, `SKILL.md`, `copilot-instructions.md`, `AGENTS.md`
+  - **Documentation**: New guide at `docs/developer/copilot-agents-guide.md` with agent descriptions and usage scenarios
+  - **CI integration**: Updated `docs-guard.yml` to enforce documentation updates for Copilot configuration changes
+  - See [`docs/developer/copilot-agents-guide.md`](docs/developer/copilot-agents-guide.md) for complete agent documentation and development scenarios.
+
 ### Changed
 - **Landing page is now the default home route** (`/`) and the dashboard remains available at `/Index`.
 - **App navigation updated**: a new **Home** entry is shown above **Dashboard** in both desktop sidebar and mobile offcanvas nav, linking users back to the landing page.

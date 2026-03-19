@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.Orchestrator.Clients;
 using StorageLens.Services.Orchestrator.Data;
 using StorageLens.Services.Orchestrator.Interfaces;
 using StorageLens.Services.Orchestrator.Services;
 using StorageLens.Shared.Infrastructure;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +14,20 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("global", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 1000;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+builder.Services.AddAuthentication(ApiKeyAuthentication.SchemeName)
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthentication.SchemeName, _ => { });
+builder.Services.AddAuthorization();
 
 var useInMemory = builder.Configuration.GetValue<bool>("Database:UseInMemory");
 
@@ -34,20 +51,48 @@ builder.Services.Configure<WorkflowProcessingOptions>(
 var upstream = builder.Configuration.GetSection(OrchestratorUpstreamOptions.SectionName).Get<OrchestratorUpstreamOptions>()
               ?? new OrchestratorUpstreamOptions();
 
-builder.Services.AddHttpClient("locations", client => client.BaseAddress = new Uri(upstream.Locations));
-builder.Services.AddHttpClient("scanjobs", client => client.BaseAddress = new Uri(upstream.ScanJobs));
+var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
+
+builder.Services.AddHttpClient("locations", client =>
+{
+    client.BaseAddress = new Uri(upstream.Locations);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
+builder.Services.AddHttpClient("scanjobs", client =>
+{
+    client.BaseAddress = new Uri(upstream.ScanJobs);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
 builder.Services.AddHttpClient("scanner", client =>
 {
     client.BaseAddress = new Uri(upstream.Scanner);
-    client.Timeout = Timeout.InfiniteTimeSpan;
+    // Long-running scans can take hours; use a generous but finite timeout.
+    client.Timeout = TimeSpan.FromHours(4);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
 });
 builder.Services.AddHttpClient("hashing", client =>
 {
     client.BaseAddress = new Uri(upstream.Hashing);
-    client.Timeout = Timeout.InfiniteTimeSpan;
+    // Long-running hash operations can take hours; use a generous but finite timeout.
+    client.Timeout = TimeSpan.FromHours(4);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
 });
-builder.Services.AddHttpClient("duplicates", client => client.BaseAddress = new Uri(upstream.Duplicates));
-builder.Services.AddHttpClient("analytics", client => client.BaseAddress = new Uri(upstream.Analytics));
+builder.Services.AddHttpClient("duplicates", client =>
+{
+    client.BaseAddress = new Uri(upstream.Duplicates);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
+builder.Services.AddHttpClient("analytics", client =>
+{
+    client.BaseAddress = new Uri(upstream.Analytics);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
 
 builder.Services.AddSingleton<WorkflowQueue>();
 builder.Services.AddScoped<IWorkflowOrchestratorService, WorkflowOrchestratorService>();
@@ -61,9 +106,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseRateLimiter();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health").AllowAnonymous();
 
 using (var scope = app.Services.CreateScope())
 {

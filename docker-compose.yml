@@ -27,6 +27,7 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__LocationsDb: "${STORAGELENS_AZURE_SQL_CONNECTION_STRING:-Server=sqlserver,1433;Database=StorageLensLocations;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;}"
       Database__UseInMemory: "false"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     depends_on:
       - sqlserver
 
@@ -40,6 +41,7 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__ScanJobsDb: "${STORAGELENS_AZURE_SQL_CONNECTION_STRING:-Server=sqlserver,1433;Database=StorageLensScanJobs;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;}"
       Database__UseInMemory: "false"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     depends_on:
       - sqlserver
 
@@ -53,6 +55,7 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__FileInventoryDb: "${STORAGELENS_AZURE_SQL_CONNECTION_STRING:-Server=sqlserver,1433;Database=StorageLensFileInventory;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;}"
       Database__UseInMemory: "false"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     depends_on:
       - sqlserver
 
@@ -67,6 +70,7 @@ services:
       ConnectionStrings__DuplicatesDb: "${STORAGELENS_AZURE_SQL_CONNECTION_STRING:-Server=sqlserver,1433;Database=StorageLensDuplicates;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;}"
       Database__UseInMemory: "false"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     depends_on:
       - sqlserver
       - fileinventory
@@ -83,6 +87,7 @@ services:
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
       UpstreamServices__Duplicates: "http://duplicates:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     depends_on:
       - locations
       - scanjobs
@@ -101,6 +106,7 @@ services:
       Database__UseInMemory: "false"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     volumes:
       - ./sample-scan:/scan-root
       # The following Windows-specific mounts enable Scanner's built-in
@@ -130,6 +136,7 @@ services:
       HashingWorker__MaxDegreeOfParallelism: "4"
       HashingWorker__BatchSize: "500"
       HashingWorker__MaxFileSizeBytes: "2147483648"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     volumes:
       - ./sample-scan:/scan-root
     depends_on:
@@ -153,6 +160,7 @@ services:
       UpstreamServices__Hashing: "http://hashing:8080/"
       UpstreamServices__Duplicates: "http://duplicates:8080/"
       UpstreamServices__Analytics: "http://analytics:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     depends_on:
       - sqlserver
       - locations
@@ -176,6 +184,7 @@ services:
       ServiceEndpoints__Duplicates: "http://duplicates:8080/"
       ServiceEndpoints__Analytics: "http://analytics:8080/"
       ServiceEndpoints__Orchestrator: "http://orchestrator:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
     depends_on:
       - locations
       - scanjobs

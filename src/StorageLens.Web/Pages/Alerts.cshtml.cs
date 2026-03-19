@@ -14,8 +14,6 @@ public class AlertsModel(
     IAlertEmailService alertEmailService,
     ITierAccessService tierAccess) : PageModel
 {
-    private const string DefaultRecipient = "dddevacct16783@gmail.com";
-
     public bool IsDevelopmentEnvironment { get; private set; }
     public string EnvironmentName { get; private set; } = string.Empty;
     public string SelectedEditEnvironment { get; private set; } = EnvironmentSettingsModel.Development;
@@ -23,7 +21,7 @@ public class AlertsModel(
 
     [BindProperty] public int MinThresholdPercent { get; set; } = 70;
     [BindProperty] public int MaxThresholdPercent { get; set; } = 90;
-    [BindProperty] public string RecipientEmail { get; set; } = DefaultRecipient;
+    [BindProperty] public string RecipientEmail { get; set; } = string.Empty;
 
     public int CurrentUsagePercent { get; private set; }
     public string? SuccessMessage { get; private set; }
@@ -54,9 +52,7 @@ public class AlertsModel(
             return Page();
         }
 
-        RecipientEmail = string.IsNullOrWhiteSpace(RecipientEmail)
-            ? DefaultRecipient
-            : RecipientEmail.Trim();
+        RecipientEmail = RecipientEmail.Trim();
 
         ValidateThresholdInputs();
         if (!ModelState.IsValid)
@@ -113,9 +109,9 @@ public class AlertsModel(
             ModelState.AddModelError(nameof(MaxThresholdPercent), "Maximum threshold must be greater than minimum threshold.");
         }
 
-        if (string.IsNullOrWhiteSpace(RecipientEmail) || !RecipientEmail.Contains('@'))
+        if (!IsValidEmail(RecipientEmail))
         {
-            ModelState.AddModelError(nameof(RecipientEmail), "A valid recipient email is required.");
+            ModelState.AddModelError(nameof(RecipientEmail), "A valid recipient email address is required.");
         }
     }
 
@@ -124,9 +120,7 @@ public class AlertsModel(
         var section = configuration.GetSection(AlertThresholdOptions.SectionName);
         MinThresholdPercent = section.GetValue("MinThresholdPercent", 70);
         MaxThresholdPercent = section.GetValue("MaxThresholdPercent", 90);
-        RecipientEmail = string.IsNullOrWhiteSpace(section["RecipientEmail"])
-            ? DefaultRecipient
-            : section["RecipientEmail"]!.Trim();
+        RecipientEmail = section["RecipientEmail"]?.Trim() ?? string.Empty;
     }
 
     private async Task RefreshCurrentUsageAsync(CancellationToken cancellationToken)
@@ -172,5 +166,22 @@ public class AlertsModel(
         var tempPath = path + ".tmp";
         System.IO.File.WriteAllText(tempPath, doc.ToJsonString(writeOpts));
         System.IO.File.Move(tempPath, path, overwrite: true);
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return false;
+        }
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return string.Equals(addr.Address, email.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

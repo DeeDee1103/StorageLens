@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.FileInventory.Interfaces;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.FileInventory.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class FilesController(IFileInventoryService fileInventoryService) : ControllerBase

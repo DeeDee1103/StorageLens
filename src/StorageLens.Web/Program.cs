@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
 using StorageLens.Shared.Infrastructure;
 using StorageLens.Web.Clients;
 using StorageLens.Web.Data;
 using StorageLens.Web.Services;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,18 @@ builder.Services.Configure<PricingOptions>(
     builder.Configuration.GetSection(PricingOptions.SectionName));
 
 builder.Services.AddMemoryCache();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddSlidingWindowLimiter("global", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 200;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.SegmentsPerWindow = 6;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 builder.Services.AddScoped<IAlertEmailService, SmtpAlertEmailService>();
 
 builder.Services.AddScoped<ITierAccessService, TierAccessService>();
@@ -57,12 +71,44 @@ builder.Services.AddDbContext<ClientsDbContext>(options =>
 var endpoints = builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName).Get<ServiceEndpointsOptions>()
                ?? new ServiceEndpointsOptions();
 
-builder.Services.AddHttpClient<LocationsApiClient>(client => client.BaseAddress = new Uri(endpoints.Locations));
-builder.Services.AddHttpClient<ScanJobsApiClient>(client => client.BaseAddress = new Uri(endpoints.ScanJobs));
-builder.Services.AddHttpClient<FileInventoryApiClient>(client => client.BaseAddress = new Uri(endpoints.FileInventory));
-builder.Services.AddHttpClient<DuplicatesApiClient>(client => client.BaseAddress = new Uri(endpoints.Duplicates));
-builder.Services.AddHttpClient<AnalyticsApiClient>(client => client.BaseAddress = new Uri(endpoints.Analytics));
-builder.Services.AddHttpClient<OrchestratorApiClient>(client => client.BaseAddress = new Uri(endpoints.Orchestrator));
+var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
+
+builder.Services.AddHttpClient<LocationsApiClient>(client =>
+{
+    client.BaseAddress = new Uri(endpoints.Locations);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
+builder.Services.AddHttpClient<ScanJobsApiClient>(client =>
+{
+    client.BaseAddress = new Uri(endpoints.ScanJobs);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
+builder.Services.AddHttpClient<FileInventoryApiClient>(client =>
+{
+    client.BaseAddress = new Uri(endpoints.FileInventory);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
+builder.Services.AddHttpClient<DuplicatesApiClient>(client =>
+{
+    client.BaseAddress = new Uri(endpoints.Duplicates);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
+builder.Services.AddHttpClient<AnalyticsApiClient>(client =>
+{
+    client.BaseAddress = new Uri(endpoints.Analytics);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
+builder.Services.AddHttpClient<OrchestratorApiClient>(client =>
+{
+    client.BaseAddress = new Uri(endpoints.Orchestrator);
+    if (!string.IsNullOrWhiteSpace(serviceApiKey))
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+});
 
 var app = builder.Build();
 
@@ -74,6 +120,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseRateLimiter();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

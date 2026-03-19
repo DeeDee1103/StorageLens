@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.Locations.Interfaces;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.Locations.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class LocationsController(ILocationService locationService) : ControllerBase

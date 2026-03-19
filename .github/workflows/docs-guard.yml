@@ -39,6 +39,12 @@ jobs:
               - 'README.md'
               - 'StorageLens.sln'
               - 'StorageLens.slnx'
+              - '.instructions.md'
+              - '.prompt.md'
+              - '.agent.md'
+              - 'SKILL.md'
+              - 'copilot-instructions.md'
+              - 'AGENTS.md'
 
       - name: Enforce docs updates
         shell: bash

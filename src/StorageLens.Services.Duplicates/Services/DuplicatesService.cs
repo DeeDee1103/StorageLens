@@ -32,8 +32,9 @@ public class DuplicatesService(
         var duplicateFiles = groups.Sum(x => x.FileCount);
         var wastedBytes = groups.Sum(x => x.WastedBytes);
         var fileInventoryClient = httpClientFactory.CreateClient("fileinventory");
+        // TODO: implement pagination for large scans instead of relying on a fixed page size.
         var files = await fileInventoryClient.GetFromJsonAsync<List<FileRecordDto>>(
-            "api/files?page=1&pageSize=5000",
+            $"api/files?page=1&pageSize=5000&scanJobId={latestGroup.ScanJobId}&correlationId={Uri.EscapeDataString(latestGroup.CorrelationId)}",
             cancellationToken) ?? [];
 
         var filesForRun = files
@@ -72,8 +73,9 @@ public class DuplicatesService(
     {
         var fileInventoryClient = httpClientFactory.CreateClient("fileinventory");
 
+        // TODO: implement pagination for large scans instead of relying on a fixed page size.
         var files = await fileInventoryClient.GetFromJsonAsync<List<FileRecordDto>>(
-            $"api/files?page=1&pageSize=5000",
+            $"api/files?page=1&pageSize=5000&scanJobId={scanJobId}&correlationId={Uri.EscapeDataString(correlationId)}",
             cancellationToken) ?? [];
 
         var filesWithCompletedHashes = files

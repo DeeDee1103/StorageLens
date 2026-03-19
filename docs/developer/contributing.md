@@ -21,6 +21,21 @@ Any change to services, contracts, workflows, or deployment behavior must update
 Guard enforcement rules:
 - If source/config/workflow/test files change, at least one file under `docs/` must also change.
 - If source/config/workflow/test files change, `docs/CHANGELOG.md` must be updated in the same PR.
+- If `.instructions.md`, `.prompt.md`, `.agent.md`, `SKILL.md`, `copilot-instructions.md`, or `AGENTS.md` change, `docs/CHANGELOG.md` must reflect the updates.
 
 CI enforces this rule through:
 - `.github/workflows/docs-guard.yml`
+
+## Copilot Customization
+
+StorageLens is enhanced with specialized Copilot agents and skills:
+
+- **Agents**: 6 specialized personas for different development tasks (microservice work, cross-service integration, contracts, testing/docs, architecture, devops)
+- **Skills**: 9 domain-specific capabilities for service boundaries, contract design, testing, deployment, etc.
+
+See [`docs/developer/copilot-agents-guide.md`](copilot-agents-guide.md) for detailed information on:
+- How to invoke agents for your task
+- Common development scenarios and agent workflows
+- Best practices for agent-assisted development
+
+The configuration is automatic—just ask Copilot about your StorageLens task!

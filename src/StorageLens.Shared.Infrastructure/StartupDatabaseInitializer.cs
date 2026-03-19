@@ -60,19 +60,8 @@ public static class StartupDatabaseInitializer
                 return;
             }
 
-            var creator = dbContext.Database.GetService<IDatabaseCreator>();
-            var createTablesMethod = creator.GetType().GetMethod("CreateTablesAsync", [typeof(CancellationToken)]);
-
-            if (createTablesMethod is null)
-            {
-                return;
-            }
-
-            var createTablesTask = createTablesMethod.Invoke(creator, [cancellationToken]) as Task;
-            if (createTablesTask is not null)
-            {
-                await createTablesTask;
-            }
+            var databaseCreator = dbContext.Database.GetService<IDatabaseCreator>();
+            await TryCreateTablesAsync(databaseCreator, cancellationToken);
         }
         catch (Exception ex) when (TableAlreadyExists(ex))
         {
@@ -85,20 +74,8 @@ public static class StartupDatabaseInitializer
     {
         try
         {
-            var creator = dbContext.Database.GetService<IDatabaseCreator>();
-            var hasTablesMethod = creator.GetType().GetMethod("HasTablesAsync", [typeof(CancellationToken)]);
-            if (hasTablesMethod is null)
-            {
-                return null;
-            }
-
-            var hasTablesTask = hasTablesMethod.Invoke(creator, [cancellationToken]) as Task<bool>;
-            if (hasTablesTask is null)
-            {
-                return null;
-            }
-
-            return await hasTablesTask;
+            var databaseCreator = dbContext.Database.GetService<IDatabaseCreator>();
+            return await TryHasTablesAsync(databaseCreator, cancellationToken);
         }
         catch
         {
@@ -176,5 +153,31 @@ public static class StartupDatabaseInitializer
         }
 
         return false;
+    }
+
+    private static async Task TryCreateTablesAsync(IDatabaseCreator databaseCreator, CancellationToken cancellationToken)
+    {
+        var createTablesAsync = databaseCreator.GetType().GetMethod(
+            "CreateTablesAsync",
+            new[] { typeof(CancellationToken) });
+
+        if (createTablesAsync?.Invoke(databaseCreator, new object[] { cancellationToken }) is Task createTask)
+        {
+            await createTask;
+        }
+    }
+
+    private static async Task<bool?> TryHasTablesAsync(IDatabaseCreator databaseCreator, CancellationToken cancellationToken)
+    {
+        var hasTablesAsync = databaseCreator.GetType().GetMethod(
+            "HasTablesAsync",
+            new[] { typeof(CancellationToken) });
+
+        if (hasTablesAsync?.Invoke(databaseCreator, new object[] { cancellationToken }) is not Task<bool> hasTablesTask)
+        {
+            return null;
+        }
+
+        return await hasTablesTask;
     }
 }

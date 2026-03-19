@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"FromSql\\\\|ExecuteSql\\\\|Raw\\\\|Sql\\(\" A:/source/_VSCode/StorageLens/src --include=*.cs)",
+      "Bash(grep -v \"^/a/source/_VSCode/StorageLens/src$\")",
+      "Bash(find /a/source/_VSCode/StorageLens/src -name *Auth* -o -name *Security*)",
+      "Bash(grep -r \"KeyVault\\\\|SecretClient\\\\|ManagedIdentity\\\\|DefaultAzureCredential\" /a/source/_VSCode/StorageLens/src --include=*.cs --include=*.json)",
+      "Bash(grep -r \"MapHealthChecks\" src/*/Program.cs)"
+    ]
+  }
+}
