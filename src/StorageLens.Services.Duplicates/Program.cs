@@ -11,6 +11,7 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+KeyVaultIntegration.AddKeyVaultConfiguration(builder);
 builder.AddStorageLensObservability("StorageLens.Duplicates");
 
 builder.Services.AddControllers();
@@ -87,6 +88,6 @@ app.MapStorageLensHealthChecks();
 BackgroundDatabaseInitialization.Start<DuplicatesDbContext>(
     app,
     "StorageLens.Services.Duplicates",
-    static (_, context, cancellationToken) => DuplicatesSeeder.SeedAsync(context, cancellationToken));
+    static (_, context, _) => DuplicatesSeeder.SeedAsync(context));
 
 app.Run();

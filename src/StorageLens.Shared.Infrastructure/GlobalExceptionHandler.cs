@@ -76,7 +76,6 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
     private static int MapStatusCode(Exception ex) => ex switch
     {
         ArgumentException              => StatusCodes.Status400BadRequest,
-        ArgumentNullException          => StatusCodes.Status400BadRequest,
         KeyNotFoundException           => StatusCodes.Status404NotFound,
         FileNotFoundException          => StatusCodes.Status404NotFound,
         UnauthorizedAccessException    => StatusCodes.Status403Forbidden,

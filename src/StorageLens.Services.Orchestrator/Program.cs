@@ -14,6 +14,7 @@ using SharedUpstreamResilienceProfileResolver = StorageLens.Shared.Infrastructur
 
 var builder = WebApplication.CreateBuilder(args);
 
+KeyVaultIntegration.AddKeyVaultConfiguration(builder);
 builder.AddStorageLensObservability("StorageLens.Orchestrator");
 
 builder.Services.AddControllers();
@@ -150,3 +151,7 @@ BackgroundDatabaseInitialization.Start<OrchestratorDbContext>(
     "StorageLens.Services.Orchestrator");
 
 app.Run();
+
+// Expose Program as a public partial class so WebApplicationFactory<Program>
+// can reference it from the integration test project.
+public partial class Program { }

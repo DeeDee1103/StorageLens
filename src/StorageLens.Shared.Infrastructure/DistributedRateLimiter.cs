@@ -153,10 +153,10 @@ internal sealed class DistributedWindowLimiter : RateLimiter
     private sealed class DeniedLease : RateLimitLease
     {
         public override bool IsAcquired => false;
-        public override IEnumerable<string> MetadataNames => [MetadataName.RetryAfter];
+        public override IEnumerable<string> MetadataNames => [MetadataName.RetryAfter.Name];
         public override bool TryGetMetadata(string metadataName, out object? metadata)
         {
-            if (metadataName == MetadataName.RetryAfter)
+            if (metadataName == MetadataName.RetryAfter.Name)
             {
                 metadata = TimeSpan.FromMinutes(1);
                 return true;

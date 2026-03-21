@@ -1,9 +1,12 @@
+extern alias LocationsService;
+
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using StorageLens.Services.Locations.Data;
+using LocationsProgram = LocationsService::Program;
+using LocationsDbContext = LocationsService::StorageLens.Services.Locations.Data.LocationsDbContext;
 
 namespace StorageLens.Integration.Tests.Infrastructure;
 
@@ -26,7 +29,7 @@ namespace StorageLens.Integration.Tests.Infrastructure;
 ///       }
 ///   }
 /// </summary>
-public sealed class LocationsWebFactory : WebApplicationFactory<Program>
+public sealed class LocationsWebFactory : WebApplicationFactory<LocationsProgram>
 {
     internal const string TestApiKey = "integration-test-key";
 

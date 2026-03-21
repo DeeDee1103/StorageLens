@@ -51,7 +51,6 @@ services:
       - sqlserver
       - jaeger
       - redis
-      - redis
 
   scanjobs:
     build:
@@ -70,7 +69,6 @@ services:
       - sqlserver
       - jaeger
       - redis
-      - redis
 
   fileinventory:
     build:
@@ -88,7 +86,6 @@ services:
     depends_on:
       - sqlserver
       - jaeger
-      - redis
       - redis
 
   duplicates:
@@ -109,7 +106,6 @@ services:
       - sqlserver
       - fileinventory
       - jaeger
-      - redis
       - redis
 
   analytics:
@@ -133,7 +129,6 @@ services:
       - fileinventory
       - duplicates
       - jaeger
-      - redis
       - redis
 
   scanner:
@@ -166,7 +161,6 @@ services:
       - scanjobs
       - jaeger
       - redis
-      - redis
 
   hashing:
     build:
@@ -193,7 +187,6 @@ services:
       - fileinventory
       - scanjobs
       - jaeger
-      - redis
       - redis
 
   orchestrator:
@@ -225,7 +218,6 @@ services:
       - analytics
       - jaeger
       - redis
-      - redis
 
   web:
     build:
@@ -253,7 +245,6 @@ services:
       - analytics
       - orchestrator
       - jaeger
-      - redis
       - redis
 
 volumes:

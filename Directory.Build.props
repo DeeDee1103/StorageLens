@@ -8,5 +8,12 @@
     <FileVersion>0.4.0.0</FileVersion>
     <InformationalVersion>$(VersionPrefix)</InformationalVersion>
     <RepositoryUrl>https://github.com/DeeDee1103/StorageLens</RepositoryUrl>
+    <!--
+      Prevent Microsoft.Build.Tasks.Git from trying to read .git/config during build.
+      Without this, dotnet build fails when another process (e.g. VS Code) holds a
+      lock on .git/config.  Source-link is not used in this project, so disabling
+      the query has no functional impact.
+    -->
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
 </Project>

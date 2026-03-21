@@ -10,6 +10,7 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+KeyVaultIntegration.AddKeyVaultConfiguration(builder);
 builder.AddStorageLensObservability("StorageLens.FileInventory");
 
 builder.Services.AddControllers();
@@ -69,6 +70,6 @@ app.MapStorageLensHealthChecks();
 BackgroundDatabaseInitialization.Start<FileInventoryDbContext>(
     app,
     "StorageLens.Services.FileInventory",
-    static (_, context, cancellationToken) => FileInventorySeeder.SeedAsync(context, cancellationToken));
+    static (_, context, _) => FileInventorySeeder.SeedAsync(context));
 
 app.Run();

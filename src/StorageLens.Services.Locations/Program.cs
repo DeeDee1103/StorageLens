@@ -10,6 +10,7 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+KeyVaultIntegration.AddKeyVaultConfiguration(builder);
 builder.AddStorageLensObservability("StorageLens.Locations");
 
 builder.Services.AddControllers();
@@ -67,6 +68,10 @@ app.MapStorageLensHealthChecks();
 BackgroundDatabaseInitialization.Start<LocationsDbContext>(
     app,
     "StorageLens.Services.Locations",
-    static (_, context, cancellationToken) => LocationsSeeder.SeedAsync(context, cancellationToken));
+    static (_, context, _) => LocationsSeeder.SeedAsync(context));
 
 app.Run();
+
+// Expose Program as a public partial class so WebApplicationFactory<Program>
+// can reference it from the integration test project.
+public partial class Program { }
