@@ -14,10 +14,11 @@ using SharedUpstreamResilienceProfileResolver = StorageLens.Shared.Infrastructur
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddStorageLensObservability("StorageLens.Orchestrator");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("global", limiterOptions =>
@@ -99,6 +100,7 @@ void AddUpstreamClient(string name, string baseAddress)
             if (!string.IsNullOrWhiteSpace(serviceApiKey))
                 client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
         })
+        .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
         .AddPolicyHandler(request => IsSafeRetryMethod(request.Method) ? retryPolicy : noOpPolicy)
         .AddPolicyHandler(circuitBreakerPolicy);
 }
@@ -114,6 +116,19 @@ builder.Services.AddSingleton<WorkflowQueue>();
 builder.Services.AddScoped<IWorkflowOrchestratorService, WorkflowOrchestratorService>();
 builder.Services.AddHostedService<WorkflowBackgroundService>();
 
+
+var orchestratorSqlConn = useInMemory ? null : builder.Configuration.GetConnectionString("OrchestratorDb");
+builder.AddStorageLensHealthChecks(
+    sqlConnectionString: orchestratorSqlConn,
+    upstreamHealthUris: [
+        new Uri($"{upstream.Locations.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.ScanJobs.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.Scanner.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.Hashing.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.Duplicates.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.Analytics.TrimEnd('/')}/health/live"),
+    ]);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -122,17 +137,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
+app.UseCorrelationId();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapStorageLensHealthChecks();
 
-using (var scope = app.Services.CreateScope())
-{
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Database");
-    var context = scope.ServiceProvider.GetRequiredService<OrchestratorDbContext>();
-    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(context, logger);
-}
+BackgroundDatabaseInitialization.Start<OrchestratorDbContext>(
+    app,
+    "StorageLens.Services.Orchestrator");
 
 app.Run();

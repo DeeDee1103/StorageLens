@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
+using Polly.CircuitBreaker;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Web.Clients;
@@ -12,7 +13,7 @@ public class LocationsApiClient(HttpClient httpClient, ILogger<LocationsApiClien
         {
             return await httpClient.GetFromJsonAsync<List<StorageLocationDto>>("api/locations", cancellationToken) ?? [];
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (IsServiceUnavailable(ex, cancellationToken))
         {
             logger.LogWarning(ex, "Locations service unavailable.");
             return null;
@@ -26,7 +27,7 @@ public class LocationsApiClient(HttpClient httpClient, ILogger<LocationsApiClien
             var response = await httpClient.PostAsJsonAsync("api/locations", request, cancellationToken);
             return response.IsSuccessStatusCode;
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (IsServiceUnavailable(ex, cancellationToken))
         {
             logger.LogWarning(ex, "Locations service unavailable.");
             return false;
@@ -40,10 +41,14 @@ public class LocationsApiClient(HttpClient httpClient, ILogger<LocationsApiClien
             var response = await httpClient.DeleteAsync($"api/locations/{id}", cancellationToken);
             return response.IsSuccessStatusCode;
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (IsServiceUnavailable(ex, cancellationToken))
         {
             logger.LogWarning(ex, "Locations service unavailable.");
             return false;
         }
     }
+
+    private static bool IsServiceUnavailable(Exception ex, CancellationToken cancellationToken) =>
+        ex is HttpRequestException or BrokenCircuitException ||
+        ex is TaskCanceledException && !cancellationToken.IsCancellationRequested;
 }

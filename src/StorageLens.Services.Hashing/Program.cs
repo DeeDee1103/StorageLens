@@ -10,10 +10,11 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddStorageLensObservability("StorageLens.Hashing");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("global", limiterOptions =>
@@ -61,6 +62,15 @@ builder.Services.AddConfiguredUpstreamClient("scanjobs", upstream.ScanJobs, serv
 
 builder.Services.AddScoped<IHashingService, HashingService>();
 
+
+var sqlConnStr = useInMemory ? null : builder.Configuration.GetConnectionString("HashingDb");
+builder.AddStorageLensHealthChecks(
+    sqlConnectionString: sqlConnStr,
+    upstreamHealthUris: [
+        new Uri("http://scanjobs:8080/health/live"),
+        new Uri("http://fileinventory:8080/health/live")
+    ]);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -69,17 +79,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
+app.UseCorrelationId();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapStorageLensHealthChecks();
 
-using (var scope = app.Services.CreateScope())
-{
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Database");
-    var context = scope.ServiceProvider.GetRequiredService<HashingDbContext>();
-    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(context, logger);
-}
+BackgroundDatabaseInitialization.Start<HashingDbContext>(
+    app,
+    "StorageLens.Services.Hashing");
 
 app.Run();

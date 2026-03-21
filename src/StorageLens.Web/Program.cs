@@ -8,6 +8,8 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddStorageLensObservability("StorageLens.Web");
+
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AddPageRoute("/Landing", "");
@@ -92,13 +94,13 @@ builder.Services.AddConfiguredUpstreamClient<OrchestratorApiClient>("orchestrato
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();   // GlobalExceptionHandler registered via AddStorageLensObservability
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
+app.UseCorrelationId();
 app.UseRateLimiter();
 app.UseHttpsRedirection();
 app.UseStaticFiles();

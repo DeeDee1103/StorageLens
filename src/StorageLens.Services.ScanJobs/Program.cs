@@ -10,10 +10,11 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddStorageLensObservability("StorageLens.ScanJobs");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("global", limiterOptions =>
@@ -44,6 +45,11 @@ builder.Services.AddDbContext<ScanJobsDbContext>(options =>
 
 builder.Services.AddScoped<IScanJobsService, ScanJobsService>();
 
+
+var sqlConnStr = useInMemory ? null : builder.Configuration.GetConnectionString("ScanJobsDb");
+builder.AddStorageLensHealthChecks(
+    sqlConnectionString: sqlConnStr);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -52,18 +58,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
+app.UseCorrelationId();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapStorageLensHealthChecks();
 
-using (var scope = app.Services.CreateScope())
-{
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Database");
-    var context = scope.ServiceProvider.GetRequiredService<ScanJobsDbContext>();
-    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(context, logger);
-    await ScanJobsSeeder.SeedAsync(context);
-}
+BackgroundDatabaseInitialization.Start<ScanJobsDbContext>(
+    app,
+    "StorageLens.Services.ScanJobs",
+    static (_, context, cancellationToken) => ScanJobsSeeder.SeedAsync(context, cancellationToken));
 
 app.Run();

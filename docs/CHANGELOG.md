@@ -26,6 +26,54 @@ Example:
 ## [Unreleased]
 
 ### Added
+- **Global exception handler + standardised error responses** (Code Quality — Area #2):
+  - Added `GlobalExceptionHandler` (`IExceptionHandler`) to `StorageLens.Shared.Infrastructure`. All unhandled exceptions in all 9 services now return a consistent RFC 7807 `ProblemDetails` JSON body with `status`, `title`, `detail` (safe — no internal paths), and a `correlationId` extension field.
+  - Registered `UseExceptionHandler()` at the top of every service pipeline via `ObservabilityExtensions`. Raw exception details are logged server-side; callers receive only safe, sanitised messages.
+  - Mapped status codes: `ArgumentException` → 400, `KeyNotFoundException/FileNotFoundException` → 404, `UnauthorizedAccessException` → 403, `NotImplementedException` → 501, all others → 500.
+
+- **FluentValidation for all request DTOs** (Code Quality — Area #2):
+  - Added `FluentValidation.AspNetCore` 11.3.0 to `StorageLens.Shared.Infrastructure` and added validators in `Validators/RequestValidators.cs` for: `CreateStorageLocationRequest`, `UpdateStorageLocationRequest`, `CreateScanJobRequest`, `UpdateScanJobStatusRequest`, `ScannerExecuteRequest`, `FileMetadataBatchIngestRequest`, `MarkDuplicateHashesRequest`.
+  - Auto-validation registered in `ObservabilityExtensions.AddStorageLensObservability()` — invalid requests are rejected with 400 + `ValidationProblemDetails` before reaching controller methods.
+  - Removed the manual `if (string.IsNullOrWhiteSpace(...)) return BadRequest(...)` guard from `LocationsController.Create` — now handled declaratively.
+
+- **Audit logging service** (Security — Area #3):
+  - Added `IAuditLogger` interface and `AuditLogger` singleton to `StorageLens.Shared.Infrastructure`. Writes structured `[AUDIT]` log entries (at `Information`/`Warning` level) via a dedicated `StorageLens.Audit` logger category, covering: `CREATED`, `UPDATED`, `DELETED`, `CONFIG_CHANGED`, `SECURITY` events. Inject `IAuditLogger` to record configuration changes and entity lifecycle events. Registered automatically via `ObservabilityExtensions`.
+
+- **Redis-backed distributed rate limiting** (Security — Area #3):
+  - Added `DistributedFixedWindowPolicy` and `DistributedWindowLimiter` to `StorageLens.Shared.Infrastructure`. Backed by `IDistributedCache` — uses Redis in production (`RateLimit__Redis` env var) and in-memory cache in development (no infrastructure change needed).
+  - Added `Redis 7-alpine` container to `docker-compose.yml`. All services now pass `RateLimit__Redis: redis:6379` to enable cross-replica rate limiting in Docker.
+  - Added `Microsoft.Extensions.Caching.StackExchangeRedis` 8.0.12 to `Shared.Infrastructure`.
+
+- **Integration test project + test data builders** (Test Coverage — Area #4):
+  - Created `tests/StorageLens.Integration.Tests/` project using `Microsoft.AspNetCore.Mvc.Testing`.
+  - `LocationsWebFactory` (extends `WebApplicationFactory<Program>`) provides an in-memory-DB test host with API key injection. Tests run without any external infrastructure.
+  - `TestDataBuilders.cs` — fluent builder pattern for `CreateStorageLocationRequest`, `UpdateStorageLocationRequest`, `CreateScanJobRequest`, `ScannerExecuteRequest`, `FileMetadataBatchIngestRequest` (eliminates per-test object construction repetition).
+  - `LocationsIntegrationTests.cs` — 10 integration tests covering: full CRUD lifecycle, FluentValidation 400 responses, 401 without API key, correlation ID echo in response headers.
+  - Project added to `StorageLens.sln`.
+
+- **Health checks with liveness/readiness distinction and dependency probes** (DevOps — Area #6):
+  - Added `HealthCheckExtensions.AddStorageLensHealthChecks()` to `Shared.Infrastructure`. Each service now registers:
+    - `GET /health/live` — liveness probe (always 200 while process is alive, no checks)
+    - `GET /health/ready` — readiness probe (DB health check via `AddSqlServer`, upstream `/health/live` checks via `AddUrlGroup`, tagged `"ready"`)
+    - `GET /health` — legacy endpoint retained for backward compatibility
+  - Health check responses are structured JSON: `{ status, entries: { name: { status, description, durationMs } } }`.
+  - Upstream failure is `Degraded` (not `Unhealthy`) to avoid cascading unavailability.
+  - Added `AspNetCore.HealthChecks.SqlServer` 8.0.2 and `AspNetCore.HealthChecks.Uris` 8.0.2 to `Shared.Infrastructure`.
+
+### Fixed
+- **Path disclosure in error messages** (Security — Area #3): `FileSecurityValidation.ValidateFileBeforeProcessing` no longer includes the raw file path in the `FileNotFoundException` message. The exception message now reads `"File not found."` — the full path is still available server-side via the calling service's structured log with a correlation ID.
+- **String interpolation in rate-limit log** (Code Quality — Area #2): `RateLimitingMiddleware` now uses structured logging (`{ClientId}`) instead of `$"Rate limit exceeded for client: {clientId}"`, enabling log aggregation and filtering by client key without string concatenation overhead.
+
+- **Observability stack — Serilog structured logging + OpenTelemetry distributed tracing** (Architecture gap resolution):
+  - Added `CorrelationIdMiddleware` to `StorageLens.Shared.Infrastructure` — generates or propagates an `X-Correlation-ID` header on every inbound request, stores it in `HttpContext.Items`, echoes it in the response, and pushes it into the Serilog `LogContext` so every log line emitted during that request carries the correlation ID automatically.
+  - Added `CorrelationIdDelegatingHandler` — a typed `DelegatingHandler` registered on all upstream `HttpClient` instances. Reads the active correlation ID from `IHttpContextAccessor` (or generates a new GUID for background-service calls) and forwards it as `X-Correlation-ID` to every downstream service call, enabling full end-to-end request tracing across service boundaries.
+  - Added `ObservabilityExtensions.AddStorageLensObservability(serviceName)` — a single `WebApplicationBuilder` extension that configures Serilog (JSON stdout, enriched with `ServiceName`, `Environment`, and `CorrelationId`) and OpenTelemetry tracing (ASP.NET Core + HttpClient instrumentation, OTLP exporter when `Observability:OtlpEndpoint` is set, Console exporter fallback in Development).
+  - Registered `UseCorrelationId()` at the top of the middleware pipeline in all 9 service `Program.cs` files (Locations, ScanJobs, FileInventory, Duplicates, Analytics, Scanner, Hashing, Orchestrator, Web).
+  - Added Jaeger all-in-one container to `docker-compose.yml` (OTLP gRPC on port 4317, UI on port 16686 at `http://localhost:16686`). All services publish traces to Jaeger via `Observability__OtlpEndpoint=http://jaeger:4317`.
+  - Added NuGet packages to `StorageLens.Shared.Infrastructure`: `Serilog.AspNetCore` 8.0.3, `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Instrumentation.AspNetCore`, `OpenTelemetry.Instrumentation.Http`, `OpenTelemetry.Exporter.Console`, `OpenTelemetry.Exporter.OpenTelemetryProtocol` (all 1.9.0).
+  - Health check endpoints (`/health`) are excluded from trace spans to reduce noise.
+
+
 - **Documentation depth uplift (operations + API governance)**:
   - Added incident response runbook at `docs/operations/incident-response-runbook.md` with severity model, triage workflow, mitigation patterns, and post-incident review expectations.
   - Added secrets rotation runbook at `docs/operations/secrets-rotation-runbook.md` with rotation cadence, staged rollout, emergency rotation, and audit requirements.

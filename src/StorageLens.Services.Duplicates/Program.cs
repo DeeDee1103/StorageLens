@@ -11,10 +11,11 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddStorageLensObservability("StorageLens.Duplicates");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("global", limiterOptions =>
@@ -59,6 +60,14 @@ builder.Services.AddConfiguredUpstreamClient("fileinventory", upstream.FileInven
 
 builder.Services.AddScoped<IDuplicatesService, DuplicatesService>();
 
+
+var sqlConnStr = useInMemory ? null : builder.Configuration.GetConnectionString("DuplicatesDb");
+builder.AddStorageLensHealthChecks(
+    sqlConnectionString: sqlConnStr,
+    upstreamHealthUris: [
+        new Uri("http://fileinventory:8080/health/live")
+    ]);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -67,18 +76,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
+app.UseCorrelationId();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapStorageLensHealthChecks();
 
-using (var scope = app.Services.CreateScope())
-{
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Database");
-    var context = scope.ServiceProvider.GetRequiredService<DuplicatesDbContext>();
-    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(context, logger);
-    await DuplicatesSeeder.SeedAsync(context);
-}
+BackgroundDatabaseInitialization.Start<DuplicatesDbContext>(
+    app,
+    "StorageLens.Services.Duplicates",
+    static (_, context, cancellationToken) => DuplicatesSeeder.SeedAsync(context, cancellationToken));
 
 app.Run();

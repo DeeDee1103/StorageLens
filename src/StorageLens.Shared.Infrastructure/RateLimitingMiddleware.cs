@@ -49,7 +49,7 @@ public class RateLimitingMiddleware
             return;
         }
 
-        _logger.LogWarning($"Rate limit exceeded for client: {clientId}");
+        _logger.LogWarning("Rate limit exceeded for client: {ClientId}", clientId);
         context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         context.Response.Headers.Append("Retry-After", _options.WindowDuration.TotalSeconds.ToString("F0"));
         await context.Response.WriteAsJsonAsync(new
@@ -65,7 +65,7 @@ public class RateLimitingMiddleware
         if (context.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
             return forwardedFor.ToString().Split(',')[0].Trim();
 
-        return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return context.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
     }
 
     private bool IsRateLimitExceeded(string clientId)

@@ -5,7 +5,13 @@
       "Bash(grep -v \"^/a/source/_VSCode/StorageLens/src$\")",
       "Bash(find /a/source/_VSCode/StorageLens/src -name *Auth* -o -name *Security*)",
       "Bash(grep -r \"KeyVault\\\\|SecretClient\\\\|ManagedIdentity\\\\|DefaultAzureCredential\" /a/source/_VSCode/StorageLens/src --include=*.cs --include=*.json)",
-      "Bash(grep -r \"MapHealthChecks\" src/*/Program.cs)"
+      "Bash(grep -r \"MapHealthChecks\" src/*/Program.cs)",
+      "Bash(xargs wc:*)",
+      "Bash(find /a/source/_VSCode/StorageLens/src -type d -name *Shared* -o -type d -name *Infrastructure*)",
+      "Bash(ls -la /a/source/_VSCode/StorageLens/src/StorageLens.Shared.Infrastructure/*.cs)",
+      "Bash(find a:source_VSCodeStorageLenstests -name *.cs -type f)",
+      "Bash(grep -r \"ValidationAttribute\\\\|DataAnnotations\\\\|FluentValidation\" a:source_VSCodeStorageLenssrc --include=*.cs)",
+      "Bash(grep -r catch.*Exception a:source_VSCodeStorageLenssrc --include=*.cs)"
     ]
   }
 }

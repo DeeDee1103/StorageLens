@@ -8,10 +8,11 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddStorageLensObservability("StorageLens.Analytics");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("global", limiterOptions =>
@@ -46,6 +47,15 @@ builder.Services.AddConfiguredUpstreamClient("duplicates", upstream.Duplicates, 
 
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
+
+builder.AddStorageLensHealthChecks(
+    upstreamHealthUris: [
+        new Uri($"{upstream.Locations.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.ScanJobs.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.FileInventory.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.Duplicates.TrimEnd('/')}/health/live"),
+    ]);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -54,10 +64,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
+app.UseCorrelationId();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapStorageLensHealthChecks();
 
 app.Run();

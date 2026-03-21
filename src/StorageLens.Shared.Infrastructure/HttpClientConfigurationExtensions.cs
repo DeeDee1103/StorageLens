@@ -86,6 +86,7 @@ public static class HttpClientConfigurationExtensions
                 if (!string.IsNullOrWhiteSpace(serviceApiKey))
                     client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
             })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
             .AddPolicyHandler(request => ShouldApplyRetryPolicy(request.Method) ? retryPolicy : noOpPolicy)
             .AddPolicyHandler(circuitBreakerPolicy);
     }
@@ -126,6 +127,7 @@ public static class HttpClientConfigurationExtensions
                 if (!string.IsNullOrWhiteSpace(serviceApiKey))
                     client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
             })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
             .AddPolicyHandler(request => ShouldApplyRetryPolicy(request.Method) ? retryPolicy : noOpPolicy)
             .AddPolicyHandler(circuitBreakerPolicy);
     }

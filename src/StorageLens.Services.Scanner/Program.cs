@@ -10,10 +10,11 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddStorageLensObservability("StorageLens.Scanner");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("global", limiterOptions =>
@@ -62,6 +63,15 @@ builder.Services.AddConfiguredUpstreamClient("scanjobs", upstream.ScanJobs, serv
 builder.Services.AddSingleton<IScannerPathResolver, ScannerPathResolver>();
 builder.Services.AddScoped<IScannerExecutionService, ScannerExecutionService>();
 
+
+var sqlConnStr = useInMemory ? null : builder.Configuration.GetConnectionString("ScannerDb");
+builder.AddStorageLensHealthChecks(
+    sqlConnectionString: sqlConnStr,
+    upstreamHealthUris: [
+        new Uri("http://scanjobs:8080/health/live"),
+        new Uri("http://fileinventory:8080/health/live")
+    ]);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -70,17 +80,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
+app.UseCorrelationId();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapStorageLensHealthChecks();
 
-using (var scope = app.Services.CreateScope())
-{
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Database");
-    var context = scope.ServiceProvider.GetRequiredService<ScannerDbContext>();
-    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(context, logger);
-}
+BackgroundDatabaseInitialization.Start<ScannerDbContext>(
+    app,
+    "StorageLens.Services.Scanner");
 
 app.Run();

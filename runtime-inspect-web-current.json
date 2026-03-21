@@ -1,7 +1,7 @@
 ﻿[
     {
-        "Id": "1956d7e56fc15f9cb7b4751b1f05a6e3749a4c2a0bd7cc3c4a22acd98ee4eb12",
-        "Created": "2026-03-21T09:14:17.231922282Z",
+        "Id": "605ef32b6a6d7a708cf4316b1f292d2ad12832e9a33b47506fc17f6f247d1fca",
+        "Created": "2026-03-21T12:01:12.355160328Z",
         "Path": "dotnet",
         "Args": [
             "StorageLens.Web.dll"
@@ -13,17 +13,17 @@
             "Restarting": false,
             "OOMKilled": false,
             "Dead": false,
-            "Pid": 34274,
+            "Pid": 2515,
             "ExitCode": 0,
             "Error": "",
-            "StartedAt": "2026-03-21T09:14:20.017786948Z",
+            "StartedAt": "2026-03-21T12:01:16.117496668Z",
             "FinishedAt": "0001-01-01T00:00:00Z"
         },
-        "Image": "sha256:fde1e161d86caa2cd4aa98ae8d678bebfdc78129b185de76173571210928f18b",
-        "ResolvConfPath": "/var/lib/docker/containers/1956d7e56fc15f9cb7b4751b1f05a6e3749a4c2a0bd7cc3c4a22acd98ee4eb12/resolv.conf",
-        "HostnamePath": "/var/lib/docker/containers/1956d7e56fc15f9cb7b4751b1f05a6e3749a4c2a0bd7cc3c4a22acd98ee4eb12/hostname",
-        "HostsPath": "/var/lib/docker/containers/1956d7e56fc15f9cb7b4751b1f05a6e3749a4c2a0bd7cc3c4a22acd98ee4eb12/hosts",
-        "LogPath": "/var/lib/docker/containers/1956d7e56fc15f9cb7b4751b1f05a6e3749a4c2a0bd7cc3c4a22acd98ee4eb12/1956d7e56fc15f9cb7b4751b1f05a6e3749a4c2a0bd7cc3c4a22acd98ee4eb12-json.log",
+        "Image": "sha256:eef56928953907a3aa3329e999c9024b5d98b76f770089a123bbf074d9bad806",
+        "ResolvConfPath": "/var/lib/docker/containers/605ef32b6a6d7a708cf4316b1f292d2ad12832e9a33b47506fc17f6f247d1fca/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/605ef32b6a6d7a708cf4316b1f292d2ad12832e9a33b47506fc17f6f247d1fca/hostname",
+        "HostsPath": "/var/lib/docker/containers/605ef32b6a6d7a708cf4316b1f292d2ad12832e9a33b47506fc17f6f247d1fca/hosts",
+        "LogPath": "/var/lib/docker/containers/605ef32b6a6d7a708cf4316b1f292d2ad12832e9a33b47506fc17f6f247d1fca/605ef32b6a6d7a708cf4316b1f292d2ad12832e9a33b47506fc17f6f247d1fca-json.log",
         "Name": "/storagelens-web-1",
         "RestartCount": 0,
         "Driver": "overlayfs",
@@ -141,7 +141,7 @@
         },
         "Mounts": [],
         "Config": {
-            "Hostname": "1956d7e56fc1",
+            "Hostname": "605ef32b6a6d",
             "Domainname": "",
             "User": "",
             "AttachStdin": false,
@@ -154,14 +154,15 @@
             "OpenStdin": false,
             "StdinOnce": false,
             "Env": [
-                "ServiceApiKey=storagelens-dev-key",
-                "ASPNETCORE_URLS=http://+:8080",
+                "DatabaseConfig__UseInMemory=true",
                 "ServiceEndpoints__Analytics=http://analytics:8080/",
                 "ServiceEndpoints__FileInventory=http://fileinventory:8080/",
-                "ServiceEndpoints__Duplicates=http://duplicates:8080/",
-                "ServiceEndpoints__Orchestrator=http://orchestrator:8080/",
                 "ServiceEndpoints__Locations=http://locations:8080/",
+                "ServiceEndpoints__Duplicates=http://duplicates:8080/",
+                "ASPNETCORE_URLS=http://+:8080",
                 "ServiceEndpoints__ScanJobs=http://scanjobs:8080/",
+                "ServiceEndpoints__Orchestrator=http://orchestrator:8080/",
+                "ServiceApiKey=storagelens-dev-key",
                 "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                 "APP_UID=1654",
                 "ASPNETCORE_HTTP_PORTS=8080",
@@ -178,23 +179,22 @@
                 "StorageLens.Web.dll"
             ],
             "Labels": {
-                "com.docker.compose.config-hash": "f5d71d8ba7bdc77b1f0abbde0781f41e8a3fd40a3f971974dba9820729901402",
+                "com.docker.compose.config-hash": "6cc45ec1ef21e84b5ae0af7a4d6f37ab775f96b5dbac89090b885325a4b9c040",
                 "com.docker.compose.container-number": "1",
-                "com.docker.compose.depends_on": "orchestrator:service_started:false,locations:service_started:false,scanjobs:service_started:false,fileinventory:service_started:false,duplicates:service_started:false,analytics:service_started:false",
-                "com.docker.compose.image": "sha256:fde1e161d86caa2cd4aa98ae8d678bebfdc78129b185de76173571210928f18b",
+                "com.docker.compose.depends_on": "fileinventory:service_started:false,duplicates:service_started:false,analytics:service_started:false,orchestrator:service_started:false,locations:service_started:false,scanjobs:service_started:false",
+                "com.docker.compose.image": "sha256:eef56928953907a3aa3329e999c9024b5d98b76f770089a123bbf074d9bad806",
                 "com.docker.compose.oneoff": "False",
                 "com.docker.compose.project": "storagelens",
                 "com.docker.compose.project.config_files": "A:\\source\\_VSCode\\StorageLens\\docker-compose.yml",
                 "com.docker.compose.project.working_dir": "A:\\source\\_VSCode\\StorageLens",
-                "com.docker.compose.replace": "web-1",
                 "com.docker.compose.service": "web",
                 "com.docker.compose.version": "5.0.2"
             },
             "StopTimeout": 1
         },
         "NetworkSettings": {
-            "SandboxID": "97e93779f0583e7c9b56950eacd9032851cd4188262937526f44137e5cb89955",
-            "SandboxKey": "/var/run/docker/netns/97e93779f058",
+            "SandboxID": "a1fcecece7d74be6cf5b26234a6152e30f0247e9d38ff2c0b1e7bb75648b6c12",
+            "SandboxKey": "/var/run/docker/netns/a1fcecece7d7",
             "Ports": {
                 "8080/tcp": [
                     {
@@ -217,11 +217,11 @@
                     ],
                     "DriverOpts": null,
                     "GwPriority": 0,
-                    "NetworkID": "3c1df9235aa32935afe29103bf193c9b7c8589a4beb8922123d598255f72d145",
-                    "EndpointID": "b606dff28d34d238f10e362bb08ca2ef45e1165cc7fc53dbb4ca16828c44595e",
+                    "NetworkID": "ab1606d46a8bd5d4d831e6d9ed64b93bdc49873f81b3ea5109edac35b8f54e3f",
+                    "EndpointID": "77e5816322dde2a42a27baca987db9102fdb3e06bb1c07543761c64383486846",
                     "Gateway": "172.19.0.1",
                     "IPAddress": "172.19.0.12",
-                    "MacAddress": "ce:be:d7:c0:0e:00",
+                    "MacAddress": "9a:79:43:c7:d3:fb",
                     "IPPrefixLen": 16,
                     "IPv6Gateway": "",
                     "GlobalIPv6Address": "",
@@ -229,14 +229,14 @@
                     "DNSNames": [
                         "storagelens-web-1",
                         "web",
-                        "1956d7e56fc1"
+                        "605ef32b6a6d"
                     ]
                 }
             }
         },
         "ImageManifestDescriptor": {
             "mediaType": "application/vnd.oci.image.manifest.v1+json",
-            "digest": "sha256:e424421418f6b7321f06775bc1b7e918bc452b162e571da0d65ad58fe900928f",
+            "digest": "sha256:f9a63ecfc9e158a9011189bbfacb25447ac654026ef4f56e471884f122ce0482",
             "size": 2005,
             "platform": {
                 "architecture": "amd64",

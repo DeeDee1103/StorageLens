@@ -26,14 +26,18 @@ public static class FileSecurityValidation
     public static bool ValidateFileBeforeProcessing(string filePath, long? maxSizeBytes = null)
     {
         if (!File.Exists(filePath))
-            throw new FileNotFoundException($"File not found: {filePath}");
+            // Do NOT include the raw path in the exception message — it would be forwarded
+            // to callers and logged in responses, constituting an information disclosure.
+            // The full path is logged server-side by the calling service with a correlation ID.
+            throw new FileNotFoundException("File not found.");
 
         var fileInfo = new FileInfo(filePath);
         var maxSize = maxSizeBytes ?? DefaultMaxFileSizeBytes;
 
         if (fileInfo.Length > maxSize)
+            // Size values are safe to expose; the path itself is not.
             throw new InvalidOperationException(
-                $"File exceeds maximum allowed size. File: {fileInfo.Length} bytes, Max: {maxSize} bytes.");
+                $"File exceeds maximum allowed size. File: {fileInfo.Length:N0} bytes, Max: {maxSize:N0} bytes.");
 
         return true;
     }

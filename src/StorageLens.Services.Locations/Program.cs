@@ -10,10 +10,11 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddStorageLensObservability("StorageLens.Locations");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("global", limiterOptions =>
@@ -44,6 +45,9 @@ builder.Services.AddDbContext<LocationsDbContext>(options =>
 
 builder.Services.AddScoped<ILocationService, LocationService>();
 
+var sqlConn = useInMemory ? null : builder.Configuration.GetConnectionString("LocationsDb");
+builder.AddStorageLensHealthChecks(sqlConnectionString: sqlConn);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -52,18 +56,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
+app.UseCorrelationId();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapStorageLensHealthChecks();
 
-using (var scope = app.Services.CreateScope())
-{
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Database");
-    var context = scope.ServiceProvider.GetRequiredService<LocationsDbContext>();
-    await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(context, logger);
-    await LocationsSeeder.SeedAsync(context);
-}
+BackgroundDatabaseInitialization.Start<LocationsDbContext>(
+    app,
+    "StorageLens.Services.Locations",
+    static (_, context, cancellationToken) => LocationsSeeder.SeedAsync(context, cancellationToken));
 
 app.Run();
