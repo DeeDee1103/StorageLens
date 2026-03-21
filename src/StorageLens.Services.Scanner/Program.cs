@@ -46,26 +46,18 @@ builder.Services.Configure<ScannerUpstreamOptions>(
     builder.Configuration.GetSection(ScannerUpstreamOptions.SectionName));
 builder.Services.Configure<ScannerPathMappingOptions>(
     builder.Configuration.GetSection(ScannerPathMappingOptions.SectionName));
+builder.Services.Configure<UpstreamResilienceOptions>(
+    builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName));
 
 var upstream = builder.Configuration.GetSection(ScannerUpstreamOptions.SectionName).Get<ScannerUpstreamOptions>()
               ?? new ScannerUpstreamOptions();
+var upstreamResilience = builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName).Get<UpstreamResilienceOptions>()
+                       ?? new UpstreamResilienceOptions();
 
 var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
 
-builder.Services.AddHttpClient("fileinventory", client =>
-{
-    client.BaseAddress = new Uri(upstream.FileInventory);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("scanjobs", client =>
-{
-    client.BaseAddress = new Uri(upstream.ScanJobs);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
+builder.Services.AddConfiguredUpstreamClient("fileinventory", upstream.FileInventory, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient("scanjobs", upstream.ScanJobs, serviceApiKey, upstreamResilience);
 
 builder.Services.AddSingleton<IScannerPathResolver, ScannerPathResolver>();
 builder.Services.AddScoped<IScannerExecutionService, ScannerExecutionService>();

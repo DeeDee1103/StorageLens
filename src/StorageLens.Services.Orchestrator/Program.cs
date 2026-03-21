@@ -7,6 +7,10 @@ using StorageLens.Services.Orchestrator.Interfaces;
 using StorageLens.Services.Orchestrator.Services;
 using StorageLens.Shared.Infrastructure;
 using System.Threading.RateLimiting;
+using Polly;
+using Polly.Extensions.Http;
+using SharedUpstreamResilienceOptions = StorageLens.Shared.Infrastructure.UpstreamResilienceOptions;
+using SharedUpstreamResilienceProfileResolver = StorageLens.Shared.Infrastructure.UpstreamResilienceProfileResolver;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,55 +52,63 @@ builder.Services.Configure<OrchestratorUpstreamOptions>(
 builder.Services.Configure<WorkflowProcessingOptions>(
     builder.Configuration.GetSection(WorkflowProcessingOptions.SectionName));
 
+builder.Services.Configure<SharedUpstreamResilienceOptions>(
+    builder.Configuration.GetSection(SharedUpstreamResilienceOptions.SectionName));
+
 var upstream = builder.Configuration.GetSection(OrchestratorUpstreamOptions.SectionName).Get<OrchestratorUpstreamOptions>()
               ?? new OrchestratorUpstreamOptions();
 
+var upstreamResilience = builder.Configuration.GetSection(SharedUpstreamResilienceOptions.SectionName).Get<SharedUpstreamResilienceOptions>()
+                        ?? new SharedUpstreamResilienceOptions();
+
 var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
 
-builder.Services.AddHttpClient("locations", client =>
+IAsyncPolicy<HttpResponseMessage> noOpPolicy = Policy.NoOpAsync<HttpResponseMessage>();
+
+static bool IsSafeRetryMethod(HttpMethod method) =>
+    method == HttpMethod.Get ||
+    method == HttpMethod.Head ||
+    method == HttpMethod.Options;
+
+void AddUpstreamClient(string name, string baseAddress)
 {
-    client.BaseAddress = new Uri(upstream.Locations);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("scanjobs", client =>
-{
-    client.BaseAddress = new Uri(upstream.ScanJobs);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("scanner", client =>
-{
-    client.BaseAddress = new Uri(upstream.Scanner);
-    // Long-running scans can take hours; use a generous but finite timeout.
-    client.Timeout = TimeSpan.FromHours(4);
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("hashing", client =>
-{
-    client.BaseAddress = new Uri(upstream.Hashing);
-    // Long-running hash operations can take hours; use a generous but finite timeout.
-    client.Timeout = TimeSpan.FromHours(4);
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("duplicates", client =>
-{
-    client.BaseAddress = new Uri(upstream.Duplicates);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("analytics", client =>
-{
-    client.BaseAddress = new Uri(upstream.Analytics);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
+    var profile = SharedUpstreamResilienceProfileResolver.ResolveForClient(name, upstreamResilience);
+
+    IAsyncPolicy<HttpResponseMessage> retryPolicy = HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .WaitAndRetryAsync(
+            profile.MaxRetryAttempts,
+            retryAttempt =>
+            {
+                var exponential = profile.BaseDelaySeconds * Math.Pow(2, retryAttempt - 1);
+                var bounded = Math.Min(exponential, profile.MaxDelaySeconds);
+                return TimeSpan.FromSeconds(bounded);
+            });
+
+    IAsyncPolicy<HttpResponseMessage> circuitBreakerPolicy = HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(
+            profile.CircuitBreakerFailures,
+            TimeSpan.FromSeconds(profile.CircuitBreakerBreakSeconds));
+
+    builder.Services
+        .AddHttpClient(name, client =>
+        {
+            client.BaseAddress = new Uri(baseAddress);
+            client.Timeout = profile.Timeout;
+            if (!string.IsNullOrWhiteSpace(serviceApiKey))
+                client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+        })
+        .AddPolicyHandler(request => IsSafeRetryMethod(request.Method) ? retryPolicy : noOpPolicy)
+        .AddPolicyHandler(circuitBreakerPolicy);
+}
+
+AddUpstreamClient("locations", upstream.Locations);
+AddUpstreamClient("scanjobs", upstream.ScanJobs);
+AddUpstreamClient("scanner", upstream.Scanner);
+AddUpstreamClient("hashing", upstream.Hashing);
+AddUpstreamClient("duplicates", upstream.Duplicates);
+AddUpstreamClient("analytics", upstream.Analytics);
 
 builder.Services.AddSingleton<WorkflowQueue>();
 builder.Services.AddScoped<IWorkflowOrchestratorService, WorkflowOrchestratorService>();

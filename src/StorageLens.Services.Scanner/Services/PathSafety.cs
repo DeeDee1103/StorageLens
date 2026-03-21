@@ -38,26 +38,48 @@ public static class PathSafety
     {
         try
         {
-            var dirInfo = new DirectoryInfo(path);
-            if (dirInfo.Exists)
+            // Check the full path node first if it exists.
+            if (HasReparsePoint(path))
             {
-                return dirInfo.LinkTarget is not null ||
-                       (dirInfo.Attributes & FileAttributes.ReparsePoint) != 0;
+                return true;
             }
 
-            var fileInfo = new FileInfo(path);
-            if (fileInfo.Exists)
+            // Walk existing ancestors to ensure traversal cannot cross a reparse point.
+            var current = new DirectoryInfo(path);
+            while (current is not null)
             {
-                return fileInfo.LinkTarget is not null ||
-                       (fileInfo.Attributes & FileAttributes.ReparsePoint) != 0;
+                if (current.Exists && (current.LinkTarget is not null || (current.Attributes & FileAttributes.ReparsePoint) != 0))
+                {
+                    return true;
+                }
+
+                current = current.Parent;
             }
 
-            // Path doesn't exist yet — allow (existence check happens during scan)
             return false;
         }
         catch
         {
             return false;
         }
+    }
+
+    private static bool HasReparsePoint(string path)
+    {
+        var directory = new DirectoryInfo(path);
+        if (directory.Exists)
+        {
+            return directory.LinkTarget is not null ||
+                   (directory.Attributes & FileAttributes.ReparsePoint) != 0;
+        }
+
+        var file = new FileInfo(path);
+        if (file.Exists)
+        {
+            return file.LinkTarget is not null ||
+                   (file.Attributes & FileAttributes.ReparsePoint) != 0;
+        }
+
+        return false;
     }
 }

@@ -36,13 +36,13 @@ Workflows:
 Configuration:
   - README.md
 
-Copilot Configuration:
-  - .instructions.md
-  - .prompt.md
-  - .agent.md
-  - SKILL.md
-  - copilot-instructions.md
-  - AGENTS.md
+Copilot Configuration & Agents:
+  - .instructions.md        (custom instructions)
+  - .prompt.md              (custom prompts)
+  - .agent.md               (agent definitions)
+  - SKILL.md                (skill definitions)
+  - copilot-instructions.md (project-level instructions)
+  - AGENTS.md               (agent registry)
 ```
 
 #### 📚 **Documentation Files (Satisfy Requirement)**
@@ -109,9 +109,10 @@ THEN (docs/CHANGELOG.md must be updated in the same PR)
 IF (any .instructions.md, .prompt.md, .agent.md, SKILL.md, 
     copilot-instructions.md, or AGENTS.md file changes)
 THEN (docs/CHANGELOG.md must reflect the update)
+    AND (docs/developer/copilot-agents-guide.md may need updating if new agent added)
 ```
 
-This ensures Copilot configuration changes are tracked and teams stay aware of new agents/skills.
+This ensures Copilot configuration changes are tracked and teams stay aware of new agents/skills/specialized workflows.
 
 ---
 
@@ -123,11 +124,13 @@ Changes that impact end-users must be documented:
 
 | Change Type | Required Documentation |
 |---|---|
-| New UI feature | `docs/user-guide/` |
+| New UI feature/component | `docs/user-guide/` |
+| UI component accessibility | `docs/user-guide/accessibility-guide.md` |
+| UI/UX design change | `docs/user-guide/design-patterns.md` |
+| Dashboard modification | `docs/user-guide/dashboard-guide.md` |
 | New API endpoint | `docs/technical/api-specification.md` |
 | Breaking API change | `docs/technical/service-contracts.md` + migration guide |
 | New service | `docs/architecture/microservices-architecture.md` |
-| Dashboard modification | `docs/user-guide/dashboard-guide.md` |
 
 **ALWAYS**: `docs/CHANGELOG.md` with entry summarizing the change
 
@@ -234,18 +237,32 @@ The Profiling service now includes integrated monitoring...
 
 **Minimum Documentation Updates**:
 1. ✅ Update affected documentation (e.g., if adding new agent, update `docs/developer/copilot-agents-guide.md`)
-2. ✅ `docs/CHANGELOG.md` with agent/skill changes
+2. ✅ Update `docs/developer/developer-guide.md` if workflow changes
+3. ✅ `docs/CHANGELOG.md` with agent/skill/configuration changes
 
-**Example for New Agent**:
+**Example for New Agent (e.g., UI/UX Designer)**:
 ```markdown
 # docs/developer/copilot-agents-guide.md
-## Agent: StorageLens-SecurityReview [NEW]
+## Agent: UI/UX Designer [NEW]
 
-Specialized for security review and validation...
+Specialized for building and enhancing user interface components,
+improving user experience, and ensuring design consistency across StorageLens.Web...
 
 # docs/CHANGELOG.md
 ### Added
-- **Copilot Agents** — New StorageLens-SecurityReview agent for security validation
+- **Copilot Agents** — New UI/UX Designer agent for component development and design consistency
+```
+
+**Example for New Skill**:
+```markdown
+# docs/developer/copilot-agents-guide.md or SKILL.md
+## Skill: [Skill Name] [NEW]
+
+Description of skill purpose and when to invoke...
+
+# docs/CHANGELOG.md
+### Added
+- **Copilot Skills** — New [Skill Name] skill for [purpose]
 ```
 
 ---
@@ -456,7 +473,9 @@ jobs:
 **A**: Follow the "Requirement Categories" table above, or:
 - Think: "Would another developer need to know about this change?" → Update `docs/developer/`
 - Think: "Would a user care about this?" → Update `docs/user-guide/`
+- Think: "Would a designer need to know?" (UI/UX changes) → Update `docs/user-guide/design-patterns.md`
 - Think: "Does this affect operations/deployment?" → Update `docs/operations/`  
+- Think: "Is this an agent/skill addition?" → Update `docs/developer/copilot-agents-guide.md`
 - **Always**: Update `docs/CHANGELOG.md`
 
 ### Q: What if I updated documentation but guardrail still fails?

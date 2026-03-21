@@ -29,40 +29,20 @@ builder.Services.AddAuthorization();
 
 builder.Services.Configure<AnalyticsUpstreamOptions>(
     builder.Configuration.GetSection(AnalyticsUpstreamOptions.SectionName));
+builder.Services.Configure<UpstreamResilienceOptions>(
+    builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName));
 
 var upstream = builder.Configuration.GetSection(AnalyticsUpstreamOptions.SectionName).Get<AnalyticsUpstreamOptions>()
               ?? new AnalyticsUpstreamOptions();
+var upstreamResilience = builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName).Get<UpstreamResilienceOptions>()
+                       ?? new UpstreamResilienceOptions();
 
 var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
 
-builder.Services.AddHttpClient("locations", client =>
-{
-    client.BaseAddress = new Uri(upstream.Locations);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("scanjobs", client =>
-{
-    client.BaseAddress = new Uri(upstream.ScanJobs);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("fileinventory", client =>
-{
-    client.BaseAddress = new Uri(upstream.FileInventory);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient("duplicates", client =>
-{
-    client.BaseAddress = new Uri(upstream.Duplicates);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
+builder.Services.AddConfiguredUpstreamClient("locations", upstream.Locations, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient("scanjobs", upstream.ScanJobs, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient("fileinventory", upstream.FileInventory, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient("duplicates", upstream.Duplicates, serviceApiKey, upstreamResilience);
 
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 

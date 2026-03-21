@@ -53,7 +53,7 @@ public class AlertsModelTests
         var env = new StubHostEnvironment();
         var tierAccess = new AllowAllTierAccessService();
 
-        var model = new AlertsModel(config, env, analyticsClient, alertService, tierAccess);
+        var model = new AlertsModel(config, env, analyticsClient, alertService, tierAccess, NullLogger<AlertsModel>.Instance);
         SetupPageContext(model);
 
         await model.OnGetAsync(CancellationToken.None);

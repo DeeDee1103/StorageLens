@@ -1,0 +1,9 @@
+# Default repository owner for review visibility and change governance
+* @DeeDee1103
+
+# Infrastructure and deployment automation
+/infra/ @DeeDee1103
+/.github/workflows/ @DeeDee1103
+
+# Security-sensitive shared infrastructure
+/src/StorageLens.Shared.Infrastructure/ @DeeDee1103

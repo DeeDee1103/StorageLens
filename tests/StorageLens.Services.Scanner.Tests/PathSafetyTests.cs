@@ -116,4 +116,41 @@ public class PathSafetyTests
             tempDir.Delete(recursive: true);
         }
     }
+
+    [Fact]
+    public void IsPathSupported_PathUnderSymlinkAncestor_ReturnsFalse()
+    {
+        var realRoot = Directory.CreateTempSubdirectory("storagelens-real-root-");
+        var linkRoot = Path.Combine(Path.GetTempPath(), "storagelens-link-root-" + Guid.NewGuid());
+
+        try
+        {
+            Directory.CreateSymbolicLink(linkRoot, realRoot.FullName);
+
+            if (Directory.Exists(linkRoot))
+            {
+                var nestedPath = Path.Combine(linkRoot, "nested", "target");
+                Assert.False(PathSafety.IsPathSupported(nestedPath));
+            }
+        }
+        catch (Exception ex) when (
+            ex is UnauthorizedAccessException ||
+            ex is NotSupportedException ||
+            ex is IOException)
+        {
+            // Symlink creation may not be available in all CI/dev environments.
+        }
+        finally
+        {
+            if (Directory.Exists(linkRoot))
+            {
+                Directory.Delete(linkRoot);
+            }
+
+            if (realRoot.Exists)
+            {
+                realRoot.Delete(recursive: true);
+            }
+        }
+    }
 }

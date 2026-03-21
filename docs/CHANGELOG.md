@@ -4,9 +4,66 @@ All notable changes to StorageLens are documented in this file.
 
 The format is inspired by Keep a Changelog, and this project follows Semantic Versioning principles.
 
+## Changelog Entry Template (Contributor Guide)
+
+Use concise, consistent entries under `[Unreleased]` and one section per change type:
+
+- `### Added` for new capabilities, docs, endpoints, or workflows
+- `### Changed` for behavior/process modifications
+- `### Fixed` for bug and defect corrections
+- `### Removed` for deleted functionality
+
+Recommended entry format:
+
+- `**Area** — What changed and why it matters.`
+  - Optional supporting bullets with impact or migration notes.
+
+Example:
+
+- `**Orchestrator retries** — Added bounded retry policy for safe HTTP methods to reduce transient failure impact.`
+  - `Retry applies to GET/HEAD/OPTIONS only to avoid duplicate side effects.`
+
 ## [Unreleased]
 
 ### Added
+- **Documentation depth uplift (operations + API governance)**:
+  - Added incident response runbook at `docs/operations/incident-response-runbook.md` with severity model, triage workflow, mitigation patterns, and post-incident review expectations.
+  - Added secrets rotation runbook at `docs/operations/secrets-rotation-runbook.md` with rotation cadence, staged rollout, emergency rotation, and audit requirements.
+  - Added CI/CD pipeline reference at `docs/operations/ci-cd-pipeline.md` documenting active workflows, quality gates, and branch protection requirements.
+  - Added API versioning policy at `docs/technical/api-versioning-strategy.md` including breaking-change definitions, deprecation policy, and PR requirements.
+  - Added changelog entry template guidance section for contributor consistency.
+  - Updated docs navigation (`docs/README.md`) and developer references (`docs/developer/developer-guide.md`) to include new governance/runbook documents.
+- **Documentation governance ownership matrix**:
+  - Added `docs/developer/docs-ownership-matrix.md` defining doc ownership, update triggers, review cadence, and escalation path.
+  - Linked matrix from `docs/README.md` and `docs/developer/developer-guide.md` for PR-time discoverability.
+- **Recurring documentation maintenance requirements**:
+  - Updated `docs/DeveloperChecklist.md` with explicit every-PR documentation requirements and monthly/quarterly freshness checks.
+  - Updated `docs/developer/developer-guide.md` with documentation update cadence and documentation definition-of-done requirements.
+  - Updated `docs/developer/contributing.md` PR checklist to require updates to checklist/developer docs when process expectations change.
+- **Documentation review tracking log**:
+  - Added a "Docs Review Log" template to `docs/developer/docs-ownership-matrix.md` for monthly and quarterly review evidence.
+  - Added checklist checks requiring monthly/quarterly review entries to be recorded in the ownership matrix log.
+- **Development practices uplift (automation + governance)**:
+  - Added code quality CI workflow at `.github/workflows/code-quality.yml` for formatting verification, vulnerable package checks, and release build validation.
+  - Added formal architecture review process at `docs/developer/architecture-review-process.md` with review checkpoints and required artifacts.
+  - Added ADR template at `docs/architecture/adr/0000-template.md` for significant architecture decisions.
+  - Added onboarding checklist at `docs/developer/onboarding-checklist.md` with mentor and graduation criteria.
+  - Updated contributor/developer/checklist docs to require code-quality checks, architecture review process usage, and ADR coverage when applicable.
+- **Project health visibility and automation uplift**:
+  - Added `.github/dependabot.yml` for weekly NuGet and GitHub Actions dependency update PRs.
+  - Added GitHub issue templates (`bug_report.yml`, `feature_request.yml`) and template config in `.github/ISSUE_TEMPLATE/` for consistent issue intake.
+  - Added reliability targets at `docs/operations/sli-slo-targets.md` and linked SLI/SLO governance into monitoring guidance.
+  - Added issue triage and release planning reference at `docs/developer/issue-management-and-release-process.md`.
+  - Updated `docs/README.md`, `docs/developer/developer-guide.md`, `docs/developer/contributing.md`, and `docs/DeveloperChecklist.md` to include project health automation and governance requirements.
+- **Project health dashboard**:
+  - Added `docs/operations/project-health-dashboard.md` as a centralized scorecard for quality gates, SLI/SLO status, technical debt tracking, and release readiness.
+  - Linked dashboard from docs navigation and developer/checklist governance references.
+- **Post-improvement formal review refresh**:
+  - Added `docs/reviews/review-refresh-2026-03-20.md` with baseline vs updated category scores, test-validation summary, rationale, and remaining constraints.
+  - Added review document link to `docs/README.md` under a dedicated Reviews section.
+- **Infrastructure governance automation uplift**:
+  - Added `.github/workflows/infra-validation.yml` to compile and validate `infra/main.bicep` on `main`/`develop` push and pull request changes.
+  - Added `.github/CODEOWNERS` as an additional repository governance control for infra/workflow/security-sensitive paths when branch protection enforcement is plan-constrained.
 - **Copilot Agents & Skills Framework** — Enhanced Copilot integration with 6 specialized agents and 9 domain-specific skills for StorageLens development:
   - **Agents**: Microservice-Developer, Cross-Service-Integrator, Contract-Steward, Test-and-Docs-Guardian, Architecture-Reviewer, DevOps-and-Deployment
   - **Skills**: Service boundaries, contract design, cross-service communication, documentation compliance, testing patterns, anti-pattern detection, Docker/Kubernetes, deployment/infrastructure, and workflow orchestration
@@ -43,6 +100,48 @@ The format is inspired by Keep a Changelog, and this project follows Semantic Ve
   - See [`docs/developer/documentation-guardrail.md`](docs/developer/documentation-guardrail.md) for complete reference
 
 ### Changed
+- **Orchestrator upstream resilience architecture** — upstream service HttpClient registrations now use centralized resilience policies with configurable retry and circuit-breaker behavior:
+  - Added `UpstreamResilience` configuration section for retry attempts, exponential backoff bounds, and circuit-breaker thresholds.
+  - Added safe-method retry policy (`GET/HEAD/OPTIONS`) to avoid duplicate side-effects on command-style `POST` requests.
+  - Added circuit breaker protection for transient downstream failures to reduce cascading failure risk.
+  - Refactored duplicated HttpClient registrations into a single helper to ensure consistent policy application across `locations`, `scanjobs`, `scanner`, `hashing`, `duplicates`, and `analytics` clients.
+- **Workflow state transition design hardening** — orchestrator workflow status progression now uses an explicit transition map:
+  - Added centralized allowed-transition rules for `Pending`, `Running`, `Completed`, `Failed`, and `RetryQueued` states.
+  - Replaced scattered direct status assignments with validated transitions through a single helper method.
+  - Improves workflow state integrity and makes orchestration behavior easier to reason about and maintain.
+- **Per-upstream resilience profile tuning** — orchestrator clients now support per-client resilience overrides while preserving global defaults:
+  - Added `TimeoutSeconds` and `ClientOverrides` support in `UpstreamResilience` configuration.
+  - Added profile resolver logic so each upstream (`locations`, `scanjobs`, `scanner`, `hashing`, `duplicates`, `analytics`) can tune retry, backoff, timeout, and breaker thresholds independently.
+  - Configured long-running `scanner` and `hashing` clients with 4-hour timeout and lower retry pressure to reduce duplicate long-running invocations.
+- **Cross-service upstream resilience standardization** — same per-upstream resilience profile pattern is now applied across additional downstream-calling services:
+  - Added shared upstream resilience options/profile resolver and reusable `AddConfiguredUpstreamClient` registration helper in `StorageLens.Shared.Infrastructure`.
+  - Refactored `StorageLens.Services.Analytics`, `StorageLens.Services.Duplicates`, `StorageLens.Services.Hashing`, and `StorageLens.Services.Scanner` to use centralized client registration and policy wiring.
+  - Added `UpstreamResilience` configuration blocks to each service appsettings with defaults and service-specific breaker tuning where appropriate.
+- **Web typed API clients now use shared resilience wiring**:
+  - Refactored `StorageLens.Web` typed `HttpClient` registrations (`LocationsApiClient`, `ScanJobsApiClient`, `FileInventoryApiClient`, `DuplicatesApiClient`, `AnalyticsApiClient`, `OrchestratorApiClient`) to use shared configured upstream registration with policy consistency.
+  - Added `UpstreamResilience` section to Web appsettings for configurable retry/backoff/timeout/breaker behavior.
+- **Shared resilience behavior tests**:
+  - Added `StorageLens.Shared.Infrastructure.Tests` coverage for profile resolution defaults/overrides/safety clamping and safe-method retry selection (`GET/HEAD/OPTIONS` only).
+  - Added integration-style policy pipeline tests validating that configured typed clients retry transient `GET` requests and do not retry `POST` requests.
+- **Testing and QA automation uplift**:
+  - Added `.github/workflows/tests-and-coverage.yml` to run restore/build/test on `main` and `develop` pushes and pull requests.
+  - CI now collects `XPlat Code Coverage` outputs and uploads `TestResults` artifacts for traceable QA evidence.
+  - Added explicit coverage threshold enforcement in CI (`80%` minimum line coverage per generated cobertura report) so pull requests fail when coverage drops below target.
+  - Standardized branch-protection-ready check naming (`Build Test Coverage`) and documented required branch protection checks for `main` and `develop`.
+  - Added orchestrator workflow happy-path coverage test validating end-to-end step execution (`Scanning`, `Hashing`, `DetectingDuplicates`, `RefreshingAnalytics`) and terminal completion behavior.
+  - Added orchestrator chaos/failure-path coverage test for a mid-workflow upstream network fault (`Hashing`) that verifies terminal failure behavior, step-level failure recording, and downstream-step short-circuiting.
+  - Added dedicated orchestrator resilience/performance suite (`Chaos`, `Performance` traits) to validate fault isolation and queue throughput expectations in background workflow processing.
+  - Expanded `docs/developer/developer-guide.md` with explicit QA gates, local verification commands, CI workflow details, and coverage targets.
+- **Security hardening follow-up closure**:
+  - Replaced reflection-based startup database table operations with strongly typed `RelationalDatabaseCreator` APIs in `StorageLens.Shared.Infrastructure`.
+  - Added configuration write audit logging in `StorageLens.Web/Pages/Alerts.cshtml.cs` including before/after file hashes, actor, and source IP metadata.
+  - Enhanced scanner path safety checks to reject reparse points/symlinks across ancestor path segments, plus regression test coverage.
+- **Infrastructure observability completeness**:
+  - Added Application Insights resource to `infra/main.bicep` (workspace-based) and wired `APPLICATIONINSIGHTS_CONNECTION_STRING` into all container apps.
+- **Workflow step-state contract** — step execution now enforces explicit step names and valid status transitions:
+  - Added centralized step-state contract with known step names and legal transition rules.
+  - Enforced transition checks for step completion/failure updates.
+  - Added guard to skip processing workflows already in terminal/non-runnable states instead of attempting invalid status transitions.
 - **Landing page is now the default home route** (`/`) and the dashboard remains available at `/Index`.
 - **App navigation updated**: a new **Home** entry is shown above **Dashboard** in both desktop sidebar and mobile offcanvas nav, linking users back to the landing page.
 - **Dashboard chart UX refresh**:

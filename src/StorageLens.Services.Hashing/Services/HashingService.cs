@@ -7,7 +7,7 @@ using StorageLens.Services.Hashing.Data;
 using StorageLens.Services.Hashing.Interfaces;
 using StorageLens.Services.Hashing.Models;
 using StorageLens.Shared.Contracts;
-using StorageLens.Shared.Infrastructure.Security;
+using StorageLens.Shared.Infrastructure;
 
 namespace StorageLens.Services.Hashing.Services;
 

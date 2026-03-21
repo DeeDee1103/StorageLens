@@ -34,6 +34,77 @@ See [`docs/developer/copilot-agents-guide.md`](copilot-agents-guide.md) for comp
 3. Run service subset or full compose stack
 4. Implement changes with tests
 5. Update docs for architecture/API/contract changes
+6. Update `docs/CHANGELOG.md`, `docs/DeveloperChecklist.md`, and `docs/developer/developer-guide.md` when process, quality, or workflow behavior changes
+
+## Documentation Update Cadence
+
+Treat documentation as part of the Definition of Done.
+
+- Every PR: update impacted docs and `docs/CHANGELOG.md` in the same PR.
+- Monthly: review developer and operations docs for drift.
+- Quarterly: review architecture and API versioning docs.
+
+Use `docs/developer/docs-ownership-matrix.md` to determine owners, update triggers, and required review cadence.
+
+## Testing and QA
+
+StorageLens testing and QA now uses an explicit quality gate model:
+
+- Unit and service-level tests must pass locally before commit.
+- Workflow-level orchestration paths must include success and failure coverage.
+- Coverage artifacts are generated in CI for every push and pull request to `main` and `develop`.
+
+### Local verification commands
+
+Run full local test verification:
+
+```powershell
+dotnet test StorageLens.sln --configuration Debug --verbosity minimal
+```
+
+Run test verification with coverage output:
+
+```powershell
+dotnet test StorageLens.sln --configuration Debug --collect:"XPlat Code Coverage" --results-directory TestResults
+```
+
+### CI quality gate
+
+The repository includes a dedicated test and coverage workflow:
+
+- Workflow file: `.github/workflows/tests-and-coverage.yml`
+- Workflow name: `quality-gates`
+- Required check name: `Build Test Coverage`
+- Trigger: `push` and `pull_request` on `main` and `develop`
+- Outputs: test results and coverage artifacts uploaded from `TestResults`
+- Gate: workflow fails if any generated coverage report has line coverage below `80%`
+
+### Code quality automation
+
+The repository includes automated code quality checks:
+
+- Workflow file: `.github/workflows/code-quality.yml`
+- Check name: `Code Quality Checks`
+- Enforcement:
+   - formatting verification via `dotnet format --verify-no-changes`
+   - vulnerable package detection via `dotnet list package --vulnerable --include-transitive`
+   - release build verification
+
+### Branch protection setup
+
+Configure branch protection for `main` and `develop` with these required status checks:
+
+- `Build Test Coverage` (from `quality-gates` workflow)
+- `Require docs for code changes` (from `Documentation Guard` workflow)
+
+### Coverage targets
+
+Use the following thresholds as release-readiness criteria:
+
+- Business logic: 80%+
+- Data access paths: 80%+
+- Controllers/API endpoints: 70%+
+- Critical workflow orchestration paths: success and failure scenarios required
 
 ## Engineering Practices
 
@@ -81,6 +152,41 @@ StorageLens uses an automated CI/CD workflow to ensure code changes are always a
 - Troubleshooting failed guardrail checks
 
 See **[Documentation Guardrail Guide](documentation-guardrail.md)** for detailed information.
+
+## Documentation Governance References
+
+Use these references when making operational or API-impacting changes:
+
+- Incident response: `docs/operations/incident-response-runbook.md`
+- Secrets management: `docs/operations/secrets-rotation-runbook.md`
+- CI/CD quality controls: `docs/operations/ci-cd-pipeline.md`
+- API evolution rules: `docs/technical/api-versioning-strategy.md`
+- Changelog consistency template: `docs/CHANGELOG.md` (top section)
+- Documentation ownership and review cadence: `docs/developer/docs-ownership-matrix.md`
+- Issue triage and release planning: `docs/developer/issue-management-and-release-process.md`
+- Reliability targets: `docs/operations/sli-slo-targets.md`
+- Project health scorecard: `docs/operations/project-health-dashboard.md`
+
+## Architecture Review and ADR
+
+For major design or cross-service changes:
+
+- Follow `docs/developer/architecture-review-process.md`
+- Add ADR entries using `docs/architecture/adr/0000-template.md` when decision impact is significant or hard to reverse
+
+## Onboarding Path
+
+For new contributors and mentoring flow, use:
+
+- `docs/developer/onboarding-checklist.md`
+
+## Documentation Definition of Done
+
+Before requesting review, confirm:
+
+- Documentation changes are included for all behavior/config/API/workflow changes.
+- Checklist/process docs are updated when team practices change.
+- Changelog entry clearly describes user, operational, or developer impact.
 
 ---
 

@@ -33,6 +33,8 @@ builder.Services.Configure<ScannerPerformanceOptions>(
 
 builder.Services.Configure<PricingOptions>(
     builder.Configuration.GetSection(PricingOptions.SectionName));
+builder.Services.Configure<UpstreamResilienceOptions>(
+    builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName));
 
 builder.Services.AddMemoryCache();
 builder.Services.AddRateLimiter(options =>
@@ -70,45 +72,17 @@ builder.Services.AddDbContext<ClientsDbContext>(options =>
 
 var endpoints = builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName).Get<ServiceEndpointsOptions>()
                ?? new ServiceEndpointsOptions();
+var upstreamResilience = builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName).Get<UpstreamResilienceOptions>()
+                       ?? new UpstreamResilienceOptions();
 
 var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
 
-builder.Services.AddHttpClient<LocationsApiClient>(client =>
-{
-    client.BaseAddress = new Uri(endpoints.Locations);
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient<ScanJobsApiClient>(client =>
-{
-    client.BaseAddress = new Uri(endpoints.ScanJobs);
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient<FileInventoryApiClient>(client =>
-{
-    client.BaseAddress = new Uri(endpoints.FileInventory);
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient<DuplicatesApiClient>(client =>
-{
-    client.BaseAddress = new Uri(endpoints.Duplicates);
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient<AnalyticsApiClient>(client =>
-{
-    client.BaseAddress = new Uri(endpoints.Analytics);
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
-builder.Services.AddHttpClient<OrchestratorApiClient>(client =>
-{
-    client.BaseAddress = new Uri(endpoints.Orchestrator);
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
+builder.Services.AddConfiguredUpstreamClient<LocationsApiClient>("locations", endpoints.Locations, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<ScanJobsApiClient>("scanjobs", endpoints.ScanJobs, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<FileInventoryApiClient>("fileinventory", endpoints.FileInventory, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<DuplicatesApiClient>("duplicates", endpoints.Duplicates, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<AnalyticsApiClient>("analytics", endpoints.Analytics, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<OrchestratorApiClient>("orchestrator", endpoints.Orchestrator, serviceApiKey, upstreamResilience);
 
 var app = builder.Build();
 

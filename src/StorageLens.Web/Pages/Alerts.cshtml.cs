@@ -1,10 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StorageLens.Web.Clients;
 using StorageLens.Web.Services;
-using StorageLens.Shared.Infrastructure.Security;
+using StorageLens.Shared.Infrastructure;
 
 namespace StorageLens.Web.Pages;
 
@@ -13,7 +14,8 @@ public class AlertsModel(
     IWebHostEnvironment environment,
     AnalyticsApiClient analyticsApiClient,
     IAlertEmailService alertEmailService,
-    ITierAccessService tierAccess) : PageModel
+    ITierAccessService tierAccess,
+    ILogger<AlertsModel> logger) : PageModel
 {
     public bool IsDevelopmentEnvironment { get; private set; }
     public string EnvironmentName { get; private set; } = string.Empty;
@@ -161,6 +163,8 @@ public class AlertsModel(
     {
         var fileName = $"appsettings.{SelectedEditEnvironment}.json";
         var path = Path.Combine(environment.ContentRootPath, fileName);
+        var beforeHash = ComputeFileSha256(path);
+
         var json = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : "{}";
         var doc = JsonNode.Parse(json) as JsonObject ?? [];
         var writeOpts = new JsonSerializerOptions { WriteIndented = true };
@@ -168,6 +172,29 @@ public class AlertsModel(
         var tempPath = path + ".tmp";
         System.IO.File.WriteAllText(tempPath, doc.ToJsonString(writeOpts));
         System.IO.File.Move(tempPath, path, overwrite: true);
-        // TODO (P2 Security): Add audit logging for config file modifications
+
+        var afterHash = ComputeFileSha256(path);
+        logger.LogInformation(
+            "Config file updated. File={FileName}, Section={Section}, Environment={Environment}, User={User}, RemoteIp={RemoteIp}, BeforeHash={BeforeHash}, AfterHash={AfterHash}",
+            fileName,
+            sectionName,
+            SelectedEditEnvironment,
+            User?.Identity?.Name ?? "anonymous",
+            HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            beforeHash,
+            afterHash);
+    }
+
+    private static string ComputeFileSha256(string path)
+    {
+        if (!System.IO.File.Exists(path))
+        {
+            return "(missing)";
+        }
+
+        using var sha = SHA256.Create();
+        using var stream = System.IO.File.OpenRead(path);
+        var hash = sha.ComputeHash(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 }

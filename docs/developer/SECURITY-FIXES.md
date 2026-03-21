@@ -24,11 +24,11 @@ This document describes the security vulnerabilities identified in the external 
 | **P1** | Hardcoded email recipient | ✅ Fixed | Load from configuration with validation |
 | **P1** | Insufficient email validation | ✅ Fixed | Use RFC 5322 compliant validation utility |
 | **P2** | HTTP client infinite timeouts | ✅ Fixed | All clients now have 30s default timeout (4h for long-running) |
-| **P2** | N+1/memory issue in duplicates | ⏳ Pending | Requires refactoring duplicates calculation logic |
-| **P2** | No config write audit trail | ⏳ Pending | Add audit logging around appsettings.json modifications |
-| **P2** | No rate limiting | ⏳ Pending | Rate limiting middleware created; needs integration |
-| **P3** | Symlink traversal risk | ⏳ Pending | PathSafety.cs requires enhancement review |
-| **P3** | Reflection fragility | ⏳ Pending | EF Core reflection calls need refactoring |
+| **P2** | N+1/memory issue in duplicates | ⏳ In Progress | Ongoing optimization and test expansion |
+| **P2** | No config write audit trail | ✅ Fixed | Config modifications now emit structured audit logs |
+| **P2** | No rate limiting | ✅ Fixed | ASP.NET rate limiter configured and active across services |
+| **P3** | Symlink traversal risk | ✅ Fixed | Path safety now rejects reparse points in ancestor segments |
+| **P3** | Reflection fragility | ✅ Fixed | Startup DB initialization now uses typed EF Core APIs |
 
 ---
 
@@ -369,7 +369,7 @@ while (true)
 
 ### Issue 8: No Config Write Audit Trail
 
-**Status**: ⏳ Pending Implementation
+**Status**: ✅ Fixed
 
 **Problem**: `appsettings.{environment}.json` written directly without audit logging.
 
@@ -378,38 +378,19 @@ while (true)
 - No rollback capability
 - Compliance/governance gaps
 
-**TODO for Developers**:
-```csharp
-// Need to implement audit logging around config writes
-private void MergeIntoTargetSettings(string sectionName, object value)
-{
-    var fileName = $"appsettings.{SelectedEditEnvironment}.json";
-    var path = Path.Combine(environment.ContentRootPath, fileName);
-    
-    // TODO: Log "before" state
-    var json = System.IO.File.Exists(path) ? 
-        System.IO.File.ReadAllText(path) : "{}";
-    
-    var doc = JsonNode.Parse(json) as JsonObject ?? [];
-    var writeOpts = new JsonSerializerOptions { WriteIndented = true };
-    doc[sectionName] = JsonSerializer.SerializeToNode(value, writeOpts);
-    
-    // TODO: Create backup file (e.g., .bak with timestamp)
-    var tempPath = path + ".tmp";
-    System.IO.File.WriteAllText(tempPath, doc.ToJsonString(writeOpts));
-    
-    // TODO: Log "after" state, changes made, who made them
-    // TODO: Store audit entry in database with User.Identity.Name
-    
-    System.IO.File.Move(tempPath, path, overwrite: true);
-}
-```
+**Implementation Notes**:
+- Config writes in `StorageLens.Web/Pages/Alerts.cshtml.cs` now log:
+    - target file and section
+    - actor (`User.Identity.Name` fallback to `anonymous`)
+    - source remote IP
+    - before/after SHA-256 hashes of the config file
+- This provides an auditable trail for runtime configuration updates.
 
 ---
 
 ### Issue 9: No Rate Limiting
 
-**Status**: ⏳ Pending Integration
+**Status**: ✅ Fixed
 
 **Problem**: All API endpoints open to DoS attacks (no request rate limiting).
 
@@ -418,7 +399,9 @@ private void MergeIntoTargetSettings(string sectionName, object value)
 - Internal misconfigured clients can exhaust resources
 - No protection against brute force attempts
 
-**Solution Created**: `RateLimitingMiddleware.cs`
+**Solution Implemented**:
+- ASP.NET Core rate limiting is configured via `AddRateLimiter(...)` and enforced with `app.UseRateLimiter()` across backend services.
+- Request rejection returns `429` for global fixed-window limits.
 
 **Features**:
 - Per-IP request limiting
@@ -428,33 +411,10 @@ private void MergeIntoTargetSettings(string sectionName, object value)
 - Returns HTTP 429 with `Retry-After` header
 - Background cleanup every 5 minutes
 
-**TODO for Developers** (Add to each service Program.cs):
-```csharp
-// In Program.cs - after creating services
-
-var builder = WebApplication.CreateBuilder(args);
-
-// Add rate limiting
-builder.Services.AddRateLimitingMiddleware(new RateLimitOptions
-{
-    MaxRequestsPerWindow = 100,        // 100 requests
-    WindowDuration = TimeSpan.FromMinutes(1), // per minute
-    ExcludedPaths = new[] { "/health", "/metrics" }
-});
-
-var app = builder.Build();
-
-// Use rate limiting (before authorization)
-app.UseRateLimitingMiddleware();
-app.UseAuthentication();
-app.UseAuthorization();
-
-// Example response when limit exceeded:
-// HTTP/1.1 429 Too Many Requests
-// Retry-After: 45
-// Content-Type: application/json
-// {"error":"Rate limit exceeded. Retry after 45 seconds."}
-```
+**Verification Guidance**:
+- Confirm each service `Program.cs` contains both:
+    - `builder.Services.AddRateLimiter(...)`
+    - `app.UseRateLimiter()`
 
 ---
 
@@ -462,55 +422,39 @@ app.UseAuthorization();
 
 ### Issue 10: Symlink Traversal Risk
 
-**Status**: ⏳ Pending Enhancement Review
+**Status**: ✅ Fixed
 
-**Problem**: `PathSafety.cs` exists but may not fully prevent symlink/traversal attacks.
+**Problem**: `PathSafety.cs` existed but needed stronger protection against symlinked ancestor paths.
 
-**Current Implementation**:
+**Updated Implementation**:
 ```csharp
 // See: src/StorageLens.Services.Scanner/Services/PathSafety.cs
-public static bool IsPathSafe(string path, string? rootPath = null)
+public static bool IsPathSupported(string path)
 {
-    // Check for directory traversal attempts
+    // Normalize path and reject reparse points on path and existing ancestors.
     var fullPath = Path.GetFullPath(path);
-    
-    if (rootPath != null)
-    {
-        // Ensure path is within allowed root
-        var fullRoot = Path.GetFullPath(rootPath);
-        if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
-            return false;
-    }
-    
-    // Check for symlinks (if on Windows, use alternative method)
-    // TODO: Enhance to block symlink following
-    return true;
+    return !IsSymlinkOrJunction(fullPath);
 }
 ```
 
-**TODO for Developers**:
-1. Add symlink detection on Windows (.NET 9+: `FileInfo.LinkTarget`)
-2. Option to forbid or restrict symlink following
-3. Add audit logging for suspicious path patterns
+**Coverage**:
+- Added scanner tests for symlink target and symlink-ancestor rejection.
 
 ---
 
 ### Issue 11: Reflection Fragility
 
-**Status**: ⏳ Pending Review
+**Status**: ✅ Fixed
 
-**Problem**: Internal EF Core methods called via reflection (brittle across .NET updates).
+**Problem**: Startup DB table checks used reflection to call internal/shape-sensitive APIs.
 
 **Risk**: 
 - Breaking changes when .NET updates
 - Hard to discover impact of .NET upgrades
 - Reduced performance (reflection overhead)
 
-**TODO for Developers**:
-1. Search for reflection patterns: `typeof(...).GetMethod(...)`
-2. Replace with public API when available
-3. Add comments explaining why reflection was necessary
-4. Test on newer .NET versions before upgrades
+**Fix Applied**:
+- `StartupDatabaseInitializer` now uses `RelationalDatabaseCreator` directly (`CreateTablesAsync`, `HasTablesAsync`) instead of `GetMethod(...)` reflection.
 
 ---
 

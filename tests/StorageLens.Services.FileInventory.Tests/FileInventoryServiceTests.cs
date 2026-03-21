@@ -281,7 +281,7 @@ public class FileInventoryServiceTests
     }
 
     [Fact]
-    public async Task UpsertBatchAsync_FailedHashStatus_ResetsToP ending()
+    public async Task UpsertBatchAsync_FailedHashStatus_ResetsToPending()
     {
         await using var db = CreateDbContext();
         var locationId = Guid.NewGuid();
@@ -445,5 +445,34 @@ public class FileInventoryServiceTests
         Assert.True(dup1.IsDuplicate);
         Assert.True(dup2.IsDuplicate);
         Assert.False(unique.IsDuplicate);
+    }
+
+    [Fact]
+    public async Task MarkDuplicateFlagsByHashAsync_ClearsStaleDuplicateFlags_ForNonMatchingHashes()
+    {
+        await using var db = CreateDbContext();
+        var scanJobId = Guid.NewGuid();
+        const string correlationId = "corr-reset";
+        const string activeDuplicateHash = "hash-active";
+
+        db.FileRecords.AddRange(
+            MakeRecord(@"C:\a\stale.txt", scanJobId: scanJobId, correlationId: correlationId, hashValue: "hash-stale", isDuplicate: true),
+            MakeRecord(@"C:\a\active.txt", scanJobId: scanJobId, correlationId: correlationId, hashValue: activeDuplicateHash, isDuplicate: false));
+        await db.SaveChangesAsync();
+
+        var sut = new FileInventoryService(db);
+        var count = await sut.MarkDuplicateFlagsByHashAsync(
+            scanJobId,
+            correlationId,
+            new HashSet<string> { activeDuplicateHash },
+            CancellationToken.None);
+
+        Assert.Equal(2, count);
+
+        var stale = await db.FileRecords.FirstAsync(x => x.FilePath == @"C:\a\stale.txt");
+        var active = await db.FileRecords.FirstAsync(x => x.FilePath == @"C:\a\active.txt");
+
+        Assert.False(stale.IsDuplicate);
+        Assert.True(active.IsDuplicate);
     }
 }

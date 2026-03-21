@@ -10,18 +10,38 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
 {
     public async Task<IReadOnlyList<StorageLocationDto>> GetAllAsync(CancellationToken cancellationToken)
     {
-        var entities = await dbContext.StorageLocations
+        return await dbContext.StorageLocations
             .AsNoTracking()
             .OrderByDescending(x => x.TotalSizeBytes)
+            .Select(x => new StorageLocationDto(
+                x.Id,
+                x.Name,
+                x.Path,
+                x.Type.ToString(),
+                x.Status.ToString(),
+                x.LastScanDate,
+                x.TotalSizeBytes,
+                x.FileCount,
+                x.CreatedDate))
             .ToListAsync(cancellationToken);
-
-        return entities.Select(Map).ToList();
     }
 
     public async Task<StorageLocationDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        return entity is null ? null : Map(entity);
+        return await dbContext.StorageLocations
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new StorageLocationDto(
+                x.Id,
+                x.Name,
+                x.Path,
+                x.Type.ToString(),
+                x.Status.ToString(),
+                x.LastScanDate,
+                x.TotalSizeBytes,
+                x.FileCount,
+                x.CreatedDate))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<StorageLocationDto> CreateAsync(CreateStorageLocationRequest request, CancellationToken cancellationToken)
@@ -47,6 +67,19 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
 
     public async Task<bool> UpdateAsync(Guid id, UpdateStorageLocationRequest request, CancellationToken cancellationToken)
     {
+        if (dbContext.Database.IsRelational())
+        {
+            var rows = await dbContext.StorageLocations
+                .Where(x => x.Id == id)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(v => v.Name, request.Name)
+                    .SetProperty(v => v.Path, request.Path)
+                    .SetProperty(v => v.Type, request.Type)
+                    .SetProperty(v => v.Status, request.Status), cancellationToken);
+
+            return rows > 0;
+        }
+
         var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity is null)
         {
@@ -64,6 +97,15 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
+        if (dbContext.Database.IsRelational())
+        {
+            var rows = await dbContext.StorageLocations
+                .Where(x => x.Id == id)
+                .ExecuteDeleteAsync(cancellationToken);
+
+            return rows > 0;
+        }
+
         var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity is null)
         {

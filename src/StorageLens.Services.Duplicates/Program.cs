@@ -45,19 +45,17 @@ builder.Services.AddDbContext<DuplicatesDbContext>(options =>
 
 builder.Services.Configure<DuplicateUpstreamOptions>(
     builder.Configuration.GetSection(DuplicateUpstreamOptions.SectionName));
+builder.Services.Configure<UpstreamResilienceOptions>(
+    builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName));
 
 var upstream = builder.Configuration.GetSection(DuplicateUpstreamOptions.SectionName).Get<DuplicateUpstreamOptions>()
               ?? new DuplicateUpstreamOptions();
+var upstreamResilience = builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName).Get<UpstreamResilienceOptions>()
+                       ?? new UpstreamResilienceOptions();
 
 var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
 
-builder.Services.AddHttpClient("fileinventory", client =>
-{
-    client.BaseAddress = new Uri(upstream.FileInventory);
-    client.Timeout = TimeSpan.FromSeconds(30); // SECURITY: Prevent hung connections
-    if (!string.IsNullOrWhiteSpace(serviceApiKey))
-        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
-});
+builder.Services.AddConfiguredUpstreamClient("fileinventory", upstream.FileInventory, serviceApiKey, upstreamResilience);
 
 builder.Services.AddScoped<IDuplicatesService, DuplicatesService>();
 

@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Builder;
 using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
 
 namespace StorageLens.Shared.Infrastructure;
 

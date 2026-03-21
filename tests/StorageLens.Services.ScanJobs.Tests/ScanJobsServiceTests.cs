@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using StorageLens.Services.ScanJobs.Data;
 using StorageLens.Services.ScanJobs.Models;
 using StorageLens.Services.ScanJobs.Services;
@@ -13,6 +14,20 @@ public class ScanJobsServiceTests
         new(new DbContextOptionsBuilder<ScanJobsDbContext>()
             .UseInMemoryDatabase($"scanjobs-{Guid.NewGuid()}")
             .Options);
+
+    private static (ScanJobsDbContext Db, SqliteConnection Connection) CreateRelationalDb()
+    {
+        var connection = new SqliteConnection("DataSource=:memory:");
+        connection.Open();
+
+        var options = new DbContextOptionsBuilder<ScanJobsDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        var db = new ScanJobsDbContext(options);
+        db.Database.EnsureCreated();
+        return (db, connection);
+    }
 
     private static ScanJob MakeScanJob(DateTimeOffset? startTime = null) => new()
     {
@@ -50,9 +65,14 @@ public class ScanJobsServiceTests
     {
         await using var db = CreateDb();
         var baseTime = DateTimeOffset.UtcNow;
+        var oldJob = MakeScanJob(baseTime.AddHours(-2));
+        oldJob.LocationName = "Old";
+        var newJob = MakeScanJob(baseTime);
+        newJob.LocationName = "New";
+
         db.ScanJobs.AddRange(
-            MakeScanJob(baseTime.AddHours(-2)) with { LocationName = "Old" },
-            MakeScanJob(baseTime) with { LocationName = "New" }
+            oldJob,
+            newJob
         );
         await db.SaveChangesAsync();
         var svc = new ScanJobsService(db);
@@ -360,5 +380,63 @@ public class ScanJobsServiceTests
         Assert.Equal(0, entity!.WarningCount);
         Assert.Equal(0, entity.ErrorCount);
         Assert.Equal(0, entity.DuplicateGroupsFound);
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_RelationalProvider_AppliesTerminalSemantics()
+    {
+        var (db, connection) = CreateRelationalDb();
+        await using var _ = db;
+        await using var __ = connection;
+
+        var job = MakeScanJob();
+        job.ProgressPercent = 50;
+        db.ScanJobs.Add(job);
+        await db.SaveChangesAsync();
+
+        var svc = new ScanJobsService(db);
+        var result = await svc.UpdateStatusAsync(
+            job.Id,
+            new UpdateScanJobStatusRequest(ScanJobStatus.Completed, "Done", "Completed", IsTerminal: true),
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(ScanJobStatus.Completed.ToString(), result!.Status);
+        Assert.Equal(100, result.ProgressPercent);
+        Assert.NotNull(result.EndTime);
+    }
+
+    [Fact]
+    public async Task UpdateProgressAsync_RelationalProvider_ClampsValuesAndUpdates()
+    {
+        var (db, connection) = CreateRelationalDb();
+        await using var _ = db;
+        await using var __ = connection;
+
+        var job = MakeScanJob();
+        db.ScanJobs.Add(job);
+        await db.SaveChangesAsync();
+
+        var svc = new ScanJobsService(db);
+        var result = await svc.UpdateProgressAsync(
+            job.Id,
+            new UpdateScanJobProgressRequest(
+                FilesScanned: 100,
+                FilesHashed: 80,
+                ProgressPercent: 150,
+                WarningCount: -2,
+                ErrorCount: -1,
+                DuplicateGroupsFound: -3,
+                Notes: "updated"),
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(100, result!.ProgressPercent);
+        Assert.Equal(100, result.FilesScanned);
+        Assert.Equal(80, result.FilesHashed);
+        Assert.Equal(0, result.WarningCount);
+        Assert.Equal(0, result.ErrorCount);
+        Assert.Equal(0, result.DuplicateGroupsFound);
+        Assert.Equal("updated", result.Notes);
     }
 }

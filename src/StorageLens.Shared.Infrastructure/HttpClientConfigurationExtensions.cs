@@ -1,3 +1,8 @@
+using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using Polly;
+using Polly.Extensions.Http;
+
 namespace StorageLens.Shared.Infrastructure;
 
 /// <summary>
@@ -35,7 +40,6 @@ public static class HttpClientConfigurationExtensions
 
         // Configure HTTP connection pooling
         ServicePointManager.DefaultConnectionLimit = 10;
-        ServicePointManager.ReusePort = true;
     }
 
     /// <summary>
@@ -46,4 +50,88 @@ public static class HttpClientConfigurationExtensions
     {
         return client => client.ConfigureSecure(baseAddress, timeout);
     }
+
+    public static IHttpClientBuilder AddConfiguredUpstreamClient(
+        this IServiceCollection services,
+        string name,
+        string baseAddress,
+        string serviceApiKey,
+        UpstreamResilienceOptions resilienceOptions)
+    {
+        var profile = UpstreamResilienceProfileResolver.ResolveForClient(name, resilienceOptions);
+
+        IAsyncPolicy<HttpResponseMessage> noOpPolicy = Policy.NoOpAsync<HttpResponseMessage>();
+
+        IAsyncPolicy<HttpResponseMessage> retryPolicy = HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .WaitAndRetryAsync(
+                profile.MaxRetryAttempts,
+                retryAttempt =>
+                {
+                    var exponential = profile.BaseDelaySeconds * Math.Pow(2, retryAttempt - 1);
+                    var bounded = Math.Min(exponential, profile.MaxDelaySeconds);
+                    return TimeSpan.FromSeconds(bounded);
+                });
+
+        IAsyncPolicy<HttpResponseMessage> circuitBreakerPolicy = HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(
+                profile.CircuitBreakerFailures,
+                TimeSpan.FromSeconds(profile.CircuitBreakerBreakSeconds));
+
+        return services
+            .AddHttpClient(name, client =>
+            {
+                client.ConfigureSecure(new Uri(baseAddress), profile.Timeout);
+                if (!string.IsNullOrWhiteSpace(serviceApiKey))
+                    client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+            })
+            .AddPolicyHandler(request => ShouldApplyRetryPolicy(request.Method) ? retryPolicy : noOpPolicy)
+            .AddPolicyHandler(circuitBreakerPolicy);
+    }
+
+    public static IHttpClientBuilder AddConfiguredUpstreamClient<TClient>(
+        this IServiceCollection services,
+        string profileName,
+        string baseAddress,
+        string serviceApiKey,
+        UpstreamResilienceOptions resilienceOptions)
+        where TClient : class
+    {
+        var profile = UpstreamResilienceProfileResolver.ResolveForClient(profileName, resilienceOptions);
+
+        IAsyncPolicy<HttpResponseMessage> noOpPolicy = Policy.NoOpAsync<HttpResponseMessage>();
+
+        IAsyncPolicy<HttpResponseMessage> retryPolicy = HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .WaitAndRetryAsync(
+                profile.MaxRetryAttempts,
+                retryAttempt =>
+                {
+                    var exponential = profile.BaseDelaySeconds * Math.Pow(2, retryAttempt - 1);
+                    var bounded = Math.Min(exponential, profile.MaxDelaySeconds);
+                    return TimeSpan.FromSeconds(bounded);
+                });
+
+        IAsyncPolicy<HttpResponseMessage> circuitBreakerPolicy = HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(
+                profile.CircuitBreakerFailures,
+                TimeSpan.FromSeconds(profile.CircuitBreakerBreakSeconds));
+
+        return services
+            .AddHttpClient<TClient>(client =>
+            {
+                client.ConfigureSecure(new Uri(baseAddress), profile.Timeout);
+                if (!string.IsNullOrWhiteSpace(serviceApiKey))
+                    client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", serviceApiKey);
+            })
+            .AddPolicyHandler(request => ShouldApplyRetryPolicy(request.Method) ? retryPolicy : noOpPolicy)
+            .AddPolicyHandler(circuitBreakerPolicy);
+    }
+
+    public static bool ShouldApplyRetryPolicy(HttpMethod method) =>
+        method == HttpMethod.Get ||
+        method == HttpMethod.Head ||
+        method == HttpMethod.Options;
 }

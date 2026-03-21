@@ -492,6 +492,18 @@ This comprehensive checklist covers all aspects needed to rebuild the StorageLen
 
 ## Phase 10: Documentation
 
+### Ongoing Documentation Maintenance (Every PR)
+
+- [ ] **Documentation updated for this change set**
+  - [ ] At least one impacted `docs/` file updated when source/config/workflow/test files changed
+  - [ ] `docs/CHANGELOG.md` updated with clear Added/Changed/Fixed/Removed entry
+  - [ ] `docs/developer/developer-guide.md` updated when development workflow or quality gates changed
+  - [ ] `docs/DeveloperChecklist.md` updated when process/checklist expectations changed
+
+- [ ] **Ownership and cadence alignment**
+  - [ ] Affected docs reviewed against `docs/developer/docs-ownership-matrix.md`
+  - [ ] Review cadence preserved (monthly/quarterly/release based on ownership matrix)
+
 ### Architecture & Design Documents
 
 - [ ] **Verify Core Documentation**
@@ -518,6 +530,13 @@ This comprehensive checklist covers all aspects needed to rebuild the StorageLen
   - [ ] `docs/developer/contributing.md` - Contribution workflow
   - [ ] `docs/developer/local-development.md` - Local setup guide
   - [ ] `docs/developer/copilot-agents-guide.md` - Copilot agent usage
+  - [ ] `docs/developer/architecture-review-process.md` - Architecture checkpoints and review flow
+  - [ ] `docs/developer/onboarding-checklist.md` - New contributor onboarding path
+  - [ ] `docs/developer/docs-ownership-matrix.md` - Documentation ownership and cadence
+
+- [ ] **Development Practices Automation Docs**
+  - [ ] `.github/workflows/code-quality.yml` documented in developer docs
+  - [ ] ADR template available at `docs/architecture/adr/0000-template.md`
   - [ ] `docs/developer/copilot-config-reference.md` - Copilot config maintenance
 
 ### Operational Documentation
@@ -864,6 +883,12 @@ This comprehensive checklist covers all aspects needed to rebuild the StorageLen
   - [ ] Operations docs (5 files)
   - [ ] User docs (4 files)
   - [ ] Diagrams (5 files)
+  - [ ] Project health docs (`docs/operations/sli-slo-targets.md`, `docs/developer/issue-management-and-release-process.md`)
+  - [ ] Dashboard docs (`docs/operations/project-health-dashboard.md`)
+
+- [ ] **Project Health Automation Present**
+  - [ ] `.github/dependabot.yml` configured for NuGet and GitHub Actions updates
+  - [ ] `.github/ISSUE_TEMPLATE/` contains bug and feature templates
 
 - [ ] **CHANGELOG Updated**
   - [ ] Current version documented
@@ -873,7 +898,21 @@ This comprehensive checklist covers all aspects needed to rebuild the StorageLen
 - [ ] **README & Contributing Guide Updated**
   - [ ] `README.md` includes quick start
   - [ ] `docs/developer/contributing.md` has PR checklist
+  - [ ] `docs/developer/docs-ownership-matrix.md` is present and current
   - [ ] Links to documentation correct
+
+### Documentation Freshness (Regular Basis)
+
+- [ ] **Monthly docs review completed**
+  - [ ] Developer/process docs reviewed (`docs/developer/*`)
+  - [ ] Operational docs reviewed (`docs/operations/*`)
+- [ ] **Monthly review logged**
+  - [ ] Entry added to `docs/developer/docs-ownership-matrix.md` under "Docs Review Log"
+- [ ] **Quarterly docs review completed**
+  - [ ] Architecture docs reviewed (`docs/architecture/*`)
+  - [ ] API/versioning policy reviewed (`docs/technical/api-specification.md`, `docs/technical/api-versioning-strategy.md`)
+- [ ] **Quarterly review logged**
+  - [ ] Entry added to `docs/developer/docs-ownership-matrix.md` under "Docs Review Log"
 
 ### Documentation Links
 

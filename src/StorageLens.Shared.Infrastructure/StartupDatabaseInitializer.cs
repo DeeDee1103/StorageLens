@@ -157,27 +157,19 @@ public static class StartupDatabaseInitializer
 
     private static async Task TryCreateTablesAsync(IDatabaseCreator databaseCreator, CancellationToken cancellationToken)
     {
-        var createTablesAsync = databaseCreator.GetType().GetMethod(
-            "CreateTablesAsync",
-            new[] { typeof(CancellationToken) });
-
-        if (createTablesAsync?.Invoke(databaseCreator, new object[] { cancellationToken }) is Task createTask)
+        if (databaseCreator is RelationalDatabaseCreator relationalDatabaseCreator)
         {
-            await createTask;
+            await relationalDatabaseCreator.CreateTablesAsync(cancellationToken);
         }
     }
 
     private static async Task<bool?> TryHasTablesAsync(IDatabaseCreator databaseCreator, CancellationToken cancellationToken)
     {
-        var hasTablesAsync = databaseCreator.GetType().GetMethod(
-            "HasTablesAsync",
-            new[] { typeof(CancellationToken) });
-
-        if (hasTablesAsync?.Invoke(databaseCreator, new object[] { cancellationToken }) is not Task<bool> hasTablesTask)
+        if (databaseCreator is not RelationalDatabaseCreator relationalDatabaseCreator)
         {
             return null;
         }
 
-        return await hasTablesTask;
+        return await relationalDatabaseCreator.HasTablesAsync(cancellationToken);
     }
 }

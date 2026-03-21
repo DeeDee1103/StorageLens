@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using StorageLens.Services.Locations.Data;
 using StorageLens.Services.Locations.Models;
 using StorageLens.Services.Locations.Services;
@@ -13,6 +14,20 @@ public class LocationServiceTests
         new(new DbContextOptionsBuilder<LocationsDbContext>()
             .UseInMemoryDatabase($"locations-{Guid.NewGuid()}")
             .Options);
+
+    private static (LocationsDbContext Db, SqliteConnection Connection) CreateRelationalDb()
+    {
+        var connection = new SqliteConnection("DataSource=:memory:");
+        connection.Open();
+
+        var options = new DbContextOptionsBuilder<LocationsDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        var db = new LocationsDbContext(options);
+        db.Database.EnsureCreated();
+        return (db, connection);
+    }
 
     [Fact]
     public async Task GetAllAsync_EmptyDb_ReturnsEmptyList()
@@ -151,5 +166,68 @@ public class LocationServiceTests
         var deleted = await svc.DeleteAsync(Guid.NewGuid(), CancellationToken.None);
 
         Assert.False(deleted);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_RelationalProvider_UsesFastPathAndUpdates()
+    {
+        var (db, connection) = CreateRelationalDb();
+        await using var _ = db;
+        await using var __ = connection;
+
+        var id = Guid.NewGuid();
+        db.StorageLocations.Add(new StorageLocation
+        {
+            Id = id,
+            Name = "Old",
+            Path = @"C:\old",
+            Type = StorageLocationType.Local,
+            Status = LocationStatus.Offline,
+            TotalSizeBytes = 0,
+            FileCount = 0,
+            CreatedDate = DateTimeOffset.UtcNow,
+            LastScanDate = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var svc = new LocationService(db);
+        var updated = await svc.UpdateAsync(id, new UpdateStorageLocationRequest("New", @"C:\new", StorageLocationType.Nas, LocationStatus.Online), CancellationToken.None);
+
+        Assert.True(updated);
+
+        var entity = await db.StorageLocations.AsNoTracking().FirstAsync(x => x.Id == id);
+        Assert.Equal("New", entity.Name);
+        Assert.Equal(@"C:\new", entity.Path);
+        Assert.Equal(StorageLocationType.Nas, entity.Type);
+        Assert.Equal(LocationStatus.Online, entity.Status);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_RelationalProvider_UsesFastPathAndDeletes()
+    {
+        var (db, connection) = CreateRelationalDb();
+        await using var _ = db;
+        await using var __ = connection;
+
+        var id = Guid.NewGuid();
+        db.StorageLocations.Add(new StorageLocation
+        {
+            Id = id,
+            Name = "Temp",
+            Path = @"C:\temp",
+            Type = StorageLocationType.Local,
+            Status = LocationStatus.Online,
+            TotalSizeBytes = 0,
+            FileCount = 0,
+            CreatedDate = DateTimeOffset.UtcNow,
+            LastScanDate = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var svc = new LocationService(db);
+        var deleted = await svc.DeleteAsync(id, CancellationToken.None);
+
+        Assert.True(deleted);
+        Assert.False(await db.StorageLocations.AsNoTracking().AnyAsync(x => x.Id == id));
     }
 }
