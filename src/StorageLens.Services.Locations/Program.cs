@@ -70,3 +70,5 @@ BackgroundDatabaseInitialization.Start<LocationsDbContext>(
     static (_, context, cancellationToken) => LocationsSeeder.SeedAsync(context, cancellationToken));
 
 app.Run();
+
+public partial class Program { }

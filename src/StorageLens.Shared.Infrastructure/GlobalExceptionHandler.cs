@@ -61,9 +61,9 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
 
         var problem = new ProblemDetails
         {
-            Status  = statusCode,
-            Title   = GetTitle(statusCode),
-            Detail  = GetSafeDetail(exception, statusCode),
+            Status = statusCode,
+            Title = GetTitle(statusCode),
+            Detail = GetSafeDetail(exception, statusCode),
         };
         problem.Extensions["correlationId"] = correlationId;
 
@@ -75,14 +75,14 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
 
     private static int MapStatusCode(Exception ex) => ex switch
     {
-        ArgumentException              => StatusCodes.Status400BadRequest,
-        ArgumentNullException          => StatusCodes.Status400BadRequest,
-        KeyNotFoundException           => StatusCodes.Status404NotFound,
-        FileNotFoundException          => StatusCodes.Status404NotFound,
-        UnauthorizedAccessException    => StatusCodes.Status403Forbidden,
-        NotImplementedException        => StatusCodes.Status501NotImplemented,
-        OperationCanceledException     => StatusCodes.Status499ClientClosedRequest,
-        _                              => StatusCodes.Status500InternalServerError,
+        ArgumentNullException => StatusCodes.Status400BadRequest,
+        ArgumentException => StatusCodes.Status400BadRequest,
+        KeyNotFoundException => StatusCodes.Status404NotFound,
+        FileNotFoundException => StatusCodes.Status404NotFound,
+        UnauthorizedAccessException => StatusCodes.Status403Forbidden,
+        NotImplementedException => StatusCodes.Status501NotImplemented,
+        OperationCanceledException => StatusCodes.Status499ClientClosedRequest,
+        _ => StatusCodes.Status500InternalServerError,
     };
 
     private static string GetTitle(int statusCode) => statusCode switch
@@ -92,7 +92,7 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
         404 => "Not Found",
         499 => "Request Cancelled",
         501 => "Not Implemented",
-        _   => "An unexpected error occurred",
+        _ => "An unexpected error occurred",
     };
 
     /// <summary>

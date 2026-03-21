@@ -21,12 +21,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build Bicep template
-        uses: azure/cli@v2
-        with:
-          inlineScript: az bicep build --file infra/main.bicep --outfile /tmp/main.json
+        run: |
+          az bicep install
+          az bicep build --file infra/main.bicep --outfile /tmp/main.json
 
       - name: Verify generated ARM template exists
         run: test -f /tmp/main.json
