@@ -1,4 +1,4 @@
-﻿// Contracts have been split into domain-specific files:
+// Contracts have been split into domain-specific files:
 //   LocationContracts.cs    — StorageLocationDto, CreateStorageLocationRequest, UpdateStorageLocationRequest, StorageLocationType, LocationStatus
 //   ScanJobContracts.cs     — ScanJobDto, CreateScanJobRequest, UpdateScanJobStatusRequest, UpdateScanJobProgressRequest, ScanJobStatus
 //   FileInventoryContracts.cs — FileRecordDto, FileMetadataDto, FileMetadataBatchIngestRequest, FileBatchIngestResultDto, PendingHashFileDto, FileHashResultRequest, MarkDuplicateHashesRequest, HashStatus

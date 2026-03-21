@@ -38,7 +38,7 @@ public sealed class DistributedFixedWindowPolicy : IRateLimiterPolicy<string>
         ILogger<DistributedFixedWindowPolicy> logger,
         int permitLimit = 1_000)
     {
-        _cache  = cache;
+        _cache = cache;
         _logger = logger;
         _permitLimit = permitLimit;
     }
@@ -87,11 +87,11 @@ internal sealed class DistributedWindowLimiter : RateLimiter
         int limit,
         TimeSpan window)
     {
-        _cache    = cache;
-        _logger   = logger;
+        _cache = cache;
+        _logger = logger;
         _cacheKey = cacheKey;
-        _limit    = limit;
-        _window   = window;
+        _limit = limit;
+        _window = window;
     }
 
     public override TimeSpan? IdleDuration => null;

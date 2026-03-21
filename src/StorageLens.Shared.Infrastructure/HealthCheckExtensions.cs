@@ -106,15 +106,15 @@ public static class HealthCheckExtensions
         ctx.Response.ContentType = "application/json";
         var result = new
         {
-            status  = report.Status.ToString(),
+            status = report.Status.ToString(),
             entries = report.Entries.ToDictionary(
                 e => e.Key,
                 e => new
                 {
-                    status      = e.Value.Status.ToString(),
+                    status = e.Value.Status.ToString(),
                     description = e.Value.Description,
-                    duration    = e.Value.Duration.TotalMilliseconds,
-                    tags        = e.Value.Tags,
+                    duration = e.Value.Duration.TotalMilliseconds,
+                    tags = e.Value.Tags,
                 })
         };
         return ctx.Response.WriteAsync(

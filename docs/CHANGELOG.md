@@ -25,6 +25,13 @@ Example:
 
 ## [Unreleased]
 
+### Fixed
+- **Build errors in `StorageLens.Shared.Infrastructure`** — Added missing `using Microsoft.AspNetCore.Routing` to `HealthCheckExtensions.cs` (fixes `IEndpointRouteBuilder` CS0246 build error). Fixed `MetadataName<TimeSpan>` to `string` comparison in `DistributedRateLimiter.cs` using `.Name` property. Added missing `using Microsoft.Extensions.Hosting` to `ObservabilityExtensions.cs`. Reordered `ArgumentNullException`/`ArgumentException` arms in `GlobalExceptionHandler.cs` switch expression to fix CS8510 unreachable pattern.
+- **Seeder `CancellationToken` mismatch** — Added `CancellationToken cancellationToken = default` parameter to `DuplicatesSeeder`, `LocationsSeeder`, `FileInventorySeeder`, and `ScanJobsSeeder`. Seeders now propagate the cancellation token to `SaveChangesAsync` and match the delegate signature expected by `BackgroundDatabaseInitialization.Start`.
+- **Integration test `Program` accessibility** — Added `public partial class Program {}` to `StorageLens.Services.Locations/Program.cs` so `WebApplicationFactory<Program>` in integration tests can reference the type.
+- **`infra-validation` CI workflow** — Replaced `azure/cli@v2` Docker action with a native `run:` step so the Bicep ARM output file is written to the runner filesystem (not the container) and the subsequent `test -f` check succeeds.
+- **Whitespace formatting** — Replaced tab indentation with 4-space indentation across `Class1.cs` files and corrected trailing/alignment spaces in `DistributedRateLimiter.cs` and `GlobalExceptionHandler.cs` to satisfy `dotnet format --verify-no-changes`.
+
 ### Added
 - **Global exception handler + standardised error responses** (Code Quality — Area #2):
   - Added `GlobalExceptionHandler` (`IExceptionHandler`) to `StorageLens.Shared.Infrastructure`. All unhandled exceptions in all 9 services now return a consistent RFC 7807 `ProblemDetails` JSON body with `status`, `title`, `detail` (safe — no internal paths), and a `correlationId` extension field.
@@ -206,6 +213,9 @@ Example:
   - **Duplicate-Heavy Locations** panel redesigned from a plain list to a ranked visual impact view with rank badges, share percentages, and proportional impact bars.
 
 ### Added
+- **`StorageLens.Shared.Infrastructure.Tests` project** — new xUnit test project covering the HTTP client policy pipeline behaviour:
+  - `HttpClientPolicyPipelineIntegrationTests` with three integration tests verifying that `CorrelationIdDelegatingHandler` is correctly resolved from DI and properly adds the `X-Correlation-Id` header to outgoing requests, does not overwrite an already-present header, and generates a unique ID per request.
+- **`CorrelationIdDelegatingHandler`** class added to `StorageLens.Shared.Infrastructure` — a `DelegatingHandler` that automatically attaches a `X-Correlation-Id` header to every outgoing HTTP request when the header is not already present, enabling end-to-end correlation tracing across services.
 - **Chart details modal patterns** on Dashboard and Reports pages for chart click-drill interactions.
 - **Interaction hints** on chart headers (e.g., "Click bars for details", "Click points for details") to make interactivity discoverable.
 - **Alerts page** (`/Alerts`) with adjustable min/max threshold sliders, test recipient support, and automatic threshold-check email dispatch when usage reaches the max threshold.
@@ -213,6 +223,7 @@ Example:
 - **`AlertsModelTests`** unit test validating that threshold crossing triggers an email dispatch call.
 
 ### Fixed
+- **`CorrelationIdDelegatingHandler` DI registration** — added `services.AddSingleton<CorrelationIdDelegatingHandler>()` in `HttpClientPolicyPipelineIntegrationTests` so the handler is resolvable when `AddHttpMessageHandler<T>()` activates it through the DI container. Previously tests threw `System.InvalidOperationException: No service for type 'StorageLens.Shared.Infrastructure.CorrelationIdDelegatingHandler' has been registered.`
 - **Service-unavailable error handling** — all API client methods (`LocationsApiClient`, `ScanJobsApiClient`, `FileInventoryApiClient`, `DuplicatesApiClient`, `AnalyticsApiClient`, `OrchestratorApiClient`) now catch `HttpRequestException` and log a warning instead of propagating the exception to the error page. Pages that fail to load backend data now display a clear yellow alert banner rather than crashing.
 - **`DuplicatesService` build error** — `GroupBy` result was projected to `List<FileRecordDto>` via `.Select(g => g.OrderByDescending(...).ToList())`, causing the group key to be lost. The select now projects to a named tuple `(Key, Files)` so `HashValue` and the final `duplicateHashValues` collection are correctly populated.
 

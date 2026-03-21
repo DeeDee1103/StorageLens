@@ -5,7 +5,7 @@ namespace StorageLens.Services.Duplicates.Extensions;
 
 public static class DuplicatesSeeder
 {
-    public static async Task SeedAsync(DuplicatesDbContext dbContext)
+    public static async Task SeedAsync(DuplicatesDbContext dbContext, CancellationToken cancellationToken = default)
     {
         if (dbContext.DuplicateGroups.Any())
         {
@@ -42,6 +42,6 @@ public static class DuplicatesSeeder
         }
 
         dbContext.DuplicateGroups.AddRange(groups);
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

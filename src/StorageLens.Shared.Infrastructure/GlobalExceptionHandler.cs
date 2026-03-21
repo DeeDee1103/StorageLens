@@ -61,9 +61,9 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
 
         var problem = new ProblemDetails
         {
-            Status  = statusCode,
-            Title   = GetTitle(statusCode),
-            Detail  = GetSafeDetail(exception, statusCode),
+            Status = statusCode,
+            Title = GetTitle(statusCode),
+            Detail = GetSafeDetail(exception, statusCode),
         };
         problem.Extensions["correlationId"] = correlationId;
 
@@ -91,7 +91,7 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
         404 => "Not Found",
         499 => "Request Cancelled",
         501 => "Not Implemented",
-        _   => "An unexpected error occurred",
+        _ => "An unexpected error occurred",
     };
 
     /// <summary>
