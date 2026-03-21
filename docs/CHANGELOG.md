@@ -4,9 +4,204 @@ All notable changes to StorageLens are documented in this file.
 
 The format is inspired by Keep a Changelog, and this project follows Semantic Versioning principles.
 
+## Changelog Entry Template (Contributor Guide)
+
+Use concise, consistent entries under `[Unreleased]` and one section per change type:
+
+- `### Added` for new capabilities, docs, endpoints, or workflows
+- `### Changed` for behavior/process modifications
+- `### Fixed` for bug and defect corrections
+- `### Removed` for deleted functionality
+
+Recommended entry format:
+
+- `**Area** — What changed and why it matters.`
+  - Optional supporting bullets with impact or migration notes.
+
+Example:
+
+- `**Orchestrator retries** — Added bounded retry policy for safe HTTP methods to reduce transient failure impact.`
+  - `Retry applies to GET/HEAD/OPTIONS only to avoid duplicate side effects.`
+
 ## [Unreleased]
 
+### Fixed
+- **Build errors in `StorageLens.Shared.Infrastructure`** — Added missing `using Microsoft.AspNetCore.Routing` to `HealthCheckExtensions.cs` (fixes `IEndpointRouteBuilder` CS0246 build error). Fixed `MetadataName<TimeSpan>` to `string` comparison in `DistributedRateLimiter.cs` using `.Name` property. Added missing `using Microsoft.Extensions.Hosting` to `ObservabilityExtensions.cs`. Reordered `ArgumentNullException`/`ArgumentException` arms in `GlobalExceptionHandler.cs` switch expression to fix CS8510 unreachable pattern.
+- **Seeder `CancellationToken` mismatch** — Added `CancellationToken cancellationToken = default` parameter to `DuplicatesSeeder`, `LocationsSeeder`, `FileInventorySeeder`, and `ScanJobsSeeder`. Seeders now propagate the cancellation token to `SaveChangesAsync` and match the delegate signature expected by `BackgroundDatabaseInitialization.Start`.
+- **Integration test `Program` accessibility** — Added `public partial class Program {}` to `StorageLens.Services.Locations/Program.cs` so `WebApplicationFactory<Program>` in integration tests can reference the type.
+- **`infra-validation` CI workflow** — Replaced `azure/cli@v2` Docker action with a native `run:` step so the Bicep ARM output file is written to the runner filesystem (not the container) and the subsequent `test -f` check succeeds.
+- **Whitespace formatting** — Replaced tab indentation with 4-space indentation across `Class1.cs` files and corrected trailing/alignment spaces in `DistributedRateLimiter.cs` and `GlobalExceptionHandler.cs` to satisfy `dotnet format --verify-no-changes`.
+
+### Added
+- **Global exception handler + standardised error responses** (Code Quality — Area #2):
+  - Added `GlobalExceptionHandler` (`IExceptionHandler`) to `StorageLens.Shared.Infrastructure`. All unhandled exceptions in all 9 services now return a consistent RFC 7807 `ProblemDetails` JSON body with `status`, `title`, `detail` (safe — no internal paths), and a `correlationId` extension field.
+  - Registered `UseExceptionHandler()` at the top of every service pipeline via `ObservabilityExtensions`. Raw exception details are logged server-side; callers receive only safe, sanitised messages.
+  - Mapped status codes: `ArgumentException` → 400, `KeyNotFoundException/FileNotFoundException` → 404, `UnauthorizedAccessException` → 403, `NotImplementedException` → 501, all others → 500.
+
+- **FluentValidation for all request DTOs** (Code Quality — Area #2):
+  - Added `FluentValidation.AspNetCore` 11.3.0 to `StorageLens.Shared.Infrastructure` and added validators in `Validators/RequestValidators.cs` for: `CreateStorageLocationRequest`, `UpdateStorageLocationRequest`, `CreateScanJobRequest`, `UpdateScanJobStatusRequest`, `ScannerExecuteRequest`, `FileMetadataBatchIngestRequest`, `MarkDuplicateHashesRequest`.
+  - Auto-validation registered in `ObservabilityExtensions.AddStorageLensObservability()` — invalid requests are rejected with 400 + `ValidationProblemDetails` before reaching controller methods.
+  - Removed the manual `if (string.IsNullOrWhiteSpace(...)) return BadRequest(...)` guard from `LocationsController.Create` — now handled declaratively.
+
+- **Audit logging service** (Security — Area #3):
+  - Added `IAuditLogger` interface and `AuditLogger` singleton to `StorageLens.Shared.Infrastructure`. Writes structured `[AUDIT]` log entries (at `Information`/`Warning` level) via a dedicated `StorageLens.Audit` logger category, covering: `CREATED`, `UPDATED`, `DELETED`, `CONFIG_CHANGED`, `SECURITY` events. Inject `IAuditLogger` to record configuration changes and entity lifecycle events. Registered automatically via `ObservabilityExtensions`.
+
+- **Redis-backed distributed rate limiting** (Security — Area #3):
+  - Added `DistributedFixedWindowPolicy` and `DistributedWindowLimiter` to `StorageLens.Shared.Infrastructure`. Backed by `IDistributedCache` — uses Redis in production (`RateLimit__Redis` env var) and in-memory cache in development (no infrastructure change needed).
+  - Added `Redis 7-alpine` container to `docker-compose.yml`. All services now pass `RateLimit__Redis: redis:6379` to enable cross-replica rate limiting in Docker.
+  - Added `Microsoft.Extensions.Caching.StackExchangeRedis` 8.0.12 to `Shared.Infrastructure`.
+
+- **Integration test project + test data builders** (Test Coverage — Area #4):
+  - Created `tests/StorageLens.Integration.Tests/` project using `Microsoft.AspNetCore.Mvc.Testing`.
+  - `LocationsWebFactory` (extends `WebApplicationFactory<Program>`) provides an in-memory-DB test host with API key injection. Tests run without any external infrastructure.
+  - `TestDataBuilders.cs` — fluent builder pattern for `CreateStorageLocationRequest`, `UpdateStorageLocationRequest`, `CreateScanJobRequest`, `ScannerExecuteRequest`, `FileMetadataBatchIngestRequest` (eliminates per-test object construction repetition).
+  - `LocationsIntegrationTests.cs` — 10 integration tests covering: full CRUD lifecycle, FluentValidation 400 responses, 401 without API key, correlation ID echo in response headers.
+  - Project added to `StorageLens.sln`.
+
+- **Health checks with liveness/readiness distinction and dependency probes** (DevOps — Area #6):
+  - Added `HealthCheckExtensions.AddStorageLensHealthChecks()` to `Shared.Infrastructure`. Each service now registers:
+    - `GET /health/live` — liveness probe (always 200 while process is alive, no checks)
+    - `GET /health/ready` — readiness probe (DB health check via `AddSqlServer`, upstream `/health/live` checks via `AddUrlGroup`, tagged `"ready"`)
+    - `GET /health` — legacy endpoint retained for backward compatibility
+  - Health check responses are structured JSON: `{ status, entries: { name: { status, description, durationMs } } }`.
+  - Upstream failure is `Degraded` (not `Unhealthy`) to avoid cascading unavailability.
+  - Added `AspNetCore.HealthChecks.SqlServer` 8.0.2 and `AspNetCore.HealthChecks.Uris` 8.0.2 to `Shared.Infrastructure`.
+
+### Fixed
+- **Path disclosure in error messages** (Security — Area #3): `FileSecurityValidation.ValidateFileBeforeProcessing` no longer includes the raw file path in the `FileNotFoundException` message. The exception message now reads `"File not found."` — the full path is still available server-side via the calling service's structured log with a correlation ID.
+- **String interpolation in rate-limit log** (Code Quality — Area #2): `RateLimitingMiddleware` now uses structured logging (`{ClientId}`) instead of `$"Rate limit exceeded for client: {clientId}"`, enabling log aggregation and filtering by client key without string concatenation overhead.
+
+- **Observability stack — Serilog structured logging + OpenTelemetry distributed tracing** (Architecture gap resolution):
+  - Added `CorrelationIdMiddleware` to `StorageLens.Shared.Infrastructure` — generates or propagates an `X-Correlation-ID` header on every inbound request, stores it in `HttpContext.Items`, echoes it in the response, and pushes it into the Serilog `LogContext` so every log line emitted during that request carries the correlation ID automatically.
+  - Added `CorrelationIdDelegatingHandler` — a typed `DelegatingHandler` registered on all upstream `HttpClient` instances. Reads the active correlation ID from `IHttpContextAccessor` (or generates a new GUID for background-service calls) and forwards it as `X-Correlation-ID` to every downstream service call, enabling full end-to-end request tracing across service boundaries.
+  - Added `ObservabilityExtensions.AddStorageLensObservability(serviceName)` — a single `WebApplicationBuilder` extension that configures Serilog (JSON stdout, enriched with `ServiceName`, `Environment`, and `CorrelationId`) and OpenTelemetry tracing (ASP.NET Core + HttpClient instrumentation, OTLP exporter when `Observability:OtlpEndpoint` is set, Console exporter fallback in Development).
+  - Registered `UseCorrelationId()` at the top of the middleware pipeline in all 9 service `Program.cs` files (Locations, ScanJobs, FileInventory, Duplicates, Analytics, Scanner, Hashing, Orchestrator, Web).
+  - Added Jaeger all-in-one container to `docker-compose.yml` (OTLP gRPC on port 4317, UI on port 16686 at `http://localhost:16686`). All services publish traces to Jaeger via `Observability__OtlpEndpoint=http://jaeger:4317`.
+  - Added NuGet packages to `StorageLens.Shared.Infrastructure`: `Serilog.AspNetCore` 8.0.3, `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Instrumentation.AspNetCore`, `OpenTelemetry.Instrumentation.Http`, `OpenTelemetry.Exporter.Console`, `OpenTelemetry.Exporter.OpenTelemetryProtocol` (all 1.9.0).
+  - Health check endpoints (`/health`) are excluded from trace spans to reduce noise.
+
+
+- **Documentation depth uplift (operations + API governance)**:
+  - Added incident response runbook at `docs/operations/incident-response-runbook.md` with severity model, triage workflow, mitigation patterns, and post-incident review expectations.
+  - Added secrets rotation runbook at `docs/operations/secrets-rotation-runbook.md` with rotation cadence, staged rollout, emergency rotation, and audit requirements.
+  - Added CI/CD pipeline reference at `docs/operations/ci-cd-pipeline.md` documenting active workflows, quality gates, and branch protection requirements.
+  - Added API versioning policy at `docs/technical/api-versioning-strategy.md` including breaking-change definitions, deprecation policy, and PR requirements.
+  - Added changelog entry template guidance section for contributor consistency.
+  - Updated docs navigation (`docs/README.md`) and developer references (`docs/developer/developer-guide.md`) to include new governance/runbook documents.
+- **Documentation governance ownership matrix**:
+  - Added `docs/developer/docs-ownership-matrix.md` defining doc ownership, update triggers, review cadence, and escalation path.
+  - Linked matrix from `docs/README.md` and `docs/developer/developer-guide.md` for PR-time discoverability.
+- **Recurring documentation maintenance requirements**:
+  - Updated `docs/DeveloperChecklist.md` with explicit every-PR documentation requirements and monthly/quarterly freshness checks.
+  - Updated `docs/developer/developer-guide.md` with documentation update cadence and documentation definition-of-done requirements.
+  - Updated `docs/developer/contributing.md` PR checklist to require updates to checklist/developer docs when process expectations change.
+- **Documentation review tracking log**:
+  - Added a "Docs Review Log" template to `docs/developer/docs-ownership-matrix.md` for monthly and quarterly review evidence.
+  - Added checklist checks requiring monthly/quarterly review entries to be recorded in the ownership matrix log.
+- **Development practices uplift (automation + governance)**:
+  - Added code quality CI workflow at `.github/workflows/code-quality.yml` for formatting verification, vulnerable package checks, and release build validation.
+  - Added formal architecture review process at `docs/developer/architecture-review-process.md` with review checkpoints and required artifacts.
+  - Added ADR template at `docs/architecture/adr/0000-template.md` for significant architecture decisions.
+  - Added onboarding checklist at `docs/developer/onboarding-checklist.md` with mentor and graduation criteria.
+  - Updated contributor/developer/checklist docs to require code-quality checks, architecture review process usage, and ADR coverage when applicable.
+- **Project health visibility and automation uplift**:
+  - Added `.github/dependabot.yml` for weekly NuGet and GitHub Actions dependency update PRs.
+  - Added GitHub issue templates (`bug_report.yml`, `feature_request.yml`) and template config in `.github/ISSUE_TEMPLATE/` for consistent issue intake.
+  - Added reliability targets at `docs/operations/sli-slo-targets.md` and linked SLI/SLO governance into monitoring guidance.
+  - Added issue triage and release planning reference at `docs/developer/issue-management-and-release-process.md`.
+  - Updated `docs/README.md`, `docs/developer/developer-guide.md`, `docs/developer/contributing.md`, and `docs/DeveloperChecklist.md` to include project health automation and governance requirements.
+- **Project health dashboard**:
+  - Added `docs/operations/project-health-dashboard.md` as a centralized scorecard for quality gates, SLI/SLO status, technical debt tracking, and release readiness.
+  - Linked dashboard from docs navigation and developer/checklist governance references.
+- **Post-improvement formal review refresh**:
+  - Added `docs/reviews/review-refresh-2026-03-20.md` with baseline vs updated category scores, test-validation summary, rationale, and remaining constraints.
+  - Added review document link to `docs/README.md` under a dedicated Reviews section.
+- **Infrastructure governance automation uplift**:
+  - Added `.github/workflows/infra-validation.yml` to compile and validate `infra/main.bicep` on `main`/`develop` push and pull request changes.
+  - Added `.github/CODEOWNERS` as an additional repository governance control for infra/workflow/security-sensitive paths when branch protection enforcement is plan-constrained.
+- **Copilot Agents & Skills Framework** — Enhanced Copilot integration with 6 specialized agents and 9 domain-specific skills for StorageLens development:
+  - **Agents**: Microservice-Developer, Cross-Service-Integrator, Contract-Steward, Test-and-Docs-Guardian, Architecture-Reviewer, DevOps-and-Deployment
+  - **Skills**: Service boundaries, contract design, cross-service communication, documentation compliance, testing patterns, anti-pattern detection, Docker/Kubernetes, deployment/infrastructure, and workflow orchestration
+  - **Configuration files**: `.instructions.md`, `.prompt.md`, `.agent.md`, `SKILL.md`, `copilot-instructions.md`, `AGENTS.md`
+  - **Documentation**: New guide at `docs/developer/copilot-agents-guide.md` with agent descriptions and usage scenarios
+  - **CI integration**: Updated `docs-guard.yml` to enforce documentation updates for Copilot configuration changes
+  - See [`docs/developer/copilot-agents-guide.md`](docs/developer/copilot-agents-guide.md) for complete agent documentation and development scenarios.
+- **Developer Rebuild Checklist** — Comprehensive checklist at `docs/DeveloperChecklist.md` covering:
+  - Prerequisites and environment setup
+  - Solution structure and project validation
+  - Database and infrastructure configuration
+  - Shared infrastructure (contracts, DI, logging)
+  - Web frontend setup (Razor Pages, scripts, assets)
+  - Service development (all 8 services with specific requirements)
+  - Testing setup and verification
+  - Local development environment (Docker Compose)
+  - Build and compilation
+  - Complete documentation validation
+  - Git and version control setup
+  - Configuration and secrets management
+  - Deployment preparation and verification
+  - Copilot configuration
+  - Final sign-off criteria
+  - Troubleshooting guide and quick commands
+  - Estimated time: 4-8 hours for complete rebuild
+- **Documentation Guardrail System** — Comprehensive guide at `docs/developer/documentation-guardrail.md` explaining:
+  - How the automated documentation guardrail works
+  - File monitoring and enforcement rules
+  - Documentation requirements by change type (user-visible, developer-facing, operational, workflow)
+  - Typical PR workflow with guardrail validation
+  - Special cases (documentation-only changes, refactoring, hotfixes)
+  - FAQ and troubleshooting
+  - Best practices for documentation updates
+  - See [`docs/developer/documentation-guardrail.md`](docs/developer/documentation-guardrail.md) for complete reference
+
 ### Changed
+- **Marketing header branding refinement**:
+  - Reduced StorageLens logo scale across marketing, sidebar, and about variants for cleaner visual balance.
+  - Moved the "Storage intelligence for modern operations" subtitle directly beneath the logo and refined typography for a cleaner, professional lockup.
+- **Browser tab icon alignment**:
+  - Updated shared and marketing layouts to use `storagelens-logo-small.png` for both `icon` and `shortcut icon` links so tab branding matches the latest logo asset.
+- **Orchestrator upstream resilience architecture** — upstream service HttpClient registrations now use centralized resilience policies with configurable retry and circuit-breaker behavior:
+  - Added `UpstreamResilience` configuration section for retry attempts, exponential backoff bounds, and circuit-breaker thresholds.
+  - Added safe-method retry policy (`GET/HEAD/OPTIONS`) to avoid duplicate side-effects on command-style `POST` requests.
+  - Added circuit breaker protection for transient downstream failures to reduce cascading failure risk.
+  - Refactored duplicated HttpClient registrations into a single helper to ensure consistent policy application across `locations`, `scanjobs`, `scanner`, `hashing`, `duplicates`, and `analytics` clients.
+- **Workflow state transition design hardening** — orchestrator workflow status progression now uses an explicit transition map:
+  - Added centralized allowed-transition rules for `Pending`, `Running`, `Completed`, `Failed`, and `RetryQueued` states.
+  - Replaced scattered direct status assignments with validated transitions through a single helper method.
+  - Improves workflow state integrity and makes orchestration behavior easier to reason about and maintain.
+- **Per-upstream resilience profile tuning** — orchestrator clients now support per-client resilience overrides while preserving global defaults:
+  - Added `TimeoutSeconds` and `ClientOverrides` support in `UpstreamResilience` configuration.
+  - Added profile resolver logic so each upstream (`locations`, `scanjobs`, `scanner`, `hashing`, `duplicates`, `analytics`) can tune retry, backoff, timeout, and breaker thresholds independently.
+  - Configured long-running `scanner` and `hashing` clients with 4-hour timeout and lower retry pressure to reduce duplicate long-running invocations.
+- **Cross-service upstream resilience standardization** — same per-upstream resilience profile pattern is now applied across additional downstream-calling services:
+  - Added shared upstream resilience options/profile resolver and reusable `AddConfiguredUpstreamClient` registration helper in `StorageLens.Shared.Infrastructure`.
+  - Refactored `StorageLens.Services.Analytics`, `StorageLens.Services.Duplicates`, `StorageLens.Services.Hashing`, and `StorageLens.Services.Scanner` to use centralized client registration and policy wiring.
+  - Added `UpstreamResilience` configuration blocks to each service appsettings with defaults and service-specific breaker tuning where appropriate.
+- **Web typed API clients now use shared resilience wiring**:
+  - Refactored `StorageLens.Web` typed `HttpClient` registrations (`LocationsApiClient`, `ScanJobsApiClient`, `FileInventoryApiClient`, `DuplicatesApiClient`, `AnalyticsApiClient`, `OrchestratorApiClient`) to use shared configured upstream registration with policy consistency.
+  - Added `UpstreamResilience` section to Web appsettings for configurable retry/backoff/timeout/breaker behavior.
+- **Shared resilience behavior tests**:
+  - Added `StorageLens.Shared.Infrastructure.Tests` coverage for profile resolution defaults/overrides/safety clamping and safe-method retry selection (`GET/HEAD/OPTIONS` only).
+  - Added integration-style policy pipeline tests validating that configured typed clients retry transient `GET` requests and do not retry `POST` requests.
+- **Testing and QA automation uplift**:
+  - Added `.github/workflows/tests-and-coverage.yml` to run restore/build/test on `main` and `develop` pushes and pull requests.
+  - CI now collects `XPlat Code Coverage` outputs and uploads `TestResults` artifacts for traceable QA evidence.
+  - Added explicit coverage threshold enforcement in CI (`80%` minimum line coverage per generated cobertura report) so pull requests fail when coverage drops below target.
+  - Standardized branch-protection-ready check naming (`Build Test Coverage`) and documented required branch protection checks for `main` and `develop`.
+  - Added orchestrator workflow happy-path coverage test validating end-to-end step execution (`Scanning`, `Hashing`, `DetectingDuplicates`, `RefreshingAnalytics`) and terminal completion behavior.
+  - Added orchestrator chaos/failure-path coverage test for a mid-workflow upstream network fault (`Hashing`) that verifies terminal failure behavior, step-level failure recording, and downstream-step short-circuiting.
+  - Added dedicated orchestrator resilience/performance suite (`Chaos`, `Performance` traits) to validate fault isolation and queue throughput expectations in background workflow processing.
+  - Expanded `docs/developer/developer-guide.md` with explicit QA gates, local verification commands, CI workflow details, and coverage targets.
+- **Security hardening follow-up closure**:
+  - Replaced reflection-based startup database table operations with strongly typed `RelationalDatabaseCreator` APIs in `StorageLens.Shared.Infrastructure`.
+  - Added configuration write audit logging in `StorageLens.Web/Pages/Alerts.cshtml.cs` including before/after file hashes, actor, and source IP metadata.
+  - Enhanced scanner path safety checks to reject reparse points/symlinks across ancestor path segments, plus regression test coverage.
+- **Infrastructure observability completeness**:
+  - Added Application Insights resource to `infra/main.bicep` (workspace-based) and wired `APPLICATIONINSIGHTS_CONNECTION_STRING` into all container apps.
+- **Workflow step-state contract** — step execution now enforces explicit step names and valid status transitions:
+  - Added centralized step-state contract with known step names and legal transition rules.
+  - Enforced transition checks for step completion/failure updates.
+  - Added guard to skip processing workflows already in terminal/non-runnable states instead of attempting invalid status transitions.
 - **Landing page is now the default home route** (`/`) and the dashboard remains available at `/Index`.
 - **App navigation updated**: a new **Home** entry is shown above **Dashboard** in both desktop sidebar and mobile offcanvas nav, linking users back to the landing page.
 - **Dashboard chart UX refresh**:

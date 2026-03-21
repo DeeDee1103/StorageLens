@@ -10,29 +10,75 @@ public class ScanJobsService(ScanJobsDbContext dbContext) : IScanJobsService
 {
     public async Task<IReadOnlyList<ScanJobDto>> GetAllAsync(CancellationToken cancellationToken)
     {
-        var entities = await dbContext.ScanJobs
+        return await dbContext.ScanJobs
             .AsNoTracking()
             .OrderByDescending(x => x.StartTime)
+            .Select(x => new ScanJobDto(
+                x.Id,
+                x.StorageLocationId,
+                x.LocationName,
+                x.Status.ToString(),
+                x.StartTime,
+                x.EndTime,
+                x.FilesScanned,
+                x.ProgressPercent,
+                x.Notes,
+                x.CurrentStage,
+                x.CorrelationId,
+                x.FilesHashed,
+                x.DuplicateGroupsFound,
+                x.WarningCount,
+                x.ErrorCount))
             .ToListAsync(cancellationToken);
-
-        return entities.Select(Map).ToList();
     }
 
     public async Task<IReadOnlyList<ScanJobDto>> GetRecentAsync(CancellationToken cancellationToken)
     {
-        var entities = await dbContext.ScanJobs
+        return await dbContext.ScanJobs
             .AsNoTracking()
             .OrderByDescending(x => x.StartTime)
             .Take(6)
+            .Select(x => new ScanJobDto(
+                x.Id,
+                x.StorageLocationId,
+                x.LocationName,
+                x.Status.ToString(),
+                x.StartTime,
+                x.EndTime,
+                x.FilesScanned,
+                x.ProgressPercent,
+                x.Notes,
+                x.CurrentStage,
+                x.CorrelationId,
+                x.FilesHashed,
+                x.DuplicateGroupsFound,
+                x.WarningCount,
+                x.ErrorCount))
             .ToListAsync(cancellationToken);
-
-        return entities.Select(Map).ToList();
     }
 
     public async Task<ScanJobDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await dbContext.ScanJobs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        return entity is null ? null : Map(entity);
+        return await dbContext.ScanJobs
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new ScanJobDto(
+                x.Id,
+                x.StorageLocationId,
+                x.LocationName,
+                x.Status.ToString(),
+                x.StartTime,
+                x.EndTime,
+                x.FilesScanned,
+                x.ProgressPercent,
+                x.Notes,
+                x.CurrentStage,
+                x.CorrelationId,
+                x.FilesHashed,
+                x.DuplicateGroupsFound,
+                x.WarningCount,
+                x.ErrorCount))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<ScanJobDto> CreateAsync(CreateScanJobRequest request, CancellationToken cancellationToken)
@@ -64,6 +110,27 @@ public class ScanJobsService(ScanJobsDbContext dbContext) : IScanJobsService
 
     public async Task<ScanJobDto?> UpdateStatusAsync(Guid id, UpdateScanJobStatusRequest request, CancellationToken cancellationToken)
     {
+        if (dbContext.Database.IsRelational())
+        {
+            var terminalTimestamp = DateTimeOffset.UtcNow;
+            var keepNotes = string.IsNullOrWhiteSpace(request.Notes);
+            var rows = await dbContext.ScanJobs
+                .Where(x => x.Id == id)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(v => v.Status, request.Status)
+                    .SetProperty(v => v.CurrentStage, request.CurrentStage)
+                    .SetProperty(v => v.Notes, v => keepNotes ? v.Notes : request.Notes!)
+                    .SetProperty(v => v.EndTime, v => request.IsTerminal ? terminalTimestamp : v.EndTime)
+                    .SetProperty(v => v.ProgressPercent, v => request.IsTerminal && request.Status == ScanJobStatus.Completed ? 100 : v.ProgressPercent), cancellationToken);
+
+            if (rows == 0)
+            {
+                return null;
+            }
+
+            return await GetByIdAsync(id, cancellationToken);
+        }
+
         var entity = await dbContext.ScanJobs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity is null)
         {
@@ -93,6 +160,28 @@ public class ScanJobsService(ScanJobsDbContext dbContext) : IScanJobsService
 
     public async Task<ScanJobDto?> UpdateProgressAsync(Guid id, UpdateScanJobProgressRequest request, CancellationToken cancellationToken)
     {
+        if (dbContext.Database.IsRelational())
+        {
+            var keepNotes = string.IsNullOrWhiteSpace(request.Notes);
+            var rows = await dbContext.ScanJobs
+                .Where(x => x.Id == id)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(v => v.FilesScanned, request.FilesScanned)
+                    .SetProperty(v => v.FilesHashed, request.FilesHashed)
+                    .SetProperty(v => v.ProgressPercent, Math.Clamp(request.ProgressPercent, 0, 100))
+                    .SetProperty(v => v.WarningCount, Math.Max(0, request.WarningCount))
+                    .SetProperty(v => v.ErrorCount, Math.Max(0, request.ErrorCount))
+                    .SetProperty(v => v.DuplicateGroupsFound, Math.Max(0, request.DuplicateGroupsFound))
+                    .SetProperty(v => v.Notes, v => keepNotes ? v.Notes : request.Notes!), cancellationToken);
+
+            if (rows == 0)
+            {
+                return null;
+            }
+
+            return await GetByIdAsync(id, cancellationToken);
+        }
+
         var entity = await dbContext.ScanJobs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity is null)
         {

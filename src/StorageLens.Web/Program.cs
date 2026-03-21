@@ -1,10 +1,14 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
 using StorageLens.Shared.Infrastructure;
 using StorageLens.Web.Clients;
 using StorageLens.Web.Data;
 using StorageLens.Web.Services;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddStorageLensObservability("StorageLens.Web");
 
 builder.Services.AddRazorPages(options =>
 {
@@ -31,14 +35,33 @@ builder.Services.Configure<ScannerPerformanceOptions>(
 
 builder.Services.Configure<PricingOptions>(
     builder.Configuration.GetSection(PricingOptions.SectionName));
+builder.Services.Configure<UpstreamResilienceOptions>(
+    builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName));
 
 builder.Services.AddMemoryCache();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddSlidingWindowLimiter("global", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 200;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.SegmentsPerWindow = 6;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 builder.Services.AddScoped<IAlertEmailService, SmtpAlertEmailService>();
 
 builder.Services.AddScoped<ITierAccessService, TierAccessService>();
 
 var dbCfg = builder.Configuration.GetSection(DatabaseConfigOptions.SectionName).Get<DatabaseConfigOptions>()
             ?? new DatabaseConfigOptions();
+
+if (!dbCfg.UseInMemory && string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase))
+{
+    dbCfg.UseInMemory = true;
+}
 
 builder.Services.AddDbContext<ClientsDbContext>(options =>
 {
@@ -56,24 +79,29 @@ builder.Services.AddDbContext<ClientsDbContext>(options =>
 
 var endpoints = builder.Configuration.GetSection(ServiceEndpointsOptions.SectionName).Get<ServiceEndpointsOptions>()
                ?? new ServiceEndpointsOptions();
+var upstreamResilience = builder.Configuration.GetSection(UpstreamResilienceOptions.SectionName).Get<UpstreamResilienceOptions>()
+                       ?? new UpstreamResilienceOptions();
 
-builder.Services.AddHttpClient<LocationsApiClient>(client => client.BaseAddress = new Uri(endpoints.Locations));
-builder.Services.AddHttpClient<ScanJobsApiClient>(client => client.BaseAddress = new Uri(endpoints.ScanJobs));
-builder.Services.AddHttpClient<FileInventoryApiClient>(client => client.BaseAddress = new Uri(endpoints.FileInventory));
-builder.Services.AddHttpClient<DuplicatesApiClient>(client => client.BaseAddress = new Uri(endpoints.Duplicates));
-builder.Services.AddHttpClient<AnalyticsApiClient>(client => client.BaseAddress = new Uri(endpoints.Analytics));
-builder.Services.AddHttpClient<OrchestratorApiClient>(client => client.BaseAddress = new Uri(endpoints.Orchestrator));
+var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
+
+builder.Services.AddConfiguredUpstreamClient<LocationsApiClient>("locations", endpoints.Locations, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<ScanJobsApiClient>("scanjobs", endpoints.ScanJobs, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<FileInventoryApiClient>("fileinventory", endpoints.FileInventory, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<DuplicatesApiClient>("duplicates", endpoints.Duplicates, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<AnalyticsApiClient>("analytics", endpoints.Analytics, serviceApiKey, upstreamResilience);
+builder.Services.AddConfiguredUpstreamClient<OrchestratorApiClient>("orchestrator", endpoints.Orchestrator, serviceApiKey, upstreamResilience);
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();   // GlobalExceptionHandler registered via AddStorageLensObservability
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
+app.UseCorrelationId();
+app.UseRateLimiter();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

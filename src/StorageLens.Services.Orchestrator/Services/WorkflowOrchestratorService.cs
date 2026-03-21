@@ -13,6 +13,16 @@ public class WorkflowOrchestratorService(
     IHttpClientFactory httpClientFactory,
     ILogger<WorkflowOrchestratorService> logger) : IWorkflowOrchestratorService
 {
+    private static readonly IReadOnlyDictionary<WorkflowStatus, HashSet<WorkflowStatus>> AllowedTransitions =
+        new Dictionary<WorkflowStatus, HashSet<WorkflowStatus>>
+        {
+            [WorkflowStatus.Pending] = [WorkflowStatus.Running, WorkflowStatus.RetryQueued, WorkflowStatus.Failed],
+            [WorkflowStatus.Running] = [WorkflowStatus.Completed, WorkflowStatus.Failed, WorkflowStatus.RetryQueued],
+            [WorkflowStatus.Completed] = [WorkflowStatus.RetryQueued],
+            [WorkflowStatus.Failed] = [WorkflowStatus.RetryQueued],
+            [WorkflowStatus.RetryQueued] = [WorkflowStatus.Running, WorkflowStatus.Failed, WorkflowStatus.RetryQueued]
+        };
+
     public async Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, CancellationToken cancellationToken)
     {
         var locationsClient = httpClientFactory.CreateClient("locations");
@@ -68,7 +78,7 @@ public class WorkflowOrchestratorService(
             return null;
         }
 
-        workflow.Status = WorkflowStatus.RetryQueued.ToString();
+        SetWorkflowStatus(workflow, WorkflowStatus.RetryQueued);
         workflow.LastError = string.Empty;
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -85,7 +95,7 @@ public class WorkflowOrchestratorService(
         }
 
         workflow.RetryCount += 1;
-        workflow.Status = WorkflowStatus.RetryQueued.ToString();
+        SetWorkflowStatus(workflow, WorkflowStatus.RetryQueued);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         await EnqueueAsync(workflow.Id, cancellationToken);
@@ -106,11 +116,26 @@ public class WorkflowOrchestratorService(
             return;
         }
 
+        if (!Enum.TryParse<WorkflowStatus>(workflow.Status, true, out var currentStatus))
+        {
+            logger.LogWarning("Skipping workflow {WorkflowId} due to unknown status '{Status}'", workflowId, workflow.Status);
+            return;
+        }
+
+        if (currentStatus is not WorkflowStatus.Pending and not WorkflowStatus.RetryQueued)
+        {
+            logger.LogInformation(
+                "Skipping workflow {WorkflowId} processing because status '{Status}' is not runnable.",
+                workflowId,
+                workflow.Status);
+            return;
+        }
+
         var scanJobsClient = httpClientFactory.CreateClient("scanjobs");
 
         try
         {
-            workflow.Status = WorkflowStatus.Running.ToString();
+            SetWorkflowStatus(workflow, WorkflowStatus.Running);
             await dbContext.SaveChangesAsync(cancellationToken);
 
             await RunStepAsync(workflow, "Scanning", async () =>
@@ -183,7 +208,7 @@ public class WorkflowOrchestratorService(
                 response.EnsureSuccessStatusCode();
             }, cancellationToken);
 
-            workflow.Status = WorkflowStatus.Completed.ToString();
+            SetWorkflowStatus(workflow, WorkflowStatus.Completed);
             workflow.CompletedAtUtc = DateTimeOffset.UtcNow;
             workflow.LastError = string.Empty;
 
@@ -216,7 +241,7 @@ public class WorkflowOrchestratorService(
         {
             logger.LogError(ex, "Workflow {WorkflowId} failed", workflowId);
 
-            workflow.Status = WorkflowStatus.Failed.ToString();
+            SetWorkflowStatus(workflow, WorkflowStatus.Failed);
             workflow.CompletedAtUtc = DateTimeOffset.UtcNow;
             workflow.LastError = ex.Message;
 
@@ -238,18 +263,42 @@ public class WorkflowOrchestratorService(
         }
     }
 
+    private static void SetWorkflowStatus(WorkflowInstance workflow, WorkflowStatus nextStatus)
+    {
+        if (!Enum.TryParse<WorkflowStatus>(workflow.Status, true, out var currentStatus))
+        {
+            throw new InvalidOperationException($"Unknown workflow status '{workflow.Status}'.");
+        }
+
+        if (currentStatus == nextStatus)
+        {
+            workflow.Status = nextStatus.ToString();
+            return;
+        }
+
+        if (!AllowedTransitions.TryGetValue(currentStatus, out var allowed) || !allowed.Contains(nextStatus))
+        {
+            throw new InvalidOperationException(
+                $"Invalid workflow status transition from '{currentStatus}' to '{nextStatus}'.");
+        }
+
+        workflow.Status = nextStatus.ToString();
+    }
+
     private async Task RunStepAsync(
         WorkflowInstance workflow,
         string stepName,
         Func<Task> action,
         CancellationToken cancellationToken)
     {
+        WorkflowStepStateContract.EnsureKnownStepName(stepName);
+
         var step = new WorkflowStepExecution
         {
             Id = Guid.NewGuid(),
             WorkflowInstanceId = workflow.Id,
             StepName = stepName,
-            Status = "Running",
+            Status = WorkflowStepStatus.Running.ToString(),
             StartedAtUtc = DateTimeOffset.UtcNow,
             Notes = "Started"
         };
@@ -260,14 +309,14 @@ public class WorkflowOrchestratorService(
         try
         {
             await action();
-            step.Status = "Completed";
+            SetStepStatus(step, WorkflowStepStatus.Completed);
             step.Notes = "Completed";
             step.CompletedAtUtc = DateTimeOffset.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            step.Status = "Failed";
+            SetStepStatus(step, WorkflowStepStatus.Failed);
             step.Notes = ex.Message;
             step.CompletedAtUtc = DateTimeOffset.UtcNow;
 
@@ -283,6 +332,14 @@ public class WorkflowOrchestratorService(
             await dbContext.SaveChangesAsync(cancellationToken);
             throw;
         }
+    }
+
+    private static void SetStepStatus(WorkflowStepExecution step, WorkflowStepStatus nextStatus)
+    {
+        WorkflowStepStateContract.EnsureKnownStepName(step.StepName);
+        var currentStatus = WorkflowStepStateContract.ParseStatus(step.Status);
+        WorkflowStepStateContract.EnsureTransitionAllowed(currentStatus, nextStatus);
+        step.Status = nextStatus.ToString();
     }
 
     private static WorkflowInstanceDto Map(WorkflowInstance workflow)

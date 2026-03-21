@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.Scanner.Interfaces;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.Scanner.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ScannerController(IScannerExecutionService scannerExecutionService) : ControllerBase

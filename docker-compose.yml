@@ -1,4 +1,21 @@
 services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: storagelens-jaeger
+    ports:
+      - "16686:16686"   # Jaeger UI  →  http://localhost:16686
+      - "4317:4317"     # OTLP gRPC  (used by all services)
+      - "4318:4318"     # OTLP HTTP  (alternative)
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  redis:
+    image: redis:7-alpine
+    container_name: storagelens-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save "" --loglevel warning
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: storagelens-sql
@@ -27,8 +44,14 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__LocationsDb: "${STORAGELENS_AZURE_SQL_CONNECTION_STRING:-Server=sqlserver,1433;Database=StorageLensLocations;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;}"
       Database__UseInMemory: "false"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     depends_on:
       - sqlserver
+      - jaeger
+      - redis
+      - redis
 
   scanjobs:
     build:
@@ -40,8 +63,14 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__ScanJobsDb: "${STORAGELENS_AZURE_SQL_CONNECTION_STRING:-Server=sqlserver,1433;Database=StorageLensScanJobs;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;}"
       Database__UseInMemory: "false"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     depends_on:
       - sqlserver
+      - jaeger
+      - redis
+      - redis
 
   fileinventory:
     build:
@@ -53,8 +82,14 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__FileInventoryDb: "${STORAGELENS_AZURE_SQL_CONNECTION_STRING:-Server=sqlserver,1433;Database=StorageLensFileInventory;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;}"
       Database__UseInMemory: "false"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     depends_on:
       - sqlserver
+      - jaeger
+      - redis
+      - redis
 
   duplicates:
     build:
@@ -67,9 +102,15 @@ services:
       ConnectionStrings__DuplicatesDb: "${STORAGELENS_AZURE_SQL_CONNECTION_STRING:-Server=sqlserver,1433;Database=StorageLensDuplicates;User Id=sa;Password=${STORAGELENS_SQL_PASSWORD};TrustServerCertificate=True;}"
       Database__UseInMemory: "false"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     depends_on:
       - sqlserver
       - fileinventory
+      - jaeger
+      - redis
+      - redis
 
   analytics:
     build:
@@ -83,11 +124,17 @@ services:
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
       UpstreamServices__Duplicates: "http://duplicates:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     depends_on:
       - locations
       - scanjobs
       - fileinventory
       - duplicates
+      - jaeger
+      - redis
+      - redis
 
   scanner:
     build:
@@ -101,6 +148,9 @@ services:
       Database__UseInMemory: "false"
       UpstreamServices__FileInventory: "http://fileinventory:8080/"
       UpstreamServices__ScanJobs: "http://scanjobs:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     volumes:
       - ./sample-scan:/scan-root
       # The following Windows-specific mounts enable Scanner's built-in
@@ -114,6 +164,9 @@ services:
       - sqlserver
       - fileinventory
       - scanjobs
+      - jaeger
+      - redis
+      - redis
 
   hashing:
     build:
@@ -130,12 +183,18 @@ services:
       HashingWorker__MaxDegreeOfParallelism: "4"
       HashingWorker__BatchSize: "500"
       HashingWorker__MaxFileSizeBytes: "2147483648"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     volumes:
       - ./sample-scan:/scan-root
     depends_on:
       - sqlserver
       - fileinventory
       - scanjobs
+      - jaeger
+      - redis
+      - redis
 
   orchestrator:
     build:
@@ -153,6 +212,9 @@ services:
       UpstreamServices__Hashing: "http://hashing:8080/"
       UpstreamServices__Duplicates: "http://duplicates:8080/"
       UpstreamServices__Analytics: "http://analytics:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     depends_on:
       - sqlserver
       - locations
@@ -161,6 +223,9 @@ services:
       - hashing
       - duplicates
       - analytics
+      - jaeger
+      - redis
+      - redis
 
   web:
     build:
@@ -170,12 +235,16 @@ services:
       - "5001:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
+      DatabaseConfig__UseInMemory: "true"
       ServiceEndpoints__Locations: "http://locations:8080/"
       ServiceEndpoints__ScanJobs: "http://scanjobs:8080/"
       ServiceEndpoints__FileInventory: "http://fileinventory:8080/"
       ServiceEndpoints__Duplicates: "http://duplicates:8080/"
       ServiceEndpoints__Analytics: "http://analytics:8080/"
       ServiceEndpoints__Orchestrator: "http://orchestrator:8080/"
+      ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      RateLimit__Redis: "redis:6379"
+      Observability__OtlpEndpoint: "http://jaeger:4317"
     depends_on:
       - locations
       - scanjobs
@@ -183,6 +252,9 @@ services:
       - duplicates
       - analytics
       - orchestrator
+      - jaeger
+      - redis
+      - redis
 
 volumes:
   storagelens-sql-data:

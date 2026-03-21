@@ -9,7 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-    <link rel="icon" type="image/png" href="~/images/storagelens-icon.png" asp-append-version="true" />
+    <link rel="icon" type="image/png" href="~/images/storagelens-logo-small.png" asp-append-version="true" />
+    <link rel="shortcut icon" type="image/png" href="~/images/storagelens-logo-small.png" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/StorageLens.Web.styles.css" asp-append-version="true" />
 </head>
@@ -29,9 +30,16 @@
     <div class="app-shell">
         <aside class="sidebar-panel" id="sidebarPanel">
             <div class="sidebar-brand text-center py-4">
-                <img src="~/images/storagelens-logo.png"
-                     alt="StorageLens Logo"
-                     class="sidebar-logo">
+                <span class="sl-logo sl-logo--sidebar" role="img" aria-label="StorageLens logo">
+                    <span class="sl-logo__line sl-logo__line--left"></span>
+                    <span class="sl-logo__core">
+                        <span class="sl-logo__frame"></span>
+                        <span class="sl-logo__bar sl-logo__bar--top"></span>
+                        <span class="sl-logo__text">ST<span class="sl-logo__o"></span>RAGELENS</span>
+                        <span class="sl-logo__bar sl-logo__bar--bottom"></span>
+                    </span>
+                    <span class="sl-logo__line sl-logo__line--right"></span>
+                </span>
 
                 <div class="sidebar-title">
                     Storage Intelligence

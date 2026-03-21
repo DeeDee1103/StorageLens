@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose a new capability or enhancement
+labels: ["enhancement", "triage-needed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share the problem and expected outcome. Include architecture and documentation impact when known.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are we solving?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe expected behavior and scope.
+    validations:
+      required: true
+
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Architecture impact
+      description: Services/contracts/workflow impacted (if known)
+      placeholder: Orchestrator + Scanner contracts affected
+
+  - type: textarea
+    id: testing
+    attributes:
+      label: Testing and QA impact
+      description: What new tests should be added?
+
+  - type: textarea
+    id: docs
+    attributes:
+      label: Documentation impact
+      description: Which docs should be updated?
+      placeholder: docs/technical/api-specification.md, docs/CHANGELOG.md

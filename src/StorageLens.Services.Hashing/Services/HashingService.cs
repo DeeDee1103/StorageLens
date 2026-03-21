@@ -7,6 +7,7 @@ using StorageLens.Services.Hashing.Data;
 using StorageLens.Services.Hashing.Interfaces;
 using StorageLens.Services.Hashing.Models;
 using StorageLens.Shared.Contracts;
+using StorageLens.Shared.Infrastructure;
 
 namespace StorageLens.Services.Hashing.Services;
 
@@ -110,16 +111,9 @@ public class HashingService(
 
         try
         {
-            if (!File.Exists(file.FilePath))
-            {
-                throw new FileNotFoundException("File disappeared before hashing", file.FilePath);
-            }
-
-            var fileInfo = new FileInfo(file.FilePath);
-            if (fileInfo.Length > maxFileSizeBytes)
-            {
-                throw new InvalidOperationException($"File exceeds max hash size limit of {maxFileSizeBytes} bytes.");
-            }
+            // SECURITY: Validate file existence and size BEFORE opening stream to prevent memory DoS attacks
+            // File size check must happen before stream creation to prevent resource exhaustion
+            FileSecurityValidation.ValidateFileBeforeProcessing(file.FilePath, maxFileSizeBytes);
 
             await fileInventoryClient.PostAsJsonAsync(
                 $"api/files/{file.Id}/hash-result",

@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.Locations.Interfaces;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.Locations.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class LocationsController(ILocationService locationService) : ControllerBase
@@ -25,11 +27,8 @@ public class LocationsController(ILocationService locationService) : ControllerB
     [HttpPost]
     public async Task<ActionResult<StorageLocationDto>> Create([FromBody] CreateStorageLocationRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Path))
-        {
-            return BadRequest("Name and path are required.");
-        }
-
+        // Validation handled by FluentValidation (CreateStorageLocationRequestValidator).
+        // Invalid requests are rejected with 400 + ProblemDetails before reaching here.
         var created = await locationService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }

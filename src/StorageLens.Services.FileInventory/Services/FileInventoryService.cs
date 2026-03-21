@@ -8,6 +8,8 @@ namespace StorageLens.Services.FileInventory.Services;
 
 public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInventoryService
 {
+    private const int ExistingPathQueryChunkSize = 1000;
+
     public async Task<IReadOnlyList<FileRecordDto>> GetAllAsync(string? search, string? extension, int page, int pageSize, CancellationToken cancellationToken)
     {
         var query = dbContext.FileRecords.AsNoTracking().AsQueryable();
@@ -26,15 +28,53 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
             .OrderByDescending(x => x.SizeBytes)
             .Skip((Math.Max(page, 1) - 1) * Math.Max(pageSize, 1))
             .Take(Math.Clamp(pageSize, 1, 5000))
+            .Select(x => new FileRecordDto(
+                x.Id,
+                x.StorageLocationId,
+                x.LocationName,
+                x.FileName,
+                x.FilePath,
+                x.Extension,
+                x.SizeBytes,
+                x.LastModifiedDate,
+                x.HashValue,
+                x.IsDuplicate,
+                x.DuplicateGroupId,
+                x.HashStatus,
+                x.ScanJobId,
+                x.CorrelationId,
+                x.HashCalculatedDate,
+                x.DiscoveryDate,
+                x.ScanSourcePath))
             .ToListAsync(cancellationToken);
 
-        return items.Select(Map).ToList();
+        return items;
     }
 
     public async Task<FileRecordDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await dbContext.FileRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        return entity is null ? null : Map(entity);
+        return await dbContext.FileRecords
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new FileRecordDto(
+                x.Id,
+                x.StorageLocationId,
+                x.LocationName,
+                x.FileName,
+                x.FilePath,
+                x.Extension,
+                x.SizeBytes,
+                x.LastModifiedDate,
+                x.HashValue,
+                x.IsDuplicate,
+                x.DuplicateGroupId,
+                x.HashStatus,
+                x.ScanJobId,
+                x.CorrelationId,
+                x.HashCalculatedDate,
+                x.DiscoveryDate,
+                x.ScanSourcePath))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<FileRecordDto>> GetByLocationAsync(Guid locationId, CancellationToken cancellationToken)
@@ -44,9 +84,27 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
             .Where(x => x.StorageLocationId == locationId)
             .OrderByDescending(x => x.LastModifiedDate)
             .Take(150)
+            .Select(x => new FileRecordDto(
+                x.Id,
+                x.StorageLocationId,
+                x.LocationName,
+                x.FileName,
+                x.FilePath,
+                x.Extension,
+                x.SizeBytes,
+                x.LastModifiedDate,
+                x.HashValue,
+                x.IsDuplicate,
+                x.DuplicateGroupId,
+                x.HashStatus,
+                x.ScanJobId,
+                x.CorrelationId,
+                x.HashCalculatedDate,
+                x.DiscoveryDate,
+                x.ScanSourcePath))
             .ToListAsync(cancellationToken);
 
-        return items.Select(Map).ToList();
+        return items;
     }
 
     public async Task<FileBatchIngestResultDto> UpsertBatchAsync(FileMetadataBatchIngestRequest request, CancellationToken cancellationToken)
@@ -57,9 +115,7 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
         }
 
         var filePaths = request.Files.Select(x => x.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        var existingByPath = await dbContext.FileRecords
-            .Where(x => filePaths.Contains(x.FilePath))
-            .ToDictionaryAsync(x => x.FilePath, StringComparer.OrdinalIgnoreCase, cancellationToken);
+        var existingByPath = await GetExistingByPathAsync(filePaths, cancellationToken);
 
         var inserted = 0;
         var updated = 0;
@@ -135,20 +191,35 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
         var items = await query
             .OrderBy(x => x.DiscoveryDate)
             .Take(Math.Clamp(take, 1, 5000))
+            .Select(x => new PendingHashFileDto(
+                x.Id,
+                x.StorageLocationId,
+                x.ScanJobId,
+                x.CorrelationId,
+                x.FilePath,
+                x.SizeBytes,
+                x.LastModifiedDate))
             .ToListAsync(cancellationToken);
 
-        return items.Select(x => new PendingHashFileDto(
-            x.Id,
-            x.StorageLocationId,
-            x.ScanJobId,
-            x.CorrelationId,
-            x.FilePath,
-            x.SizeBytes,
-            x.LastModifiedDate)).ToList();
+        return items;
     }
 
     public async Task<bool> UpdateHashResultAsync(Guid id, FileHashResultRequest request, CancellationToken cancellationToken)
     {
+        if (dbContext.Database.IsRelational())
+        {
+            var rows = await dbContext.FileRecords
+                .Where(x => x.Id == id)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(v => v.CorrelationId, request.CorrelationId)
+                    .SetProperty(v => v.HashStatus, request.HashStatus)
+                    .SetProperty(v => v.HashValue, request.HashValue ?? string.Empty)
+                    .SetProperty(v => v.HashCalculatedDate, request.ProcessedAtUtc)
+                    .SetProperty(v => v.HashError, request.Error), cancellationToken);
+
+            return rows > 0;
+        }
+
         var entity = await dbContext.FileRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity is null)
         {
@@ -176,6 +247,39 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
             return 0;
         }
 
+        var duplicateHashValues = duplicateHashes
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
+
+        if (duplicateHashValues.Count == 0)
+        {
+            return 0;
+        }
+
+        if (dbContext.Database.IsRelational())
+        {
+            var shouldBeDuplicate = dbContext.FileRecords.Where(x =>
+                x.ScanJobId == scanJobId &&
+                x.CorrelationId == correlationId &&
+                !string.IsNullOrWhiteSpace(x.HashValue) &&
+                duplicateHashValues.Contains(x.HashValue));
+
+            var shouldBeUnique = dbContext.FileRecords.Where(x =>
+                x.ScanJobId == scanJobId &&
+                x.CorrelationId == correlationId &&
+                (string.IsNullOrWhiteSpace(x.HashValue) || !duplicateHashValues.Contains(x.HashValue)) &&
+                x.IsDuplicate);
+
+            var setTrueCount = await shouldBeDuplicate
+                .Where(x => !x.IsDuplicate)
+                .ExecuteUpdateAsync(x => x.SetProperty(v => v.IsDuplicate, true), cancellationToken);
+
+            var setFalseCount = await shouldBeUnique
+                .ExecuteUpdateAsync(x => x.SetProperty(v => v.IsDuplicate, false), cancellationToken);
+
+            return setTrueCount + setFalseCount;
+        }
+
         var records = await dbContext.FileRecords
             .Where(x => x.ScanJobId == scanJobId && x.CorrelationId == correlationId)
             .ToListAsync(cancellationToken);
@@ -198,6 +302,32 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
         }
 
         return modifiedCount;
+    }
+
+    private async Task<Dictionary<string, FileRecord>> GetExistingByPathAsync(
+        IReadOnlyList<string> filePaths,
+        CancellationToken cancellationToken)
+    {
+        var existingByPath = new Dictionary<string, FileRecord>(StringComparer.OrdinalIgnoreCase);
+
+        for (var index = 0; index < filePaths.Count; index += ExistingPathQueryChunkSize)
+        {
+            var chunk = filePaths
+                .Skip(index)
+                .Take(ExistingPathQueryChunkSize)
+                .ToList();
+
+            var matches = await dbContext.FileRecords
+                .Where(x => chunk.Contains(x.FilePath))
+                .ToListAsync(cancellationToken);
+
+            foreach (var match in matches)
+            {
+                existingByPath[match.FilePath] = match;
+            }
+        }
+
+        return existingByPath;
     }
 
     private static FileRecordDto Map(FileRecord entity) =>

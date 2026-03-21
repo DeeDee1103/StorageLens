@@ -8,90 +8,110 @@ namespace StorageLens.Shared.Infrastructure.Tests;
 public class HttpClientPolicyPipelineIntegrationTests
 {
     [Fact]
-    public async Task HttpClient_WithCorrelationIdHandler_AddsCorrelationIdHeader()
+    public async Task ConfiguredTypedClient_AppliesRetryPolicy_ForSafeGetRequestsOnly()
     {
-        HttpRequestMessage? capturedRequest = null;
-
         var services = new ServiceCollection();
-        services.AddSingleton<CorrelationIdDelegatingHandler>();
-        services.AddHttpClient("test")
-            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
-            .ConfigurePrimaryHttpMessageHandler(() => new StubHttpMessageHandler(req =>
-            {
-                capturedRequest = req;
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-            }));
+        services.AddLogging();
 
-        var provider = services.BuildServiceProvider();
-        var factory = provider.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient("test");
+        var resilience = new UpstreamResilienceOptions
+        {
+            MaxRetryAttempts = 2,
+            TimeoutSeconds = 30,
+            BaseDelaySeconds = 0.01,
+            MaxDelaySeconds = 0.02,
+            CircuitBreakerFailures = 50,
+            CircuitBreakerBreakSeconds = 30
+        };
 
-        await client.GetAsync("http://localhost/test");
+        var getThenSuccessHandler = new SequenceHandler(
+            HttpStatusCode.InternalServerError,
+            HttpStatusCode.InternalServerError,
+            HttpStatusCode.OK);
 
-        Assert.NotNull(capturedRequest);
-        Assert.True(capturedRequest.Headers.Contains(CorrelationIdDelegatingHandler.HeaderName));
+        services
+            .AddConfiguredUpstreamClient<TestTypedClient>(
+                profileName: "test-upstream",
+                baseAddress: "http://localhost",
+                serviceApiKey: string.Empty,
+                resilienceOptions: resilience)
+            .ConfigurePrimaryHttpMessageHandler(() => getThenSuccessHandler);
+
+        await using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<TestTypedClient>();
+
+        var getResponse = await client.GetPingAsync();
+
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        Assert.Equal(3, getThenSuccessHandler.CallCount);
     }
 
     [Fact]
-    public async Task HttpClient_WithCorrelationIdHandler_DoesNotOverwriteExistingHeader()
+    public async Task ConfiguredTypedClient_DoesNotRetry_ForPostRequests()
     {
-        HttpRequestMessage? capturedRequest = null;
-        const string existingCorrelationId = "existing-correlation-id";
-
         var services = new ServiceCollection();
-        services.AddSingleton<CorrelationIdDelegatingHandler>();
-        services.AddHttpClient("test")
-            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
-            .ConfigurePrimaryHttpMessageHandler(() => new StubHttpMessageHandler(req =>
-            {
-                capturedRequest = req;
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-            }));
+        services.AddLogging();
 
-        var provider = services.BuildServiceProvider();
-        var factory = provider.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient("test");
+        var resilience = new UpstreamResilienceOptions
+        {
+            MaxRetryAttempts = 3,
+            TimeoutSeconds = 30,
+            BaseDelaySeconds = 0.01,
+            MaxDelaySeconds = 0.02,
+            CircuitBreakerFailures = 50,
+            CircuitBreakerBreakSeconds = 30
+        };
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost/test");
-        request.Headers.TryAddWithoutValidation(CorrelationIdDelegatingHandler.HeaderName, existingCorrelationId);
-        await client.SendAsync(request);
+        var alwaysFailHandler = new SequenceHandler(HttpStatusCode.InternalServerError);
 
-        Assert.NotNull(capturedRequest);
-        var headerValues = capturedRequest.Headers.GetValues(CorrelationIdDelegatingHandler.HeaderName);
-        Assert.Equal(existingCorrelationId, headerValues.Single());
+        services
+            .AddConfiguredUpstreamClient<TestTypedClient>(
+                profileName: "test-upstream",
+                baseAddress: "http://localhost",
+                serviceApiKey: string.Empty,
+                resilienceOptions: resilience)
+            .ConfigurePrimaryHttpMessageHandler(() => alwaysFailHandler);
+
+        await using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<TestTypedClient>();
+
+        var postResponse = await client.PostPingAsync();
+
+        Assert.Equal(HttpStatusCode.InternalServerError, postResponse.StatusCode);
+        Assert.Equal(1, alwaysFailHandler.CallCount);
     }
 
-    [Fact]
-    public async Task HttpClient_WithCorrelationIdHandler_GeneratesUniqueIdsPerRequest()
+    private sealed class TestTypedClient(HttpClient httpClient)
     {
-        var correlationIds = new List<string>();
+        public Task<HttpResponseMessage> GetPingAsync() =>
+            httpClient.GetAsync("/ping");
 
-        var services = new ServiceCollection();
-        services.AddSingleton<CorrelationIdDelegatingHandler>();
-        services.AddHttpClient("test")
-            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
-            .ConfigurePrimaryHttpMessageHandler(() => new StubHttpMessageHandler(req =>
-            {
-                var id = req.Headers.GetValues(CorrelationIdDelegatingHandler.HeaderName).First();
-                correlationIds.Add(id);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-            }));
-
-        var provider = services.BuildServiceProvider();
-        var factory = provider.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient("test");
-
-        await client.GetAsync("http://localhost/test");
-        await client.GetAsync("http://localhost/test");
-
-        Assert.Equal(2, correlationIds.Count);
-        Assert.NotEqual(correlationIds[0], correlationIds[1]);
+        public Task<HttpResponseMessage> PostPingAsync() =>
+            httpClient.PostAsync("/ping", content: null);
     }
 
-    private sealed class StubHttpMessageHandler(
-        Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) : HttpMessageHandler
+    private sealed class SequenceHandler(params HttpStatusCode[] sequence) : HttpMessageHandler
     {
+        private readonly HttpStatusCode[] _sequence = sequence.Length == 0
+            ? [HttpStatusCode.OK]
+            : sequence;
+
+        private int _index;
+
+        public int CallCount { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => handler(request);
+        {
+            CallCount += 1;
+
+            var currentIndex = Math.Min(_index, _sequence.Length - 1);
+            var statusCode = _sequence[currentIndex];
+            _index += 1;
+
+            return Task.FromResult(new HttpResponseMessage(statusCode)
+            {
+                RequestMessage = request,
+                Content = new StringContent("test")
+            });
+        }
     }
 }

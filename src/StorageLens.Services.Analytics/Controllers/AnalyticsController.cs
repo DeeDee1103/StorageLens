@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.Analytics.Interfaces;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.Analytics.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AnalyticsController(IAnalyticsService analyticsService) : ControllerBase
