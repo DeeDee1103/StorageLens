@@ -213,6 +213,9 @@ Example:
   - **Duplicate-Heavy Locations** panel redesigned from a plain list to a ranked visual impact view with rank badges, share percentages, and proportional impact bars.
 
 ### Added
+- **`StorageLens.Shared.Infrastructure.Tests` project** — new xUnit test project covering the HTTP client policy pipeline behaviour:
+  - `HttpClientPolicyPipelineIntegrationTests` with three integration tests verifying that `CorrelationIdDelegatingHandler` is correctly resolved from DI and properly adds the `X-Correlation-Id` header to outgoing requests, does not overwrite an already-present header, and generates a unique ID per request.
+- **`CorrelationIdDelegatingHandler`** class added to `StorageLens.Shared.Infrastructure` — a `DelegatingHandler` that automatically attaches a `X-Correlation-Id` header to every outgoing HTTP request when the header is not already present, enabling end-to-end correlation tracing across services.
 - **Chart details modal patterns** on Dashboard and Reports pages for chart click-drill interactions.
 - **Interaction hints** on chart headers (e.g., "Click bars for details", "Click points for details") to make interactivity discoverable.
 - **Alerts page** (`/Alerts`) with adjustable min/max threshold sliders, test recipient support, and automatic threshold-check email dispatch when usage reaches the max threshold.
@@ -220,6 +223,7 @@ Example:
 - **`AlertsModelTests`** unit test validating that threshold crossing triggers an email dispatch call.
 
 ### Fixed
+- **`CorrelationIdDelegatingHandler` DI registration** — added `services.AddSingleton<CorrelationIdDelegatingHandler>()` in `HttpClientPolicyPipelineIntegrationTests` so the handler is resolvable when `AddHttpMessageHandler<T>()` activates it through the DI container. Previously tests threw `System.InvalidOperationException: No service for type 'StorageLens.Shared.Infrastructure.CorrelationIdDelegatingHandler' has been registered.`
 - **Service-unavailable error handling** — all API client methods (`LocationsApiClient`, `ScanJobsApiClient`, `FileInventoryApiClient`, `DuplicatesApiClient`, `AnalyticsApiClient`, `OrchestratorApiClient`) now catch `HttpRequestException` and log a warning instead of propagating the exception to the error page. Pages that fail to load backend data now display a clear yellow alert banner rather than crashing.
 - **`DuplicatesService` build error** — `GroupBy` result was projected to `List<FileRecordDto>` via `.Select(g => g.OrderByDescending(...).ToList())`, causing the group key to be lost. The select now projects to a named tuple `(Key, Files)` so `HashValue` and the final `duplicateHashValues` collection are correctly populated.
 
