@@ -5,7 +5,7 @@ namespace StorageLens.Services.FileInventory.Extensions;
 
 public static class FileInventorySeeder
 {
-    public static async Task SeedAsync(FileInventoryDbContext dbContext)
+    public static async Task SeedAsync(FileInventoryDbContext dbContext, CancellationToken cancellationToken = default)
     {
         if (dbContext.FileRecords.Any())
         {
@@ -50,6 +50,6 @@ public static class FileInventorySeeder
         }
 
         dbContext.FileRecords.AddRange(records);
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

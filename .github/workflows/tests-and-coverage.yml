@@ -1,0 +1,74 @@
+name: quality-gates
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  build-test-coverage:
+    name: Build Test Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore StorageLens.sln
+
+      - name: Build
+        run: dotnet build StorageLens.sln --configuration Release --no-restore
+
+      - name: Test with coverage
+        run: dotnet test StorageLens.sln --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Enforce minimum line coverage
+        shell: pwsh
+        env:
+          MIN_LINE_COVERAGE: "0.80"
+        run: |
+          $minimum = [double]$env:MIN_LINE_COVERAGE
+          $coverageFiles = Get-ChildItem -Path "TestResults" -Recurse -Filter "coverage.cobertura.xml"
+
+          if (-not $coverageFiles -or $coverageFiles.Count -eq 0) {
+            Write-Error "No coverage.cobertura.xml files were produced."
+            exit 1
+          }
+
+          $hasFailure = $false
+
+          foreach ($coverageFile in $coverageFiles) {
+            [xml]$xml = Get-Content $coverageFile.FullName
+            $lineRate = [double]$xml.coverage.'line-rate'
+            $linePercent = [math]::Round($lineRate * 100, 2)
+            $requiredPercent = [math]::Round($minimum * 100, 2)
+
+            Write-Host "Coverage file: $($coverageFile.FullName)"
+            Write-Host "Line coverage: $linePercent% (required: $requiredPercent%)"
+
+            if ($lineRate -lt $minimum) {
+              Write-Error "Coverage gate failed for $($coverageFile.Name): $linePercent% < $requiredPercent%"
+              $hasFailure = $true
+            }
+          }
+
+          if ($hasFailure) {
+            exit 1
+          }
+
+          Write-Host "Coverage gate passed for all coverage reports."
+
+      - name: Upload test and coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-and-coverage
+          path: |
+            TestResults

@@ -30,6 +30,20 @@ StorageLens addresses this through a workflow-based architecture that captures s
 - Explicit data ownership per bounded context
 - Observable workflow progression via correlation IDs
 - Production-safe startup and retry behavior for infrastructure dependencies
+- Structured logging with JSON output (Serilog) enriched with `ServiceName`, `Environment`, and `CorrelationId` on every log line
+- Distributed tracing via OpenTelemetry with OTLP export (Jaeger in Docker, configurable OTLP endpoint in production)
+
+## Observability Architecture
+
+Every service in the platform shares a common observability stack configured via `StorageLens.Shared.Infrastructure`:
+
+| Layer | Implementation | Notes |
+|---|---|---|
+| **Structured Logging** | Serilog (JSON to stdout) | `CorrelationId` pushed to every log scope automatically |
+| **Distributed Tracing** | OpenTelemetry (OTLP exporter) | ASP.NET Core + HttpClient instrumented; `/health` excluded |
+| **Correlation Propagation** | `X-Correlation-ID` header | Generated at ingress; forwarded on all upstream HTTP calls |
+| **Local Trace UI** | Jaeger all-in-one (Docker) | Available at `http://localhost:16686` when running `docker-compose up` |
+| **Production Exporter** | OTLP endpoint (configurable) | Set `Observability:OtlpEndpoint` to point at Jaeger/Tempo/ADOT |
 
 ## Microservices Approach
 

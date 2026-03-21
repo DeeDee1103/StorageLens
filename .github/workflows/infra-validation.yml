@@ -1,0 +1,32 @@
+name: infra-validation
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - '.github/workflows/infra-validation.yml'
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - '.github/workflows/infra-validation.yml'
+
+jobs:
+  validate-bicep:
+    name: Validate Bicep
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Bicep template
+        run: |
+          az bicep install
+          az bicep build --file infra/main.bicep --outfile /tmp/main.json
+
+      - name: Verify generated ARM template exists
+        run: test -f /tmp/main.json

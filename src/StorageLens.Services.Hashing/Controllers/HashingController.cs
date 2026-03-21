@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.Hashing.Interfaces;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.Hashing.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class HashingController(IHashingService hashingService) : ControllerBase

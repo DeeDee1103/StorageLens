@@ -11,6 +11,7 @@
 - Validate SQL connectivity and credentials
 - Confirm service endpoint routing and DNS
 - Confirm health endpoints and startup ordering
+- Confirm observability resources are provisioned (Log Analytics + Application Insights)
 
 ## Deployment Sequence
 

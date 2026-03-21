@@ -1,0 +1,315 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "4177890898832197365"
+    }
+  },
+  "parameters": {
+    "environmentName": {
+      "type": "string",
+      "metadata": {
+        "description": "AZD environment name."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Primary Azure region for all resources."
+      }
+    },
+    "useDevelopmentCostProfile": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Set to true for low-cost MVP development defaults."
+      }
+    },
+    "sharedSqlConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Shared SQL connection string used by StorageLens services."
+      }
+    }
+  },
+  "variables": {
+    "resourceToken": "[uniqueString(subscription().id, resourceGroup().id, parameters('location'), parameters('environmentName'))]",
+    "tags": {
+      "azd-env-name": "[parameters('environmentName')]"
+    },
+    "appResourceNames": {
+      "web": "[format('azaca{0}01', variables('resourceToken'))]",
+      "locations": "[format('azaca{0}02', variables('resourceToken'))]",
+      "scanjobs": "[format('azaca{0}03', variables('resourceToken'))]",
+      "fileinventory": "[format('azaca{0}04', variables('resourceToken'))]",
+      "duplicates": "[format('azaca{0}05', variables('resourceToken'))]",
+      "analytics": "[format('azaca{0}06', variables('resourceToken'))]",
+      "scanner": "[format('azaca{0}07', variables('resourceToken'))]",
+      "hashing": "[format('azaca{0}08', variables('resourceToken'))]",
+      "orchestrator": "[format('azaca{0}09', variables('resourceToken'))]"
+    },
+    "internalServices": [
+      "locations",
+      "scanjobs",
+      "fileinventory",
+      "duplicates",
+      "analytics",
+      "scanner",
+      "hashing",
+      "orchestrator"
+    ],
+    "defaultCors": {
+      "allowedOrigins": [
+        "*"
+      ],
+      "allowedMethods": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS"
+      ],
+      "allowedHeaders": [
+        "*"
+      ],
+      "exposeHeaders": [
+        "*"
+      ],
+      "allowCredentials": false
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[format('azlog{0}', variables('resourceToken'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": "[if(parameters('useDevelopmentCostProfile'), 7, 30)]",
+        "features": {
+          "searchVersion": 1,
+          "enableLogAccessUsingOnlyResourcePermissions": true
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[format('azappi{0}', variables('resourceToken'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('azlog{0}', variables('resourceToken')))]",
+        "IngestionMode": "LogAnalytics",
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled",
+        "DisableIpMasking": false
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('azlog{0}', variables('resourceToken')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-06-01-preview",
+      "name": "[format('azcr{0}', variables('resourceToken'))]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[if(parameters('useDevelopmentCostProfile'), 'Basic', 'Standard')]"
+      },
+      "tags": "[variables('tags')]",
+      "properties": {
+        "adminUserEnabled": false,
+        "anonymousPullEnabled": false,
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[format('azid{0}', variables('resourceToken'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]"
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2024-10-02-preview",
+      "name": "[format('azcae{0}', variables('resourceToken'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('azlog{0}', variables('resourceToken'))), '2023-09-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('azlog{0}', variables('resourceToken'))), '2023-09-01').primarySharedKey]"
+          }
+        },
+        "peerTrafficConfiguration": {
+          "encryption": {
+            "enabled": true
+          }
+        },
+        "zoneRedundant": false
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('azlog{0}', variables('resourceToken')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken')))]",
+      "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken'))), 'acrpull')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2025-01-01",
+      "name": "[variables('appResourceNames').web]",
+      "location": "[parameters('location')]",
+      "tags": "[union(variables('tags'), createObject('azd-service-name', 'web'))]",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken'))))]": {}
+        }
+      },
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken')))]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken'))), '2023-06-01-preview').loginServer]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken')))]"
+            }
+          ],
+          "ingress": {
+            "external": true,
+            "targetPort": 8080,
+            "allowInsecure": false,
+            "transport": "auto",
+            "corsPolicy": "[variables('defaultCors')]"
+          }
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "web",
+              "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
+              "resources": {
+                "cpu": "[if(parameters('useDevelopmentCostProfile'), json('0.25'), json('0.5'))]",
+                "memory": "[if(parameters('useDevelopmentCostProfile'), '0.5Gi', '1Gi')]"
+              },
+              "env": "[concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'ServiceEndpoints__Locations', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).locations), createObject('name', 'ServiceEndpoints__ScanJobs', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).scanjobs), createObject('name', 'ServiceEndpoints__FileInventory', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).fileinventory), createObject('name', 'ServiceEndpoints__Duplicates', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).duplicates), createObject('name', 'ServiceEndpoints__Analytics', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).analytics), createObject('name', 'ServiceEndpoints__Orchestrator', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).orchestrator)))]"
+            }
+          ],
+          "scale": {
+            "minReplicas": "[if(parameters('useDevelopmentCostProfile'), 0, 1)]",
+            "maxReplicas": "[if(parameters('useDevelopmentCostProfile'), 1, 3)]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken'))), 'acrpull'))]",
+        "[resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken')))]",
+        "[resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken')))]",
+        "[resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken')))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "internalApps",
+        "count": "[length(variables('internalServices'))]"
+      },
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2025-01-01",
+      "name": "[variables('appResourceNames')[variables('internalServices')[copyIndex()]]]",
+      "location": "[parameters('location')]",
+      "tags": "[union(variables('tags'), createObject('azd-service-name', variables('internalServices')[copyIndex()]))]",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken'))))]": {}
+        }
+      },
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken')))]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken'))), '2023-06-01-preview').loginServer]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken')))]"
+            }
+          ],
+          "ingress": {
+            "external": false,
+            "targetPort": 8080,
+            "allowInsecure": false,
+            "transport": "auto",
+            "corsPolicy": "[variables('defaultCors')]"
+          }
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "[variables('internalServices')[copyIndex()]]",
+              "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
+              "resources": {
+                "cpu": "[if(contains(createArray('scanner', 'hashing', 'orchestrator'), variables('internalServices')[copyIndex()]), if(parameters('useDevelopmentCostProfile'), json('0.25'), json('0.5')), json('0.25'))]",
+                "memory": "[if(contains(createArray('scanner', 'hashing', 'orchestrator'), variables('internalServices')[copyIndex()]), if(parameters('useDevelopmentCostProfile'), '0.5Gi', '1Gi'), '0.5Gi')]"
+              },
+              "env": "[createObject('locations', concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'ConnectionStrings__LocationsDb', 'value', parameters('sharedSqlConnectionString')), createObject('name', 'Database__UseInMemory', 'value', 'false'))), 'scanjobs', concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'ConnectionStrings__ScanJobsDb', 'value', parameters('sharedSqlConnectionString')), createObject('name', 'Database__UseInMemory', 'value', 'false'))), 'fileinventory', concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'ConnectionStrings__FileInventoryDb', 'value', parameters('sharedSqlConnectionString')), createObject('name', 'Database__UseInMemory', 'value', 'false'))), 'duplicates', concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'ConnectionStrings__DuplicatesDb', 'value', parameters('sharedSqlConnectionString')), createObject('name', 'Database__UseInMemory', 'value', 'false'), createObject('name', 'UpstreamServices__FileInventory', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).fileinventory))), 'analytics', concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'UpstreamServices__Locations', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).locations), createObject('name', 'UpstreamServices__ScanJobs', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).scanjobs), createObject('name', 'UpstreamServices__FileInventory', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).fileinventory), createObject('name', 'UpstreamServices__Duplicates', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).duplicates))), 'scanner', concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'ConnectionStrings__ScannerDb', 'value', parameters('sharedSqlConnectionString')), createObject('name', 'Database__UseInMemory', 'value', 'false'), createObject('name', 'UpstreamServices__FileInventory', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).fileinventory), createObject('name', 'UpstreamServices__ScanJobs', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).scanjobs))), 'hashing', concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'ConnectionStrings__HashingDb', 'value', parameters('sharedSqlConnectionString')), createObject('name', 'Database__UseInMemory', 'value', 'false'), createObject('name', 'UpstreamServices__FileInventory', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).fileinventory), createObject('name', 'UpstreamServices__ScanJobs', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).scanjobs), createObject('name', 'HashingWorker__MaxDegreeOfParallelism', 'value', '4'), createObject('name', 'HashingWorker__BatchSize', 'value', '500'), createObject('name', 'HashingWorker__MaxFileSizeBytes', 'value', '2147483648'))), 'orchestrator', concat(createArray(createObject('name', 'ASPNETCORE_URLS', 'value', 'http://+:8080'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken'))), '2020-02-02').ConnectionString)), createArray(createObject('name', 'ConnectionStrings__OrchestratorDb', 'value', parameters('sharedSqlConnectionString')), createObject('name', 'Database__UseInMemory', 'value', 'false'), createObject('name', 'UpstreamServices__Locations', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).locations), createObject('name', 'UpstreamServices__ScanJobs', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).scanjobs), createObject('name', 'UpstreamServices__Scanner', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).scanner), createObject('name', 'UpstreamServices__Hashing', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).hashing), createObject('name', 'UpstreamServices__Duplicates', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).duplicates), createObject('name', 'UpstreamServices__Analytics', 'value', createObject('locations', format('http://{0}.internal.{1}', variables('appResourceNames').locations, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanjobs', format('http://{0}.internal.{1}', variables('appResourceNames').scanjobs, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'fileinventory', format('http://{0}.internal.{1}', variables('appResourceNames').fileinventory, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'duplicates', format('http://{0}.internal.{1}', variables('appResourceNames').duplicates, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'analytics', format('http://{0}.internal.{1}', variables('appResourceNames').analytics, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'scanner', format('http://{0}.internal.{1}', variables('appResourceNames').scanner, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'hashing', format('http://{0}.internal.{1}', variables('appResourceNames').hashing, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain), 'orchestrator', format('http://{0}.internal.{1}', variables('appResourceNames').orchestrator, reference(resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken'))), '2024-10-02-preview').defaultDomain)).analytics))))[variables('internalServices')[copyIndex()]]]"
+            }
+          ],
+          "scale": {
+            "minReplicas": "[if(parameters('useDevelopmentCostProfile'), 0, 1)]",
+            "maxReplicas": "[if(parameters('useDevelopmentCostProfile'), 1, 2)]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken'))), 'acrpull'))]",
+        "[resourceId('Microsoft.Insights/components', format('azappi{0}', variables('resourceToken')))]",
+        "[resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken')))]",
+        "[resourceId('Microsoft.App/managedEnvironments', format('azcae{0}', variables('resourceToken')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('azid{0}', variables('resourceToken')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "RESOURCE_GROUP_ID": {
+      "type": "string",
+      "value": "[resourceGroup().id]"
+    },
+    "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.ContainerRegistry/registries', format('azcr{0}', variables('resourceToken'))), '2023-06-01-preview').loginServer)]"
+    },
+    "WEB_FQDN": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('appResourceNames').web), '2025-01-01').configuration.ingress.fqdn]"
+    }
+  }
+}

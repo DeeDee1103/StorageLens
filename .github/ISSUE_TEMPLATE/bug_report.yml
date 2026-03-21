@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a defect in StorageLens behavior
+labels: ["bug", "triage-needed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please provide enough detail to reproduce and diagnose.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is failing?
+      placeholder: Brief description of the issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include exact steps, request payloads, and expected vs actual behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Describe user/business impact and severity.
+      placeholder: Sev 1/2/3/4 if known
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Branch, commit SHA, local/dev/prod environment
+      placeholder: develop @ abc123, local docker
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Include relevant logs, stack traces, screenshots, or links.

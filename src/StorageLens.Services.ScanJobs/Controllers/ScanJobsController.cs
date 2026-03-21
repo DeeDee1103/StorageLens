@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.ScanJobs.Interfaces;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.ScanJobs.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ScanJobsController(IScanJobsService scanJobsService) : ControllerBase

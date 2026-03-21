@@ -1,0 +1,6 @@
+video=a:\source\_VSCode\StorageLens\videos\19700121_0747_69be0d06c8b48191bc4e2e827f822d9f.mp4
+output_dir=a:\source\_VSCode\StorageLens\videos\extracted-frames\19700121_0747_69be0d06c8b48191bc4e2e827f822d9f
+fps=30.0
+frame_count=300
+interval_frames=30
+saved=10

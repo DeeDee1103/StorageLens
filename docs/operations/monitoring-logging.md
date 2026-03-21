@@ -23,3 +23,10 @@ Track service health via `/health` endpoints.
 - Workflow failure spike
 - Repeated startup/database initialization failures
 - Persistent queue/backlog growth in scan stages
+
+## SLI/SLO Governance
+
+Use formal reliability targets defined in `docs/operations/sli-slo-targets.md`.
+
+- Track monthly SLI trends for availability, latency, error rates, and workflow success.
+- Review alert thresholds monthly and SLO targets quarterly.
