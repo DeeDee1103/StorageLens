@@ -4,6 +4,23 @@
 
 StorageLens is a SaaS platform for analyzing NAS and cloud-connected storage footprints across distributed environments. It helps organizations understand storage growth, detect duplicate content, and optimize storage cost/risk with workflow-driven scanning and analytics.
 
+## Recent Updates (Last 2 Days)
+
+- Marketing and header branding polish:
+	- StorageLens logo scale reduced for cleaner visual balance.
+	- Header subtitle "Storage intelligence for modern operations" moved directly under the logo with refined typography.
+- Browser tab icon alignment:
+	- Shared and marketing layouts now use `storagelens-logo-small.png` for both `icon` and `shortcut icon` links.
+- Landing and navigation UX:
+	- Landing page remains the default home route (`/`) and dashboard remains available at `/Index`.
+	- Home link is present in desktop sidebar and mobile off-canvas navigation above Dashboard.
+	- Header and navigation refinements are reflected in the web UI.
+- Frontend module organization:
+	- Profile page initialization logic was split from `site.js` into dedicated `profile.js` for cleaner page-level script boundaries.
+- Runtime verification updates:
+	- Docker compose stack URLs remain standardized (`web` on `http://localhost:5001`, services on `5101-5108`).
+	- Recent local verification confirms web endpoint response with HTTP 200.
+
 ## Purpose
 
 StorageLens provides a production-ready architecture for:

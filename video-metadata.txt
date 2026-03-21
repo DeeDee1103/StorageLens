@@ -1,0 +1,11 @@
+﻿
+
+FullName      : A:\source\_VSCode\StorageLens\videos\19700121_0747_69be0d06c8b48191bc4e2e8
+                27f822d9f.mp4
+Length        : 4192441
+CreationTime  : 3/21/2026 5:32:00 AM
+LastWriteTime : 3/21/2026 5:31:13 AM
+
+
+
+ffprobe not available

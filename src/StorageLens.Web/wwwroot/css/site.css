@@ -4,6 +4,9 @@
   --sl-cyan: #0ea5e9;
   --sl-green: #14b85d;
   --sl-accent: #6f64e7;
+  --sl-neon-purple: #7b61ff;
+  --sl-neon-blue: #35b9ff;
+  --sl-neon-turquoise: #3ef2d0;
   --sl-bg: #f4f7fb;
   --sl-card: #ffffff;
   --sl-text: #112238;
@@ -84,6 +87,132 @@ body.dark-mode {
 .sidebar-logo:hover {
   transform: scale(1.05);
   transition: transform 0.2s ease;
+}
+
+.sl-logo {
+  --sl-logo-scale: 0.375;
+  --sl-logo-line-width: calc(2.8rem * var(--sl-logo-scale));
+  --sl-logo-text-size: calc(2rem * var(--sl-logo-scale));
+  --sl-logo-frame-radius: calc(0.72rem * var(--sl-logo-scale));
+  --sl-logo-pad-y: calc(0.34rem * var(--sl-logo-scale));
+  --sl-logo-pad-x: calc(0.82rem * var(--sl-logo-scale));
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.55rem * var(--sl-logo-scale));
+  color: #f8fbff;
+  filter: drop-shadow(0 0 12px rgba(53, 185, 255, 0.24));
+}
+
+.sl-logo__line {
+  width: var(--sl-logo-line-width);
+  height: calc(0.14rem * var(--sl-logo-scale));
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(123, 97, 255, 0.88), rgba(53, 185, 255, 0.94), rgba(62, 242, 208, 0.94));
+  box-shadow: 0 0 12px rgba(53, 185, 255, 0.45);
+  animation: sl-logo-line-shift 4s linear infinite;
+}
+
+.sl-logo__line--left {
+  transform-origin: right center;
+}
+
+.sl-logo__line--right {
+  transform-origin: left center;
+}
+
+.sl-logo__core {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sl-logo-pad-y) var(--sl-logo-pad-x);
+  isolation: isolate;
+}
+
+.sl-logo__frame {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--sl-logo-frame-radius);
+  padding: 2px;
+  background: linear-gradient(90deg, rgba(123, 97, 255, 0.96), rgba(53, 185, 255, 0.96), rgba(62, 242, 208, 0.98), rgba(123, 97, 255, 0.96));
+  background-size: 240% 100%;
+  opacity: 0.95;
+  pointer-events: none;
+  box-shadow: 0 0 20px rgba(62, 242, 208, 0.24);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: sl-logo-frame-sweep 3.6s linear infinite, sl-logo-frame-glow 2.3s ease-in-out infinite alternate;
+}
+
+.sl-logo__bar {
+  position: absolute;
+  height: calc(0.22rem * var(--sl-logo-scale));
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(53, 185, 255, 0.98), rgba(62, 242, 208, 0.98));
+  box-shadow: 0 0 16px rgba(62, 242, 208, 0.5);
+  animation: sl-logo-frame-glow 2.3s ease-in-out infinite alternate;
+}
+
+.sl-logo__bar--top {
+  top: calc(-0.33rem * var(--sl-logo-scale));
+  left: calc(0.78rem * var(--sl-logo-scale));
+  width: calc(2rem * var(--sl-logo-scale));
+}
+
+.sl-logo__bar--bottom {
+  right: calc(0.62rem * var(--sl-logo-scale));
+  bottom: calc(-0.33rem * var(--sl-logo-scale));
+  width: calc(2.45rem * var(--sl-logo-scale));
+}
+
+.sl-logo__text {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  color: #f8fbff;
+  font-size: var(--sl-logo-text-size);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+}
+
+.sl-logo__o {
+  position: relative;
+  width: 0.78em;
+  height: 0.78em;
+  margin: 0 0.05em;
+  border: 0.12em solid rgba(62, 242, 208, 0.98);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.06em rgba(123, 97, 255, 0.9), 0 0 14px rgba(62, 242, 208, 0.4);
+  animation: sl-logo-ring-pulse 2.1s ease-in-out infinite;
+}
+
+.sl-logo__o::after {
+  content: "";
+  position: absolute;
+  inset: 0.14em;
+  border: 0.08em solid rgba(53, 185, 255, 0.94);
+  border-radius: 50%;
+}
+
+.sl-logo--marketing {
+  --sl-logo-scale: 0.5315625;
+}
+
+.sl-logo--sidebar {
+  --sl-logo-scale: 0.39234375;
+  margin-bottom: 0.85rem;
+}
+
+.sl-logo--about {
+  --sl-logo-scale: 0.6328125;
 }
 
 .brand-wrap {
@@ -885,21 +1014,17 @@ body.dark-mode .marketing-header {
 
 .marketing-brand {
   display: inline-flex;
-  align-items: center;
-  gap: 0.85rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
   text-decoration: none;
   color: var(--sl-text);
-}
-
-.marketing-brand-logo {
-  width: 48px;
-  height: auto;
-  flex-shrink: 0;
 }
 
 .marketing-brand-copy {
   display: flex;
   flex-direction: column;
+  gap: 0;
 }
 
 .marketing-brand-name {
@@ -909,8 +1034,12 @@ body.dark-mode .marketing-header {
 }
 
 .marketing-brand-subtitle {
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   color: var(--sl-muted);
+  font-weight: 600;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .marketing-nav {
@@ -1392,6 +1521,11 @@ body.dark-mode .marketing-step {
   .marketing-brand {
     justify-content: center;
     text-align: center;
+    flex-direction: column;
+  }
+
+  .sl-logo--marketing {
+    --sl-logo-scale: 1.1475;
   }
 
   .marketing-nav {
@@ -1412,6 +1546,67 @@ body.dark-mode .marketing-step {
 
   .marketing-scoreband {
     grid-template-columns: 1fr;
+  }
+}
+
+@keyframes sl-logo-frame-sweep {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 240% 50%;
+  }
+}
+
+@keyframes sl-logo-frame-glow {
+  0% {
+    box-shadow: 0 0 10px rgba(123, 97, 255, 0.2), 0 0 18px rgba(62, 242, 208, 0.2);
+  }
+
+  100% {
+    box-shadow: 0 0 18px rgba(53, 185, 255, 0.34), 0 0 28px rgba(62, 242, 208, 0.28);
+  }
+}
+
+@keyframes sl-logo-line-shift {
+  0% {
+    filter: hue-rotate(0deg);
+    opacity: 0.8;
+  }
+
+  50% {
+    filter: hue-rotate(18deg);
+    opacity: 1;
+  }
+
+  100% {
+    filter: hue-rotate(0deg);
+    opacity: 0.82;
+  }
+}
+
+@keyframes sl-logo-ring-pulse {
+  0% {
+    transform: scale(0.98);
+    box-shadow: inset 0 0 0 0.06em rgba(123, 97, 255, 0.82), 0 0 8px rgba(62, 242, 208, 0.28);
+  }
+
+  50% {
+    transform: scale(1.03);
+    box-shadow: inset 0 0 0 0.06em rgba(123, 97, 255, 0.96), 0 0 16px rgba(62, 242, 208, 0.45);
+  }
+
+  100% {
+    transform: scale(0.98);
+    box-shadow: inset 0 0 0 0.06em rgba(123, 97, 255, 0.82), 0 0 8px rgba(62, 242, 208, 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-logo,
+  .sl-logo * {
+    animation: none !important;
   }
 }
 /* ── Profile page ────────────────────────────────────────────────────────── */

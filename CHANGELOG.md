@@ -30,6 +30,8 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 - Security checklist in `docs/developer/SECURITY-FIXES.md` for developers to follow when adding new features
 
 ### Changed
+- Web branding polish: reduced StorageLens logo scale in key web variants and repositioned the "Storage intelligence for modern operations" subtitle beneath the logo for a cleaner header presentation.
+- Updated browser tab icon references in both shared web layouts to use `storagelens-logo-small.png` (`icon` + `shortcut icon`) so favicon branding matches the latest logo asset.
 - `StorageLens.Services.Hashing\Program.cs`: Added 30-second timeout to fileinventory and scanjobs HTTP clients
 - `StorageLens.Services.Orchestrator\Program.cs`: Added 30-second timeout to locations, scanjobs, duplicates, and analytics HTTP clients (kept 4-hour timeout for scanner and hashing long-running operations)
 - `StorageLens.Services.Analytics\Program.cs`: Added 30-second timeout to all HTTP client registrations (locations, scanjobs, fileinventory, duplicates)

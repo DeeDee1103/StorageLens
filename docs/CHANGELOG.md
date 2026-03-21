@@ -100,6 +100,11 @@ Example:
   - See [`docs/developer/documentation-guardrail.md`](docs/developer/documentation-guardrail.md) for complete reference
 
 ### Changed
+- **Marketing header branding refinement**:
+  - Reduced StorageLens logo scale across marketing, sidebar, and about variants for cleaner visual balance.
+  - Moved the "Storage intelligence for modern operations" subtitle directly beneath the logo and refined typography for a cleaner, professional lockup.
+- **Browser tab icon alignment**:
+  - Updated shared and marketing layouts to use `storagelens-logo-small.png` for both `icon` and `shortcut icon` links so tab branding matches the latest logo asset.
 - **Orchestrator upstream resilience architecture** — upstream service HttpClient registrations now use centralized resilience policies with configurable retry and circuit-breaker behavior:
   - Added `UpstreamResilience` configuration section for retry attempts, exponential backoff bounds, and circuit-breaker thresholds.
   - Added safe-method retry policy (`GET/HEAD/OPTIONS`) to avoid duplicate side-effects on command-style `POST` requests.

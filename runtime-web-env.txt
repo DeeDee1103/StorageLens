@@ -1,0 +1,14 @@
+﻿ServiceApiKey=storagelens-dev-key
+ASPNETCORE_URLS=http://+:8080
+ServiceEndpoints__Analytics=http://analytics:8080/
+ServiceEndpoints__FileInventory=http://fileinventory:8080/
+ServiceEndpoints__Duplicates=http://duplicates:8080/
+ServiceEndpoints__Orchestrator=http://orchestrator:8080/
+ServiceEndpoints__Locations=http://locations:8080/
+ServiceEndpoints__ScanJobs=http://scanjobs:8080/
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+APP_UID=1654
+ASPNETCORE_HTTP_PORTS=8080
+DOTNET_RUNNING_IN_CONTAINER=true
+DOTNET_VERSION=8.0.25
+ASPNET_VERSION=8.0.25

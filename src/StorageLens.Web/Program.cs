@@ -56,6 +56,11 @@ builder.Services.AddScoped<ITierAccessService, TierAccessService>();
 var dbCfg = builder.Configuration.GetSection(DatabaseConfigOptions.SectionName).Get<DatabaseConfigOptions>()
             ?? new DatabaseConfigOptions();
 
+if (!dbCfg.UseInMemory && string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase))
+{
+    dbCfg.UseInMemory = true;
+}
+
 builder.Services.AddDbContext<ClientsDbContext>(options =>
 {
     if (dbCfg.UseInMemory)

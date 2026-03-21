@@ -1,0 +1,6 @@
+video=\\DouglasCloudEx2\Development\source\_VSCode\StorageLens\videos\20260321_0532_01km76g5faermry1y6zwvt9tpc.mp4
+output_dir=a:\source\_VSCode\StorageLens\videos\extracted-frames\20260321_0532_01km76g5faermry1y6zwvt9tpc
+fps=30.0
+frame_count=300
+interval_frames=30
+saved=10

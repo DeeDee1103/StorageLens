@@ -178,6 +178,7 @@ services:
       - "5001:8080"
     environment:
       ASPNETCORE_URLS: "http://+:8080"
+      DatabaseConfig__UseInMemory: "true"
       ServiceEndpoints__Locations: "http://locations:8080/"
       ServiceEndpoints__ScanJobs: "http://scanjobs:8080/"
       ServiceEndpoints__FileInventory: "http://fileinventory:8080/"
