@@ -25,6 +25,13 @@ Example:
 
 ## [Unreleased]
 
+### Fixed
+- **Build errors in `StorageLens.Shared.Infrastructure`** — Added missing `using Microsoft.AspNetCore.Routing` to `HealthCheckExtensions.cs` (fixes `IEndpointRouteBuilder` CS0246 build error). Fixed `MetadataName<TimeSpan>` to `string` comparison in `DistributedRateLimiter.cs` using `.Name` property. Added missing `using Microsoft.Extensions.Hosting` to `ObservabilityExtensions.cs`. Reordered `ArgumentNullException`/`ArgumentException` arms in `GlobalExceptionHandler.cs` switch expression to fix CS8510 unreachable pattern.
+- **Seeder `CancellationToken` mismatch** — Added `CancellationToken cancellationToken = default` parameter to `DuplicatesSeeder`, `LocationsSeeder`, `FileInventorySeeder`, and `ScanJobsSeeder`. Seeders now propagate the cancellation token to `SaveChangesAsync` and match the delegate signature expected by `BackgroundDatabaseInitialization.Start`.
+- **Integration test `Program` accessibility** — Added `public partial class Program {}` to `StorageLens.Services.Locations/Program.cs` so `WebApplicationFactory<Program>` in integration tests can reference the type.
+- **`infra-validation` CI workflow** — Replaced `azure/cli@v2` Docker action with a native `run:` step so the Bicep ARM output file is written to the runner filesystem (not the container) and the subsequent `test -f` check succeeds.
+- **Whitespace formatting** — Replaced tab indentation with 4-space indentation across `Class1.cs` files and corrected trailing/alignment spaces in `DistributedRateLimiter.cs` and `GlobalExceptionHandler.cs` to satisfy `dotnet format --verify-no-changes`.
+
 ### Added
 - **Global exception handler + standardised error responses** (Code Quality — Area #2):
   - Added `GlobalExceptionHandler` (`IExceptionHandler`) to `StorageLens.Shared.Infrastructure`. All unhandled exceptions in all 9 services now return a consistent RFC 7807 `ProblemDetails` JSON body with `status`, `title`, `detail` (safe — no internal paths), and a `correlationId` extension field.

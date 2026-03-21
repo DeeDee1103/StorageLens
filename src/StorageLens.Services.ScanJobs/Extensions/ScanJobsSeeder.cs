@@ -6,7 +6,7 @@ namespace StorageLens.Services.ScanJobs.Extensions;
 
 public static class ScanJobsSeeder
 {
-    public static async Task SeedAsync(ScanJobsDbContext dbContext)
+    public static async Task SeedAsync(ScanJobsDbContext dbContext, CancellationToken cancellationToken = default)
     {
         if (dbContext.ScanJobs.Any())
         {
@@ -80,6 +80,6 @@ public static class ScanJobsSeeder
         };
 
         dbContext.ScanJobs.AddRange(jobs);
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

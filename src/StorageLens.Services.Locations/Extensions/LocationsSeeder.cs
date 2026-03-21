@@ -7,7 +7,7 @@ namespace StorageLens.Services.Locations.Extensions;
 
 public static class LocationsSeeder
 {
-    public static async Task SeedAsync(LocationsDbContext dbContext)
+    public static async Task SeedAsync(LocationsDbContext dbContext, CancellationToken cancellationToken = default)
     {
         if (await dbContext.StorageLocations.AnyAsync())
         {
@@ -66,6 +66,6 @@ public static class LocationsSeeder
             }
         });
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
