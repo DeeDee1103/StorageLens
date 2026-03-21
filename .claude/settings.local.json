@@ -11,7 +11,9 @@
       "Bash(ls -la /a/source/_VSCode/StorageLens/src/StorageLens.Shared.Infrastructure/*.cs)",
       "Bash(find a:source_VSCodeStorageLenstests -name *.cs -type f)",
       "Bash(grep -r \"ValidationAttribute\\\\|DataAnnotations\\\\|FluentValidation\" a:source_VSCodeStorageLenssrc --include=*.cs)",
-      "Bash(grep -r catch.*Exception a:source_VSCodeStorageLenssrc --include=*.cs)"
+      "Bash(grep -r catch.*Exception a:source_VSCodeStorageLenssrc --include=*.cs)",
+      "Bash(dotnet build:*)",
+      "Bash(echo \"EXIT:$?\")"
     ]
   }
 }

@@ -17,11 +17,15 @@ public static class StartupDatabaseInitializer
         {
             try
             {
-                var created = await dbContext.Database.EnsureCreatedAsync(cancellationToken);
-
-                if (!created)
+                if (dbContext.Database.IsRelational())
                 {
-                    await EnsureTablesCreatedForCurrentContextAsync(dbContext, logger, cancellationToken);
+                    await dbContext.Database.MigrateAsync(cancellationToken);
+                }
+                else
+                {
+                    var created = await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+                    if (!created)
+                        await EnsureTablesCreatedForCurrentContextAsync(dbContext, logger, cancellationToken);
                 }
 
                 return;
@@ -40,10 +44,15 @@ public static class StartupDatabaseInitializer
             }
         }
 
-        var finalCreated = await dbContext.Database.EnsureCreatedAsync(cancellationToken);
-        if (!finalCreated)
+        if (dbContext.Database.IsRelational())
         {
-            await EnsureTablesCreatedForCurrentContextAsync(dbContext, logger, cancellationToken);
+            await dbContext.Database.MigrateAsync(cancellationToken);
+        }
+        else
+        {
+            var finalCreated = await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+            if (!finalCreated)
+                await EnsureTablesCreatedForCurrentContextAsync(dbContext, logger, cancellationToken);
         }
     }
 

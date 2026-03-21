@@ -8,6 +8,7 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+KeyVaultIntegration.AddKeyVaultConfiguration(builder);
 builder.AddStorageLensObservability("StorageLens.Analytics");
 
 builder.Services.AddControllers();

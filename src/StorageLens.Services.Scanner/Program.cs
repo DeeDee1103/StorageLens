@@ -10,6 +10,7 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+KeyVaultIntegration.AddKeyVaultConfiguration(builder);
 builder.AddStorageLensObservability("StorageLens.Scanner");
 
 builder.Services.AddControllers();
@@ -93,3 +94,7 @@ BackgroundDatabaseInitialization.Start<ScannerDbContext>(
     "StorageLens.Services.Scanner");
 
 app.Run();
+
+// Expose Program as a public partial class so WebApplicationFactory<Program>
+// can reference it from the integration test project.
+public partial class Program { }

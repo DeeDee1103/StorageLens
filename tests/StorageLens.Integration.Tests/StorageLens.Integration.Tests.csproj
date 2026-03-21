@@ -21,8 +21,19 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\StorageLens.Services.Locations\StorageLens.Services.Locations.csproj" />
-    <ProjectReference Include="..\..\src\StorageLens.Services.ScanJobs\StorageLens.Services.ScanJobs.csproj" />
+    <!--
+      Each service project exposes a top-level Program class.  Because they all
+      share the unqualified name "Program" the compiler needs an extern alias per
+      assembly so the factories can reference each one unambiguously.
+    -->
+    <ProjectReference Include="..\..\src\StorageLens.Services.Locations\StorageLens.Services.Locations.csproj"
+                      Aliases="LocationsService" />
+    <ProjectReference Include="..\..\src\StorageLens.Services.ScanJobs\StorageLens.Services.ScanJobs.csproj"
+                      Aliases="ScanJobsService" />
+    <ProjectReference Include="..\..\src\StorageLens.Services.Scanner\StorageLens.Services.Scanner.csproj"
+                      Aliases="ScannerService" />
+    <ProjectReference Include="..\..\src\StorageLens.Services.Orchestrator\StorageLens.Services.Orchestrator.csproj"
+                      Aliases="OrchestratorService" />
     <ProjectReference Include="..\..\src\StorageLens.Shared.Contracts\StorageLens.Shared.Contracts.csproj" />
     <ProjectReference Include="..\..\src\StorageLens.Shared.Infrastructure\StorageLens.Shared.Infrastructure.csproj" />
   </ItemGroup>
