@@ -1,9 +1,26 @@
 @page
 @model ScanJobsModel
+@{
+    var activeStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Running", "Scanning", "Hashing", "DetectingDuplicates", "RefreshingAnalytics", "InProgress", "Queued"
+    };
 
-<section class="mb-3 reveal-item">
-    <h1 class="dashboard-title">Scan Jobs</h1>
-    <p class="text-secondary mb-0">Track current and historical scans with progress and outcomes.</p>
+    var activeJobCount = Model.Jobs.Count(job => activeStatuses.Contains(job.Status));
+    var failedJobCount = Model.Jobs.Count(job => string.Equals(job.Status, "Failed", StringComparison.OrdinalIgnoreCase));
+    var averageProgress = Model.Jobs.Any() ? (int)Math.Round(Model.Jobs.Average(job => job.ProgressPercent)) : 0;
+    var totalFilesScanned = Model.Jobs.Sum(job => job.FilesScanned);
+}
+
+<section class="mb-3 reveal-item scan-jobs-mode-header">
+    <div>
+        <h1 class="dashboard-title">Scan Jobs</h1>
+        <p class="text-secondary mb-0">Track current and historical scans with progress and outcomes.</p>
+    </div>
+    <div class="scan-jobs-mode-toggle" role="group" aria-label="Scan jobs view mode selector">
+        <button type="button" class="btn scan-jobs-mode-btn" data-scan-jobs-mode-btn="classic" aria-pressed="true">Original</button>
+        <button type="button" class="btn scan-jobs-mode-btn" data-scan-jobs-mode-btn="interactive" aria-pressed="false">Interactive</button>
+    </div>
 </section>
 
 @if (Model.ServiceUnavailable)
@@ -14,91 +31,318 @@
     </div>
 }
 
-<section class="card-premium p-3 mb-3 reveal-item">
-    <div class="section-title">Start New Scan</div>
-    <form method="post" asp-page-handler="Start" class="row g-2 align-items-end">
-        <div class="col-md-5">
-            <label class="form-label">Location</label>
-            <select asp-for="SelectedLocationId" class="form-select">
-                @foreach (var location in Model.Locations)
-                {
-                    <option value="@location.Id">@location.Name</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-5">
-            <label class="form-label">Notes</label>
-            <input class="form-control" asp-for="Notes" />
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-start-scan-location w-100" type="submit">Start Scan</button>
-        </div>
-    </form>
-</section>
+<div class="scan-jobs-mode" data-scan-jobs-mode-panel="classic">
+    <section class="card-premium p-3 mb-3 reveal-item">
+        <div class="section-title">Start New Scan</div>
+        <form method="post" asp-page-handler="Start" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Location</label>
+                <select asp-for="SelectedLocationId" class="form-select">
+                    @foreach (var location in Model.Locations)
+                    {
+                        <option value="@location.Id">@location.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Notes</label>
+                <input class="form-control" asp-for="Notes" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-start-scan-location w-100" type="submit">Start Scan</button>
+            </div>
+        </form>
+    </section>
 
-<section class="card-premium p-3 reveal-item">
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <div class="section-title mb-0">Recent Jobs</div>
-        @if (Model.HasActiveJobs)
-        {
-            <span class="auto-refresh-badge" title="Page will refresh automatically while scans are active">
-                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Auto-refreshing
-            </span>
-        }
-    </div>
-    <div class="table-responsive">
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th>Job ID</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Files Scanned</th>
-                    <th>Progress</th>
-                    <th>Start</th>
-                    <th>End</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
+    <section class="card-premium p-3 reveal-item">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="section-title mb-0">Recent Jobs</div>
+            @if (Model.HasActiveJobs)
+            {
+                <span class="auto-refresh-badge" title="Page will refresh automatically while scans are active">
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Auto-refreshing
+                </span>
+            }
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Files Scanned</th>
+                        <th>Progress</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (!Model.Jobs.Any())
+                {
+                    <tr class="empty-state-row">
+                        <td colspan="8"><i class="bi bi-activity empty-state-icon"></i>No scan jobs yet — start one above</td>
+                    </tr>
+                }
+                @foreach (var job in Model.Jobs)
+                {
+                    var shortJobId = job.Id.ToString("N")[..8];
+                    <tr>
+                        <td><code title="@job.Id">@shortJobId</code></td>
+                        <td>@job.LocationName</td>
+                        <td>
+                            <span class="badge-soft status-badge status-@job.Status.ToLowerInvariant()">@job.Status</span>
+                        </td>
+                        <td>@job.FilesScanned.ToString("N0")</td>
+                        <td>
+                            <div class="progress-with-label">
+                                <div class="progress"><div class="progress-bar" style="width:@job.ProgressPercent%"></div></div>
+                                <span class="progress-pct">@job.ProgressPercent%</span>
+                            </div>
+                        </td>
+                        <td>@job.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@(job.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                        <td>@job.Notes</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<div class="scan-jobs-mode" data-scan-jobs-mode-panel="interactive" hidden>
+    <section class="scan-jobs-interactive-shell reveal-item">
+        <div class="scan-jobs-interactive-headbar">
+            <div class="scan-jobs-brand-pill"><i class="bi bi-cpu-fill" aria-hidden="true"></i> Job Control Matrix</div>
+            <div class="scan-jobs-live-status">
+                <i class="bi bi-activity" aria-hidden="true"></i>
+                <span>@activeJobCount active</span>
+                <span class="dot-sep">•</span>
+                <span>@Model.Jobs.Count total</span>
+            </div>
+            <div class="scan-jobs-filter-group" role="group" aria-label="Filter scan jobs">
+                <button type="button" class="btn scan-jobs-filter-btn active" data-scan-jobs-filter="all" aria-pressed="true">All</button>
+                <button type="button" class="btn scan-jobs-filter-btn" data-scan-jobs-filter="active" aria-pressed="false">Active</button>
+                <button type="button" class="btn scan-jobs-filter-btn" data-scan-jobs-filter="completed" aria-pressed="false">Completed</button>
+                <button type="button" class="btn scan-jobs-filter-btn" data-scan-jobs-filter="failed" aria-pressed="false">Failed</button>
+            </div>
+        </div>
+
+        <div class="scan-jobs-interactive-kpis">
+            <article class="scan-jobs-kpi-card scan-jobs-kpi-cyan">
+                <div class="scan-jobs-kpi-label">Active Pipelines</div>
+                <div class="scan-jobs-kpi-value">@activeJobCount</div>
+            </article>
+            <article class="scan-jobs-kpi-card scan-jobs-kpi-teal">
+                <div class="scan-jobs-kpi-label">Files Scanned</div>
+                <div class="scan-jobs-kpi-value">@totalFilesScanned.ToString("N0")</div>
+            </article>
+            <article class="scan-jobs-kpi-card scan-jobs-kpi-lime">
+                <div class="scan-jobs-kpi-label">Avg Progress</div>
+                <div class="scan-jobs-kpi-value">@averageProgress%</div>
+            </article>
+            <article class="scan-jobs-kpi-card scan-jobs-kpi-rose">
+                <div class="scan-jobs-kpi-label">Failures</div>
+                <div class="scan-jobs-kpi-value">@failedJobCount</div>
+            </article>
+        </div>
+
+        <section class="scan-jobs-launch-panel">
+            <div>
+                <div class="section-title mb-1">Launch New Scan</div>
+                <div class="scan-jobs-launch-subtitle">Start a new run without leaving interactive mode.</div>
+            </div>
+            <form method="post" asp-page-handler="Start" class="row g-2 align-items-end scan-jobs-launch-form">
+                <div class="col-lg-4 col-md-5">
+                    <label class="form-label">Location</label>
+                    <select asp-for="SelectedLocationId" class="form-select">
+                        @foreach (var location in Model.Locations)
+                        {
+                            <option value="@location.Id">@location.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-lg-6 col-md-5">
+                    <label class="form-label">Notes</label>
+                    <input class="form-control" asp-for="Notes" />
+                </div>
+                <div class="col-lg-2 col-md-2">
+                    <button class="btn btn-start-scan-location w-100" type="submit">Start</button>
+                </div>
+            </form>
+        </section>
+
+        <div class="scan-jobs-cards-grid" id="scanJobsCardsGrid">
             @if (!Model.Jobs.Any())
             {
-                <tr class="empty-state-row">
-                    <td colspan="7"><i class="bi bi-activity empty-state-icon"></i>No scan jobs yet — start one above</td>
-                </tr>
+                <div class="scan-jobs-empty-state">
+                    <i class="bi bi-inbox" aria-hidden="true"></i>
+                    <p class="mb-0">No jobs in the timeline yet. Start your first scan from the panel above.</p>
+                </div>
             }
             @foreach (var job in Model.Jobs)
             {
                 var shortJobId = job.Id.ToString("N")[..8];
-                <tr>
-                    <td><code title="@job.Id">@shortJobId</code></td>
-                    <td>@job.LocationName</td>
-                    <td>
-                        <span class="badge-soft status-badge status-@job.Status.ToLowerInvariant()">@job.Status</span>
-                    </td>
-                    <td>@job.FilesScanned.ToString("N0")</td>
-                    <td>
-                        <div class="progress-with-label">
-                            <div class="progress"><div class="progress-bar" style="width:@job.ProgressPercent%"></div></div>
-                            <span class="progress-pct">@job.ProgressPercent%</span>
+                var normalizedStatus = job.Status.ToLowerInvariant();
+                var isActive = activeStatuses.Contains(job.Status);
+                var elapsedSeconds = (int)Math.Max(0, ((job.EndTime ?? DateTime.UtcNow) - job.StartTime).TotalSeconds);
+
+                <article class="scan-jobs-card" data-job-status="@normalizedStatus" data-job-active="@isActive.ToString().ToLowerInvariant()">
+                    <div class="scan-jobs-card-head">
+                        <div>
+                            <h3 class="scan-jobs-card-title">@job.LocationName</h3>
+                            <div class="scan-jobs-card-id"><code title="@job.Id">@shortJobId</code></div>
                         </div>
-                    </td>
-                    <td>@job.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>@(job.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
-                    <td>@job.Notes</td>
-                </tr>
+                        <span class="badge-soft status-badge status-@normalizedStatus">@job.Status</span>
+                    </div>
+
+                    <div class="scan-jobs-card-metrics">
+                        <div>
+                            <div class="scan-jobs-metric-label">Files</div>
+                            <div class="scan-jobs-metric-value">@job.FilesScanned.ToString("N0")</div>
+                        </div>
+                        <div>
+                            <div class="scan-jobs-metric-label">Progress</div>
+                            <div class="scan-jobs-metric-value">@job.ProgressPercent%</div>
+                        </div>
+                        <div>
+                            <div class="scan-jobs-metric-label">Elapsed</div>
+                            <div class="scan-jobs-metric-value" data-elapsed-start="@job.StartTime.ToUniversalTime().ToString("O")" data-job-active="@isActive.ToString().ToLowerInvariant()">@elapsedSeconds s</div>
+                        </div>
+                    </div>
+
+                    <div class="scan-jobs-progress-wrap">
+                        <div class="progress scan-jobs-progress-track">
+                            <div class="progress-bar scan-jobs-progress-bar @(isActive ? "is-animated" : string.Empty)" style="width:@job.ProgressPercent%" role="progressbar" aria-valuenow="@job.ProgressPercent" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+
+                    <div class="scan-jobs-card-foot">
+                        <span><i class="bi bi-play-fill" aria-hidden="true"></i> @job.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                        <span><i class="bi bi-stop-fill" aria-hidden="true"></i> @(job.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "Running")</span>
+                    </div>
+
+                    <p class="scan-jobs-card-notes mb-0">@(string.IsNullOrWhiteSpace(job.Notes) ? "No notes provided." : job.Notes)</p>
+                </article>
             }
-            </tbody>
-        </table>
-    </div>
-</section>
+        </div>
+    </section>
+</div>
 
 @section Scripts {
-    @if (Model.HasActiveJobs)
-    {
-        <script>
-            const AUTO_REFRESH_INTERVAL_MS = 10000;
+    <script>
+        const AUTO_REFRESH_INTERVAL_MS = 10000;
+        const hasActiveJobs = @Model.HasActiveJobs.ToString().ToLowerInvariant();
+
+        const scanJobsModeStorageKey = 'storagelens-scan-jobs-mode';
+        const modePanels = document.querySelectorAll('[data-scan-jobs-mode-panel]');
+        const modeButtons = document.querySelectorAll('[data-scan-jobs-mode-btn]');
+
+        const applyScanJobsMode = (mode) => {
+            const selectedMode = mode === 'interactive' ? 'interactive' : 'classic';
+            modePanels.forEach((panel) => {
+                const isActive = panel.getAttribute('data-scan-jobs-mode-panel') === selectedMode;
+                panel.hidden = !isActive;
+            });
+
+            modeButtons.forEach((button) => {
+                const isActive = button.getAttribute('data-scan-jobs-mode-btn') === selectedMode;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            document.body.classList.toggle('scanjobs-interactive-mode', selectedMode === 'interactive');
+            localStorage.setItem(scanJobsModeStorageKey, selectedMode);
+        };
+
+        const urlMode = new URLSearchParams(window.location.search).get('scanJobsMode');
+        const savedMode = localStorage.getItem(scanJobsModeStorageKey);
+        const initialMode = urlMode === 'interactive' || urlMode === 'classic'
+            ? urlMode
+            : (savedMode === 'interactive' ? 'interactive' : 'classic');
+        applyScanJobsMode(initialMode);
+
+        modeButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                applyScanJobsMode(button.getAttribute('data-scan-jobs-mode-btn') || 'classic');
+            });
+        });
+
+        const filterButtons = document.querySelectorAll('[data-scan-jobs-filter]');
+        const jobCards = document.querySelectorAll('[data-job-status]');
+        const isCompletedStatus = (status) => status === 'completed' || status === 'partiallycompleted';
+
+        const applyFilter = (filter) => {
+            jobCards.forEach((card) => {
+                const status = card.getAttribute('data-job-status') || '';
+                const isActive = card.getAttribute('data-job-active') === 'true';
+
+                let shouldShow = true;
+                if (filter === 'active') {
+                    shouldShow = isActive;
+                } else if (filter === 'completed') {
+                    shouldShow = isCompletedStatus(status);
+                } else if (filter === 'failed') {
+                    shouldShow = status === 'failed';
+                }
+
+                card.hidden = !shouldShow;
+            });
+
+            filterButtons.forEach((button) => {
+                const isPressed = (button.getAttribute('data-scan-jobs-filter') || 'all') === filter;
+                button.classList.toggle('active', isPressed);
+                button.setAttribute('aria-pressed', String(isPressed));
+            });
+        };
+
+        filterButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                applyFilter(button.getAttribute('data-scan-jobs-filter') || 'all');
+            });
+        });
+
+        const formatDuration = (seconds) => {
+            const safeSeconds = Math.max(0, seconds);
+            if (safeSeconds < 60) {
+                return `${safeSeconds}s`;
+            }
+
+            const hours = Math.floor(safeSeconds / 3600);
+            const minutes = Math.floor((safeSeconds % 3600) / 60);
+            const remainingSeconds = safeSeconds % 60;
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${remainingSeconds}s`;
+            }
+
+            return `${minutes}m ${remainingSeconds}s`;
+        };
+
+        const updateElapsedTimes = () => {
+            document.querySelectorAll('[data-elapsed-start]').forEach((element) => {
+                if (element.getAttribute('data-job-active') !== 'true') {
+                    return;
+                }
+
+                const startedAtRaw = element.getAttribute('data-elapsed-start');
+                if (!startedAtRaw) {
+                    return;
+                }
+
+                const startedAt = new Date(startedAtRaw);
+                const elapsedSeconds = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                element.textContent = formatDuration(elapsedSeconds);
+            });
+        };
+
+        updateElapsedTimes();
+        setInterval(updateElapsedTimes, 1000);
+
+        if (hasActiveJobs) {
             setTimeout(() => location.reload(), AUTO_REFRESH_INTERVAL_MS);
-        </script>
-    }
+        }
+    </script>
 }

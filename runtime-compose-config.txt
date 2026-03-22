@@ -11,7 +11,13 @@ services:
       fileinventory:
         condition: service_started
         required: true
+      jaeger:
+        condition: service_started
+        required: true
       locations:
+        condition: service_started
+        required: true
+      redis:
         condition: service_started
         required: true
       scanjobs:
@@ -19,7 +25,9 @@ services:
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
       UpstreamServices__Duplicates: http://duplicates:8080/
       UpstreamServices__FileInventory: http://fileinventory:8080/
       UpstreamServices__Locations: http://locations:8080/
@@ -39,6 +47,12 @@ services:
       fileinventory:
         condition: service_started
         required: true
+      jaeger:
+        condition: service_started
+        required: true
+      redis:
+        condition: service_started
+        required: true
       sqlserver:
         condition: service_started
         required: true
@@ -46,7 +60,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DuplicatesDb: Server=sqlserver,1433;Database=StorageLensDuplicates;User Id=sa;Password=ReplaceWithStrongPassword123!;TrustServerCertificate=True;
       Database__UseInMemory: "false"
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
       UpstreamServices__FileInventory: http://fileinventory:8080/
     networks:
       default: null
@@ -60,6 +76,12 @@ services:
       context: A:\source\_VSCode\StorageLens
       dockerfile: src/StorageLens.Services.FileInventory/Dockerfile
     depends_on:
+      jaeger:
+        condition: service_started
+        required: true
+      redis:
+        condition: service_started
+        required: true
       sqlserver:
         condition: service_started
         required: true
@@ -67,7 +89,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__FileInventoryDb: Server=sqlserver,1433;Database=StorageLensFileInventory;User Id=sa;Password=ReplaceWithStrongPassword123!;TrustServerCertificate=True;
       Database__UseInMemory: "false"
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
     networks:
       default: null
     ports:
@@ -83,6 +107,12 @@ services:
       fileinventory:
         condition: service_started
         required: true
+      jaeger:
+        condition: service_started
+        required: true
+      redis:
+        condition: service_started
+        required: true
       scanjobs:
         condition: service_started
         required: true
@@ -96,7 +126,9 @@ services:
       HashingWorker__BatchSize: "500"
       HashingWorker__MaxDegreeOfParallelism: "4"
       HashingWorker__MaxFileSizeBytes: "2147483648"
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
       UpstreamServices__FileInventory: http://fileinventory:8080/
       UpstreamServices__ScanJobs: http://scanjobs:8080/
     networks:
@@ -111,11 +143,37 @@ services:
         source: A:\source\_VSCode\StorageLens\sample-scan
         target: /scan-root
         bind: {}
+  jaeger:
+    container_name: storagelens-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    image: jaegertracing/all-in-one:latest
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 16686
+        published: "16686"
+        protocol: tcp
+      - mode: ingress
+        target: 4317
+        published: "4317"
+        protocol: tcp
+      - mode: ingress
+        target: 4318
+        published: "4318"
+        protocol: tcp
   locations:
     build:
       context: A:\source\_VSCode\StorageLens
       dockerfile: src/StorageLens.Services.Locations/Dockerfile
     depends_on:
+      jaeger:
+        condition: service_started
+        required: true
+      redis:
+        condition: service_started
+        required: true
       sqlserver:
         condition: service_started
         required: true
@@ -123,7 +181,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__LocationsDb: Server=sqlserver,1433;Database=StorageLensLocations;User Id=sa;Password=ReplaceWithStrongPassword123!;TrustServerCertificate=True;
       Database__UseInMemory: "false"
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
     networks:
       default: null
     ports:
@@ -145,7 +205,13 @@ services:
       hashing:
         condition: service_started
         required: true
+      jaeger:
+        condition: service_started
+        required: true
       locations:
+        condition: service_started
+        required: true
+      redis:
         condition: service_started
         required: true
       scanjobs:
@@ -161,7 +227,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__OrchestratorDb: Server=sqlserver,1433;Database=StorageLensOrchestration;User Id=sa;Password=ReplaceWithStrongPassword123!;TrustServerCertificate=True;
       Database__UseInMemory: "false"
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
       UpstreamServices__Analytics: http://analytics:8080/
       UpstreamServices__Duplicates: http://duplicates:8080/
       UpstreamServices__Hashing: http://hashing:8080/
@@ -189,11 +257,33 @@ services:
         target: 15672
         published: "15672"
         protocol: tcp
+  redis:
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --loglevel
+      - warning
+    container_name: storagelens-redis
+    image: redis:7-alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 6379
+        published: "6379"
+        protocol: tcp
   scanjobs:
     build:
       context: A:\source\_VSCode\StorageLens
       dockerfile: src/StorageLens.Services.ScanJobs/Dockerfile
     depends_on:
+      jaeger:
+        condition: service_started
+        required: true
+      redis:
+        condition: service_started
+        required: true
       sqlserver:
         condition: service_started
         required: true
@@ -201,7 +291,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__ScanJobsDb: Server=sqlserver,1433;Database=StorageLensScanJobs;User Id=sa;Password=ReplaceWithStrongPassword123!;TrustServerCertificate=True;
       Database__UseInMemory: "false"
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
     networks:
       default: null
     ports:
@@ -217,6 +309,12 @@ services:
       fileinventory:
         condition: service_started
         required: true
+      jaeger:
+        condition: service_started
+        required: true
+      redis:
+        condition: service_started
+        required: true
       scanjobs:
         condition: service_started
         required: true
@@ -227,7 +325,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__ScannerDb: Server=sqlserver,1433;Database=StorageLensScanner;User Id=sa;Password=ReplaceWithStrongPassword123!;TrustServerCertificate=True;
       Database__UseInMemory: "false"
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
       UpstreamServices__FileInventory: http://fileinventory:8080/
       UpstreamServices__ScanJobs: http://scanjobs:8080/
     networks:
@@ -274,10 +374,16 @@ services:
       fileinventory:
         condition: service_started
         required: true
+      jaeger:
+        condition: service_started
+        required: true
       locations:
         condition: service_started
         required: true
       orchestrator:
+        condition: service_started
+        required: true
+      redis:
         condition: service_started
         required: true
       scanjobs:
@@ -286,7 +392,9 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       DatabaseConfig__UseInMemory: "true"
-      ServiceApiKey: replace-with-a-strong-random-key
+      Observability__OtlpEndpoint: http://jaeger:4317
+      RateLimit__Redis: redis:6379
+      ServiceApiKey: storagelens-dev-key
       ServiceEndpoints__Analytics: http://analytics:8080/
       ServiceEndpoints__Duplicates: http://duplicates:8080/
       ServiceEndpoints__FileInventory: http://fileinventory:8080/

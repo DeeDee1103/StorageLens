@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Storage Locations - Storage Lens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="icon" type="image/png" href="/images/storagelens-logo-small.png?v=4oAfBlSTzhnuT4xm_0A9pcumjJfRSqYlBA5LFtU4Lao" />
+    <link rel="shortcut icon" type="image/png" href="/images/storagelens-logo-small.png?v=4oAfBlSTzhnuT4xm_0A9pcumjJfRSqYlBA5LFtU4Lao" />
+    <link rel="stylesheet" href="/css/site.css?v=g7OaJQ2Zny-OQ-gtRAUrtW7hbYDSYGG4_XI0rPQvRM4" />
+    <link rel="stylesheet" href="/StorageLens.Web.styles.css?v=EiiGWaXW1JHl-BtobReu9Th1Bw5suip_g7iojBesYHw" />
+</head>
+<body class="app-body">
+    <script>
+        (function () {
+            var t = localStorage.getItem('storagelens-theme');
+            var d = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (t === 'dark' || (!t && d)) { document.body.classList.add('dark-mode'); }
+            document.body.classList.add('preload');
+            window.addEventListener('load', function () { document.body.classList.remove('preload'); });
+        }());
+    </script>
+    <div b-8ll6mhhrmo class="app-shell">
+        <aside b-8ll6mhhrmo class="sidebar-panel" id="sidebarPanel">
+            <div b-8ll6mhhrmo class="sidebar-brand text-center py-4">
+                <span b-8ll6mhhrmo class="sl-logo sl-logo--sidebar" role="img" aria-label="StorageLens logo">
+                    <span b-8ll6mhhrmo class="sl-logo__line sl-logo__line--left"></span>
+                    <span b-8ll6mhhrmo class="sl-logo__core">
+                        <span b-8ll6mhhrmo class="sl-logo__frame"></span>
+                        <span b-8ll6mhhrmo class="sl-logo__bar sl-logo__bar--top"></span>
+                        <span b-8ll6mhhrmo class="sl-logo__text">ST<span b-8ll6mhhrmo class="sl-logo__o"></span>RAGELENS</span>
+                        <span b-8ll6mhhrmo class="sl-logo__bar sl-logo__bar--bottom"></span>
+                    </span>
+                    <span b-8ll6mhhrmo class="sl-logo__line sl-logo__line--right"></span>
+                </span>
+
+                <div b-8ll6mhhrmo class="sidebar-title">
+                    Storage Intelligence
+                </div>
+            </div>
+
+            <nav b-8ll6mhhrmo class="menu-nav">
+                <a class="menu-link " href="/"><i b-8ll6mhhrmo class="bi bi-house-door"></i>Home</a>
+                <a class="menu-link " href="/Index"><i b-8ll6mhhrmo class="bi bi-speedometer2"></i>Dashboard</a>
+                <a class="menu-link active" href="/StorageLocations"><i b-8ll6mhhrmo class="bi bi-hdd-stack"></i>Storage Locations</a>
+                <a class="menu-link " href="/ScanJobs"><i b-8ll6mhhrmo class="bi bi-activity"></i>Scan Jobs</a>
+                <a class="menu-link " href="/FileInventory"><i b-8ll6mhhrmo class="bi bi-folder2-open"></i>File Inventory</a>
+                <a class="menu-link " href="/Duplicates"><i b-8ll6mhhrmo class="bi bi-files"></i>Duplicates</a>
+                <a class="menu-link " href="/Reports"><i b-8ll6mhhrmo class="bi bi-graph-up-arrow"></i>Reports</a>
+                <a class="menu-link " href="/Alerts"><i b-8ll6mhhrmo class="bi bi-bell-fill"></i>Alerts</a>
+                <a class="menu-link " href="/Pricing"><i b-8ll6mhhrmo class="bi bi-tags"></i>Pricing</a>
+                <a class="menu-link " href="/Settings"><i b-8ll6mhhrmo class="bi bi-gear"></i>Settings</a>
+                <a class="menu-link " href="/About"><i b-8ll6mhhrmo class="bi bi-info-circle"></i>About</a>
+            </nav>
+
+            <div b-8ll6mhhrmo class="sidebar-profile-footer">
+                <a class="sidebar-profile-link " href="/Profile">
+                    <span b-8ll6mhhrmo class="sidebar-profile-avatar" id="sidebarAvatarImg"></span>
+                    <div b-8ll6mhhrmo class="sidebar-profile-info">
+                        <span b-8ll6mhhrmo class="sidebar-profile-name" id="sidebarProfileName">DeeDee</span>
+                        <span b-8ll6mhhrmo class="sidebar-profile-role">Admin</span>
+                    </div>
+                    <i b-8ll6mhhrmo class="bi bi-chevron-right sidebar-profile-chevron" aria-hidden="true"></i>
+                </a>
+            </div>
+        </aside>
+
+        <section b-8ll6mhhrmo class="main-panel">
+            <header b-8ll6mhhrmo class="top-bar">
+                <button b-8ll6mhhrmo class="btn btn-light d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
+                    <i b-8ll6mhhrmo class="bi bi-list"></i>
+                </button>
+                <div b-8ll6mhhrmo class="search-wrap">
+                    <i b-8ll6mhhrmo class="bi bi-search" aria-hidden="true"></i>
+                    <input b-8ll6mhhrmo class="form-control" id="globalSearch" type="search" placeholder="Search files, locations, reports" aria-label="Search" />
+                    <kbd b-8ll6mhhrmo class="search-kbd d-none d-md-inline">Ctrl K</kbd>
+                </div>
+                <div b-8ll6mhhrmo class="top-actions">
+                    <button b-8ll6mhhrmo class="btn icon-btn theme-toggle-btn" id="darkModeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="false" title="Switch to dark mode">
+                        <i b-8ll6mhhrmo class="bi bi-moon-stars-fill" aria-hidden="true"></i>
+                        <span b-8ll6mhhrmo class="theme-toggle-label">Dark Mode</span>
+                    </button>
+                    <button b-8ll6mhhrmo class="btn icon-btn"><i b-8ll6mhhrmo class="bi bi-bell"></i></button>
+                    <div b-8ll6mhhrmo class="dropdown">
+                        <button b-8ll6mhhrmo class="btn p-0 border-0 bg-transparent" type="button" id="topbarProfileMenu"
+                                data-bs-toggle="dropdown" aria-expanded="false" aria-label="Profile menu">
+                            <span b-8ll6mhhrmo class="avatar-badge" id="topbarAvatarImg">DD</span>
+                        </button>
+                        <ul b-8ll6mhhrmo class="dropdown-menu dropdown-menu-end profile-dropdown shadow" aria-labelledby="topbarProfileMenu">
+                            <li b-8ll6mhhrmo class="px-3 py-2 d-flex align-items-center gap-2">
+                                <span b-8ll6mhhrmo class="avatar-badge avatar-badge-sm" id="topbarAvatarImgDropdown">DD</span>
+                                <div b-8ll6mhhrmo>
+                                    <div b-8ll6mhhrmo class="fw-semibold small" id="topbarDropdownName">DeeDee</div>
+                                    <div b-8ll6mhhrmo class="text-secondary" style="font-size:0.75rem;" id="topbarDropdownEmail">admin@storagelens.local</div>
+                                </div>
+                            </li>
+                            <li b-8ll6mhhrmo><hr b-8ll6mhhrmo class="dropdown-divider my-1"></li>
+                            <li b-8ll6mhhrmo><a class="dropdown-item" href="/Profile"><i b-8ll6mhhrmo class="bi bi-person-circle me-2" aria-hidden="true"></i>My Profile</a></li>
+                            <li b-8ll6mhhrmo><a class="dropdown-item" href="/Settings"><i b-8ll6mhhrmo class="bi bi-gear me-2" aria-hidden="true"></i>Settings</a></li>
+                            <li b-8ll6mhhrmo><hr b-8ll6mhhrmo class="dropdown-divider my-1"></li>
+                            <li b-8ll6mhhrmo><span b-8ll6mhhrmo class="dropdown-item text-secondary small"><i b-8ll6mhhrmo class="bi bi-microsoft me-2" aria-hidden="true"></i>Signed in via Microsoft</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <main b-8ll6mhhrmo role="main" class="content-area">
+                
+
+<section class="mb-3 reveal-item dashboard-mode-header">
+    <div>
+        <h1 class="dashboard-title">Storage Locations</h1>
+        <p class="text-secondary mb-0">Manage NAS paths, local drives, and file shares monitored by StorageLens.</p>
+    </div>
+    <div class="dashboard-mode-toggle" role="group" aria-label="Storage Locations mode selector">
+        <button type="button" class="btn dashboard-mode-btn" data-locations-mode-btn="classic" aria-pressed="true">Original</button>
+        <button type="button" class="btn dashboard-mode-btn" data-locations-mode-btn="interactive" aria-pressed="false">Interactive</button>
+    </div>
+</section>
+
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
+        <span>Storage Locations service is currently unavailable. Please check your service configuration and try again.</span>
+    </div>
+
+<div class="storage-locations-mode" data-locations-mode-panel="classic">
+
+<section class="card-premium p-3 mb-3 reveal-item">
+    <div class="section-title">Add Location</div>
+    
+    <form method="post" class="row g-2 align-items-end" action="/StorageLocations?handler=Add">
+        <div class="col-md-4">
+            <label class="form-label">Name</label>
+            <input class="form-control" required type="text" data-val="true" data-val-required="The Name field is required." id="Name" name="Name" value="" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Path</label>
+            <input class="form-control" required placeholder="\\nas01\share\folder" type="text" data-val="true" data-val-required="The Path field is required." id="Path" name="Path" value="" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Type</label>
+            <select class="form-select" data-val="true" data-val-required="The Type field is required." id="Type" name="Type"><option selected="selected" value="1">Nas</option>
+<option value="2">Local</option>
+<option value="3">FileShare</option>
+</select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-gradient w-100">Add Location</button>
+        </div>
+    <input name="__RequestVerificationToken" type="hidden" value="CfDJ8CHa8LsWZFBLkyBeLymoWTtnqIRZohBvCr_Erivg41Jb2Q_O6YTVHG3nIt7E0AahHtk2oBQd_L9RrZH4ylcQJVuS9BYguzcBMmCfXGCCMdqWdHoZ4SFTL6WMRzp2V1oe_49bwolvRz32xexjGWY9elg" /></form>
+</section>
+
+<section class="card-premium p-3 reveal-item">
+    <div class="section-title">Configured Locations</div>
+    <div class="table-responsive">
+        <table class="table align-middle locations-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Path</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Last Scan</th>
+                    <th>Total Size</th>
+                    <th>Total Used</th>
+                    <th>% Remaining</th>
+                    <th>File Count</th>
+                    <th class="actions-col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="empty-state-row">
+                    <td colspan="9"><i class="bi bi-hdd-stack empty-state-icon"></i>No storage locations configured — add one above</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+</div>
+
+<div class="storage-locations-mode" data-locations-mode-panel="interactive" hidden>
+    <section class="storage-interactive-shell reveal-item">
+        <div class="storage-interactive-headbar">
+            <div class="storage-headbar-brand">
+                <div class="storage-brand-pill">Node Ops</div>
+                <div>
+                    <div class="storage-interactive-eyebrow">Orbit Control</div>
+                    <h2 class="storage-interactive-title">Storage Fabric Command Deck</h2>
+                </div>
+            </div>
+            <div class="storage-headbar-actions">
+                <div class="storage-interactive-signal">
+                    <span class="storage-signal-dot"></span>
+                    <span>0 / 0 nodes online</span>
+                </div>
+                <button type="button"
+                        class="btn storage-compact-btn"
+                        data-storage-compact-toggle
+                        aria-pressed="false"
+                        aria-label="Toggle compact command deck layout">
+                    <i class="bi bi-layout-text-window-reverse" aria-hidden="true"></i>
+                    <span>Compact</span>
+                </button>
+                <button type="button"
+                        class="btn storage-help-btn"
+                        data-storage-shortcuts-toggle
+                        aria-label="Toggle keyboard shortcuts">
+                    <i class="bi bi-command" aria-hidden="true"></i>
+                    <span>Shortcuts</span>
+                </button>
+                <div class="storage-headbar-dots" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="storage-command-grid">
+            <article class="storage-command-card storage-command-card-cyan">
+                <div class="storage-command-icon"><i class="bi bi-hdd-network" aria-hidden="true"></i></div>
+                <div class="storage-command-label">Monitored Nodes</div>
+                <div class="storage-command-value">0</div>
+                <div class="storage-command-meta">0 scanned in the last 7 days</div>
+                <div class="storage-command-trend"><span class="trend-line"></span><span>Fleet visibility</span></div>
+            </article>
+            <article class="storage-command-card storage-command-card-lime">
+                <div class="storage-command-icon"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
+                <div class="storage-command-label">Active Capacity</div>
+                <div class="storage-command-value">0 B</div>
+                <div class="storage-command-meta">Live storage consumed across all locations</div>
+                <div class="storage-command-trend"><span class="trend-line"></span><span>Realtime telemetry</span></div>
+            </article>
+            <article class="storage-command-card storage-command-card-blue">
+                <div class="storage-command-icon"><i class="bi bi-files" aria-hidden="true"></i></div>
+                <div class="storage-command-label">Tracked Files</div>
+                <div class="storage-command-value">0</div>
+                <div class="storage-command-meta">Indexed across the storage fabric</div>
+                <div class="storage-command-trend"><span class="trend-line"></span><span>Continuous indexing</span></div>
+            </article>
+            <article class="storage-command-card storage-command-card-mint">
+                <div class="storage-command-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></div>
+                <div class="storage-command-label">Network Health</div>
+                <div class="storage-command-value">100%</div>
+                <div class="storage-command-meta">Derived from status, scan recency, and headroom</div>
+                <div class="storage-command-trend"><span class="trend-line"></span><span>Operationally stable</span></div>
+            </article>
+        </div>
+
+        <div class="storage-quick-strip">
+            <a class="btn storage-quick-btn" href="/ScanJobs"><i class="bi bi-play-circle" aria-hidden="true"></i><span>Open Scan Jobs</span></a>
+            <a class="btn storage-quick-btn" href="/FileInventory"><i class="bi bi-folder2-open" aria-hidden="true"></i><span>View Inventory</span></a>
+            <a class="btn storage-quick-btn" href="/Duplicates"><i class="bi bi-copy" aria-hidden="true"></i><span>Analyze Duplicates</span></a>
+        </div>
+
+        <div class="storage-control-grid">
+            <section class="storage-panel storage-control-panel storage-topology-panel">
+                <div class="storage-panel-title">Topology Radar</div>
+                <div class="storage-panel-subtitle">Live fleet posture across the storage fabric.</div>
+                <div class="storage-topology-radar" role="img" aria-label="Topology radar showing online and offline node counts">
+                    <div class="storage-radar-ring storage-radar-ring-a"></div>
+                    <div class="storage-radar-ring storage-radar-ring-b"></div>
+                    <div class="storage-radar-ring storage-radar-ring-c"></div>
+                    <div class="storage-radar-sweep"></div>
+                    <div class="storage-radar-core">
+                        <strong>0</strong>
+                        <span>Online</span>
+                    </div>
+                </div>
+                <div class="storage-topology-stats">
+                    <span class="storage-topology-chip">Offline: 0</span>
+                    <span class="storage-topology-chip">Headroom Delta: 0%</span>
+                    <span class="storage-topology-chip">Total Nodes: 0</span>
+                </div>
+            </section>
+
+            <section class="storage-panel storage-control-panel storage-feed-panel">
+                <div class="storage-panel-title">Command Feed</div>
+                <div class="storage-panel-subtitle">Latest node activity and telemetry events.</div>
+                <div class="storage-alert-ticker" data-alert-ticker>
+                    <span class="storage-alert-label">System Alerts</span>
+                    <span class="storage-alert-text" data-alert-ticker-text>
+                        Fleet online 0 / 0 nodes.
+                    </span>
+                </div>
+                <ul class="storage-command-feed" aria-live="polite">
+                        <li class="storage-feed-empty">No telemetry yet. Add your first location node to initialize feed.</li>
+                </ul>
+            </section>
+        </div>
+
+        <div class="storage-interactive-grid">
+            <section class="storage-panel storage-add-panel">
+                <div class="storage-panel-title">Add Location Node</div>
+                <div class="storage-panel-subtitle">Provision a new monitored endpoint into the StorageLens fabric.</div>
+                
+                <form method="post" class="storage-future-form" action="/StorageLocations?handler=Add">
+                    <div class="storage-future-field">
+                        <label for="InteractiveName">Node Name</label>
+                        <input id="InteractiveName" name="Name" class="form-control storage-future-input" value="" required />
+                    </div>
+                    <div class="storage-future-field">
+                        <label for="InteractivePath">Path Vector</label>
+                        <input id="InteractivePath" name="Path" class="form-control storage-future-input" value="" required placeholder="\\nas01\share\folder" />
+                    </div>
+                    <div class="storage-future-row">
+                        <div class="storage-future-field">
+                            <label for="InteractiveType">Node Type</label>
+                            <select id="InteractiveType" name="Type" class="form-select storage-future-input">
+                                    <option value="1" selected="selected">Nas</option>
+                                    <option value="2">Local</option>
+                                    <option value="3">FileShare</option>
+                            </select>
+                        </div>
+                        <div class="storage-future-field storage-future-field-action">
+                            <button type="submit" class="btn storage-future-submit">Add To Fabric</button>
+                        </div>
+                    </div>
+                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8CHa8LsWZFBLkyBeLymoWTtnqIRZohBvCr_Erivg41Jb2Q_O6YTVHG3nIt7E0AahHtk2oBQd_L9RrZH4ylcQJVuS9BYguzcBMmCfXGCCMdqWdHoZ4SFTL6WMRzp2V1oe_49bwolvRz32xexjGWY9elg" /></form>
+            </section>
+
+            <section class="storage-panel storage-pulse-panel">
+                <div class="storage-panel-title">Network Pulse</div>
+                <div class="storage-panel-subtitle">Live status density across monitored infrastructure.</div>
+                <div class="storage-pulse-stack">
+                    <div class="storage-pulse-row">
+                        <span>Online</span>
+                        <div class="storage-pulse-bar"><span style="width:0%"></span></div>
+                        <strong>0</strong>
+                    </div>
+                    <div class="storage-pulse-row">
+                        <span>Recently Scanned</span>
+                        <div class="storage-pulse-bar"><span style="width:0%"></span></div>
+                        <strong>0</strong>
+                    </div>
+                    <div class="storage-pulse-row">
+                        <span>NAS Nodes</span>
+                        <div class="storage-pulse-bar"><span style="width:0%"></span></div>
+                        <strong>0</strong>
+                    </div>
+                </div>
+                <div class="storage-legend-row">
+                    <span class="storage-legend-chip">Animated health bands</span>
+                    <span class="storage-legend-chip">Responsive node cards</span>
+                    <span class="storage-legend-chip">Fast actions</span>
+                </div>
+            </section>
+        </div>
+
+        <section class="storage-panel storage-node-panel">
+            <div class="storage-node-panel-head">
+                <div>
+                    <div class="storage-panel-title">Interactive Node Grid</div>
+                    <div class="storage-panel-subtitle">Filter by topology and launch actions directly from each storage node.</div>
+                </div>
+                <div class="storage-filter-row" role="group" aria-label="Filter storage location cards">
+                    <button type="button" class="btn storage-filter-btn active" data-location-filter-btn="all" aria-pressed="true">All</button>
+                    <button type="button" class="btn storage-filter-btn" data-location-filter-btn="Nas" aria-pressed="false">NAS</button>
+                    <button type="button" class="btn storage-filter-btn" data-location-filter-btn="Local" aria-pressed="false">Local</button>
+                    <button type="button" class="btn storage-filter-btn" data-location-filter-btn="FileShare" aria-pressed="false">File Share</button>
+                </div>
+            </div>
+
+            <div class="storage-node-grid">
+                    <div class="storage-node-empty">
+                        <i class="bi bi-hdd-network" aria-hidden="true"></i>
+                        <div>No storage nodes configured yet. Use the command deck above to add the first location.</div>
+                    </div>
+            </div>
+        </section>
+    </section>
+</div>
+
+<div class="storage-shortcuts-overlay" data-storage-shortcuts hidden>
+    <div class="storage-shortcuts-card" role="dialog" aria-modal="true" aria-label="Storage control keyboard shortcuts">
+        <div class="storage-shortcuts-head">
+            <h3>Operator Shortcuts</h3>
+            <button type="button" class="btn storage-shortcuts-close" data-storage-shortcuts-close aria-label="Close keyboard shortcuts">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <ul class="storage-shortcuts-list">
+            <li><kbd>?</kbd><span>Toggle this shortcuts panel</span></li>
+            <li><kbd>i</kbd><span>Switch to Interactive mode</span></li>
+            <li><kbd>o</kbd><span>Switch to Original mode</span></li>
+            <li><kbd>1</kbd><span>Filter All nodes</span></li>
+            <li><kbd>2</kbd><span>Filter NAS nodes</span></li>
+            <li><kbd>3</kbd><span>Filter Local nodes</span></li>
+            <li><kbd>4</kbd><span>Filter File Share nodes</span></li>
+            <li><kbd>c</kbd><span>Toggle compact command deck mode</span></li>
+            <li><kbd>/</kbd><span>Focus the Path Vector input</span></li>
+            <li><kbd>Esc</kbd><span>Close this panel</span></li>
+        </ul>
+    </div>
+</div>
+
+<div class="storage-operator-toast" data-storage-operator-toast hidden role="status" aria-live="polite"></div>
+
+
+
+            </main>
+
+            <footer b-8ll6mhhrmo class="app-footer">
+                <span b-8ll6mhhrmo>StorageLens</span>
+                <span b-8ll6mhhrmo class="dot-sep">|</span>
+                <span b-8ll6mhhrmo>Built on .NET 8 microservices</span>
+            </footer>
+        </section>
+    </div>
+
+    <div b-8ll6mhhrmo class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+        <div b-8ll6mhhrmo class="offcanvas-header">
+            <h5 b-8ll6mhhrmo class="offcanvas-title" id="sidebarOffcanvasLabel">StorageLens</h5>
+            <button b-8ll6mhhrmo type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div b-8ll6mhhrmo class="offcanvas-body">
+            <nav b-8ll6mhhrmo class="menu-nav">
+                <a class="menu-link " href="/"><i b-8ll6mhhrmo class="bi bi-house-door"></i>Home</a>
+                <a class="menu-link " href="/Index"><i b-8ll6mhhrmo class="bi bi-speedometer2"></i>Dashboard</a>
+                <a class="menu-link active" href="/StorageLocations"><i b-8ll6mhhrmo class="bi bi-hdd-stack"></i>Storage Locations</a>
+                <a class="menu-link " href="/ScanJobs"><i b-8ll6mhhrmo class="bi bi-activity"></i>Scan Jobs</a>
+                <a class="menu-link " href="/FileInventory"><i b-8ll6mhhrmo class="bi bi-folder2-open"></i>File Inventory</a>
+                <a class="menu-link " href="/Duplicates"><i b-8ll6mhhrmo class="bi bi-files"></i>Duplicates</a>
+                <a class="menu-link " href="/Reports"><i b-8ll6mhhrmo class="bi bi-graph-up-arrow"></i>Reports</a>
+                <a class="menu-link " href="/Alerts"><i b-8ll6mhhrmo class="bi bi-bell-fill"></i>Alerts</a>
+                <a class="menu-link " href="/Pricing"><i b-8ll6mhhrmo class="bi bi-tags"></i>Pricing</a>
+                <a class="menu-link " href="/Settings"><i b-8ll6mhhrmo class="bi bi-gear"></i>Settings</a>
+                <a class="menu-link " href="/About"><i b-8ll6mhhrmo class="bi bi-info-circle"></i>About</a>
+                <a class="menu-link " href="/Profile"><i b-8ll6mhhrmo class="bi bi-person-circle"></i>Profile</a>
+            </nav>
+        </div>
+    </div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="/js/profile.js?v=ZveiSl7bfMk9__hnvi2goqTGFpKwj5FFTXcPXrRIfwg"></script>
+    <script src="/js/site.js?v=Gy5wmI_FClIk2J-3-hfH3GneYN6M6UUxan_INV3pLoM"></script>
+
+    
+    <script>
+        const locationsModeStorageKey = 'storagelens-locations-mode';
+        const locationsPanels = document.querySelectorAll('[data-locations-mode-panel]');
+        const locationsModeButtons = document.querySelectorAll('[data-locations-mode-btn]');
+        const locationFilterButtons = document.querySelectorAll('[data-location-filter-btn]');
+        const locationCards = document.querySelectorAll('[data-location-card="true"]');
+        const shortcutsOverlay = document.querySelector('[data-storage-shortcuts]');
+        const shortcutsToggleButtons = document.querySelectorAll('[data-storage-shortcuts-toggle]');
+        const shortcutsCloseButton = document.querySelector('[data-storage-shortcuts-close]');
+        const compactToggleButton = document.querySelector('[data-storage-compact-toggle]');
+        const alertTickerText = document.querySelector('[data-alert-ticker-text]');
+        const operatorToast = document.querySelector('[data-storage-operator-toast]');
+        const compactModeStorageKey = 'storagelens-locations-compact-mode';
+
+        const alertMessages = [
+            'Fleet online 0 / 0 nodes.',
+            'Recent scan cadence: 0 nodes in the last 7 days.',
+            'Capacity tracked: 0 B in use.',
+            'Tracked files: 0 objects indexed.',
+            'Health score stable at 100%.'
+        ];
+        let alertTickerIndex = 0;
+        let operatorToastTimer = null;
+
+        const showOperatorToast = (message) => {
+            if (!operatorToast || !message) {
+                return;
+            }
+
+            operatorToast.textContent = message;
+            operatorToast.hidden = false;
+            operatorToast.classList.add('is-visible');
+
+            if (operatorToastTimer) {
+                window.clearTimeout(operatorToastTimer);
+            }
+
+            operatorToastTimer = window.setTimeout(() => {
+                operatorToast.classList.remove('is-visible');
+                operatorToast.hidden = true;
+            }, 1550);
+        };
+
+        const applyLocationsMode = (mode) => {
+            const selectedMode = mode === 'interactive' ? 'interactive' : 'classic';
+
+            locationsPanels.forEach((panel) => {
+                const isActive = panel.getAttribute('data-locations-mode-panel') === selectedMode;
+                panel.hidden = !isActive;
+            });
+
+            locationsModeButtons.forEach((button) => {
+                const isActive = button.getAttribute('data-locations-mode-btn') === selectedMode;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            document.body.classList.toggle('storage-locations-interactive-mode', selectedMode === 'interactive');
+            document.body.classList.toggle('storage-locations-interactive-on', selectedMode === 'interactive');
+
+            if (selectedMode !== 'interactive') {
+                closeStorageShortcuts();
+            }
+
+            localStorage.setItem(locationsModeStorageKey, selectedMode);
+        };
+
+        const applyCompactMode = (enabled) => {
+            const isEnabled = Boolean(enabled);
+
+            document.body.classList.toggle('storage-locations-compact-mode', isEnabled);
+            if (compactToggleButton) {
+                compactToggleButton.classList.toggle('active', isEnabled);
+                compactToggleButton.setAttribute('aria-pressed', String(isEnabled));
+            }
+
+            localStorage.setItem(compactModeStorageKey, isEnabled ? '1' : '0');
+        };
+
+        const applyLocationFilter = (filter) => {
+            const selectedFilter = filter || 'all';
+
+            locationFilterButtons.forEach((button) => {
+                const isActive = button.getAttribute('data-location-filter-btn') === selectedFilter;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            locationCards.forEach((card) => {
+                const cardType = card.getAttribute('data-location-type');
+                const isVisible = selectedFilter === 'all' || cardType === selectedFilter;
+                card.hidden = !isVisible;
+                card.classList.toggle('storage-node-card-hidden', !isVisible);
+            });
+        };
+
+        const applyLocationCardStagger = () => {
+            locationCards.forEach((card, index) => {
+                card.style.setProperty('--storage-card-delay', `${Math.min(index * 55, 500)}ms`);
+            });
+        };
+
+        const closeStorageShortcuts = () => {
+            if (!shortcutsOverlay) {
+                return;
+            }
+
+            shortcutsOverlay.hidden = true;
+            document.body.classList.remove('storage-shortcuts-open');
+        };
+
+        const openStorageShortcuts = () => {
+            if (!shortcutsOverlay) {
+                return;
+            }
+
+            shortcutsOverlay.hidden = false;
+            document.body.classList.add('storage-shortcuts-open');
+        };
+
+        const toggleStorageShortcuts = () => {
+            if (!shortcutsOverlay) {
+                return;
+            }
+
+            if (shortcutsOverlay.hidden) {
+                openStorageShortcuts();
+                showOperatorToast('Keyboard shortcuts: active');
+            } else {
+                closeStorageShortcuts();
+                showOperatorToast('Keyboard shortcuts: closed');
+            }
+        };
+
+        const rotateAlertTicker = () => {
+            if (!alertTickerText || alertMessages.length === 0) {
+                return;
+            }
+
+            alertTickerIndex = (alertTickerIndex + 1) % alertMessages.length;
+            alertTickerText.classList.add('is-swapping');
+
+            window.setTimeout(() => {
+                alertTickerText.textContent = alertMessages[alertTickerIndex];
+                alertTickerText.classList.remove('is-swapping');
+            }, 180);
+        };
+
+        const focusInteractivePathInput = () => {
+            const pathInput = document.getElementById('InteractivePath');
+            if (pathInput && !pathInput.hidden) {
+                pathInput.focus();
+                pathInput.select();
+            }
+        };
+
+        const initialLocationsMode = (() => {
+            const urlMode = new URLSearchParams(window.location.search).get('locationsMode');
+            if (urlMode === 'interactive' || urlMode === 'classic') {
+                return urlMode;
+            }
+
+            const savedMode = localStorage.getItem(locationsModeStorageKey);
+            return savedMode === 'interactive' ? 'interactive' : 'classic';
+        })();
+
+        const initialCompactMode = localStorage.getItem(compactModeStorageKey) === '1';
+
+        applyLocationsMode(initialLocationsMode);
+        applyCompactMode(initialCompactMode);
+        applyLocationCardStagger();
+        applyLocationFilter('all');
+        window.setInterval(rotateAlertTicker, 4200);
+
+        locationsModeButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                applyLocationsMode(button.getAttribute('data-locations-mode-btn') || 'classic');
+            });
+        });
+
+        locationFilterButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                applyLocationFilter(button.getAttribute('data-location-filter-btn') || 'all');
+            });
+        });
+
+        shortcutsToggleButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                toggleStorageShortcuts();
+            });
+        });
+
+        if (compactToggleButton) {
+            compactToggleButton.addEventListener('click', () => {
+                const willEnable = !document.body.classList.contains('storage-locations-compact-mode');
+                applyCompactMode(willEnable);
+                showOperatorToast(willEnable ? 'Compact mode: enabled' : 'Compact mode: disabled');
+            });
+        }
+
+        if (shortcutsCloseButton) {
+            shortcutsCloseButton.addEventListener('click', closeStorageShortcuts);
+        }
+
+        if (shortcutsOverlay) {
+            shortcutsOverlay.addEventListener('click', (event) => {
+                if (event.target === shortcutsOverlay) {
+                    closeStorageShortcuts();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            const tagName = (event.target?.tagName || '').toLowerCase();
+            const isTypingField = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+
+            if (event.key === 'Escape') {
+                closeStorageShortcuts();
+                return;
+            }
+
+            if (isTypingField) {
+                return;
+            }
+
+            if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
+                event.preventDefault();
+                toggleStorageShortcuts();
+                return;
+            }
+
+            if (event.key === 'i' || event.key === 'I') {
+                applyLocationsMode('interactive');
+                showOperatorToast('Mode switched: Interactive');
+                return;
+            }
+
+            if (event.key === 'o' || event.key === 'O') {
+                applyLocationsMode('classic');
+                showOperatorToast('Mode switched: Original');
+                return;
+            }
+
+            if (event.key === '1') {
+                applyLocationFilter('all');
+                showOperatorToast('Filter applied: All nodes');
+                return;
+            }
+
+            if (event.key === '2') {
+                applyLocationFilter('Nas');
+                showOperatorToast('Filter applied: NAS');
+                return;
+            }
+
+            if (event.key === '3') {
+                applyLocationFilter('Local');
+                showOperatorToast('Filter applied: Local');
+                return;
+            }
+
+            if (event.key === '4') {
+                applyLocationFilter('FileShare');
+                showOperatorToast('Filter applied: File Share');
+                return;
+            }
+
+            if (event.key === '/') {
+                event.preventDefault();
+                applyLocationsMode('interactive');
+                focusInteractivePathInput();
+                showOperatorToast('Path vector focused');
+                return;
+            }
+
+            if (event.key === 'c' || event.key === 'C') {
+                const willEnable = !document.body.classList.contains('storage-locations-compact-mode');
+                applyCompactMode(willEnable);
+                showOperatorToast(willEnable ? 'Compact mode: enabled' : 'Compact mode: disabled');
+            }
+        });
+    </script>
+
+</body>
+</html>

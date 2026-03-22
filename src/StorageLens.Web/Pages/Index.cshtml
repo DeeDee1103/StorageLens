@@ -9,10 +9,18 @@
     var locationValues = System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.LargestLocations.Select(x => x.Value));
 }
 
-<section class="mb-3 reveal-item">
-    <h1 class="dashboard-title">Storage Operations Dashboard</h1>
-    <p class="text-secondary mb-0">Executive overview of capacity, duplicate waste, and scan performance.</p>
+<section class="mb-3 reveal-item dashboard-mode-header">
+    <div>
+        <h1 class="dashboard-title">Storage Operations Dashboard</h1>
+        <p class="text-secondary mb-0">Executive overview of capacity, duplicate waste, and scan performance.</p>
+    </div>
+    <div class="dashboard-mode-toggle" role="group" aria-label="Dashboard mode selector">
+        <button type="button" class="btn dashboard-mode-btn" data-dashboard-mode-btn="classic" aria-pressed="true">Original</button>
+        <button type="button" class="btn dashboard-mode-btn" data-dashboard-mode-btn="interactive" aria-pressed="false">Interactive</button>
+    </div>
 </section>
+
+<div class="dashboard-mode dashboard-mode-classic" data-dashboard-mode-panel="classic">
 
 @if (Model.ServiceUnavailable)
 {
@@ -178,6 +186,119 @@
         </div>
     </div>
 </section>
+
+</div>
+
+<div class="dashboard-mode dashboard-mode-interactive" data-dashboard-mode-panel="interactive" hidden>
+    <section class="interactive-dashboard-shell reveal-item">
+        <div class="interactive-headbar">
+            <div class="interactive-brand-pill">StorageLens</div>
+            <div class="interactive-search-strip">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <span>Scan history</span>
+            </div>
+            <div class="interactive-actions">
+                <span class="interactive-action-dot"></span>
+                <span class="interactive-action-dot"></span>
+                <span class="interactive-action-dot"></span>
+            </div>
+        </div>
+
+        <div class="interactive-kpi-grid">
+            <article class="interactive-kpi-card interactive-kpi-teal">
+                <div class="interactive-kpi-label">Total Storage</div>
+                <div class="interactive-kpi-value">@SizeFormatter.ToFriendlySize(Model.Dashboard.Kpis.TotalStorageBytes)</div>
+                <div class="interactive-kpi-trend">
+                    <span class="trend-line"></span>
+                    <span>+4.8%</span>
+                </div>
+            </article>
+            <article class="interactive-kpi-card interactive-kpi-cyan">
+                <div class="interactive-kpi-label">File Count</div>
+                <div class="interactive-kpi-value">@Model.Dashboard.Kpis.TotalFiles.ToString("N0")</div>
+                <div class="interactive-kpi-trend">
+                    <span class="trend-line"></span>
+                    <span>+2.3%</span>
+                </div>
+            </article>
+            <article class="interactive-kpi-card interactive-kpi-lime">
+                <div class="interactive-kpi-label">Growth 30d</div>
+                <div class="interactive-kpi-value">@((Model.Dashboard.StorageGrowth.LastOrDefault()?.Value ?? 0).ToString("0.0")) TB</div>
+                <div class="interactive-kpi-trend">
+                    <span class="trend-line"></span>
+                    <span>Trend Up</span>
+                </div>
+            </article>
+            <article class="interactive-kpi-card interactive-kpi-mint">
+                <div class="interactive-kpi-label">Potential Savings</div>
+                <div class="interactive-kpi-value">@SizeFormatter.ToFriendlySize(Model.Dashboard.Kpis.PotentialSavingsBytes)</div>
+                <div class="interactive-kpi-trend">
+                    <span class="trend-line"></span>
+                    <span>Actionable</span>
+                </div>
+            </article>
+        </div>
+
+        <div class="interactive-chart-grid">
+            <section class="interactive-chart-panel interactive-chart-large">
+                <div class="interactive-panel-title">Storage Growth Trend</div>
+                <div class="interactive-panel-subtitle">Capacity trajectory across recent periods</div>
+                <div class="interactive-chart-box">
+                    <canvas id="interactiveGrowthChart"></canvas>
+                </div>
+            </section>
+
+            <section class="interactive-chart-panel">
+                <div class="interactive-panel-title">File Type Mix</div>
+                <div class="interactive-panel-subtitle">Relative volume by type</div>
+                <div class="interactive-chart-box">
+                    <canvas id="interactiveTypeChart"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <div class="interactive-list-grid">
+            <section class="interactive-chart-panel">
+                <div class="interactive-panel-title">Recent Scan Jobs</div>
+                <ul class="interactive-mini-list mb-0">
+                    @if (!Model.Dashboard.RecentJobs.Any())
+                    {
+                        <li class="interactive-mini-empty">No scan jobs yet</li>
+                    }
+                    else
+                    {
+                        @foreach (var job in Model.Dashboard.RecentJobs.Take(4))
+                        {
+                            <li>
+                                <span>@job.LocationName</span>
+                                <span>@job.ProgressPercent%</span>
+                            </li>
+                        }
+                    }
+                </ul>
+            </section>
+            <section class="interactive-chart-panel">
+                <div class="interactive-panel-title">Top Duplicate Groups</div>
+                <ul class="interactive-mini-list mb-0">
+                    @if (!Model.Dashboard.TopDuplicateGroups.Any())
+                    {
+                        <li class="interactive-mini-empty">No duplicate groups found</li>
+                    }
+                    else
+                    {
+                        @foreach (var group in Model.Dashboard.TopDuplicateGroups.Take(4))
+                        {
+                            <li>
+                                <span>@group.ExampleFileName</span>
+                                <span>@SizeFormatter.ToFriendlySize(group.WastedBytes)</span>
+                            </li>
+                        }
+                    }
+                </ul>
+            </section>
+        </div>
+    </section>
+</div>
 
 <div class="modal fade" id="chartDetailModal" tabindex="-1" aria-labelledby="chartDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -686,6 +807,126 @@
                     }
                 }
             }
+        });
+
+        const interactiveGrowthCanvas = document.getElementById('interactiveGrowthChart');
+        if (interactiveGrowthCanvas) {
+            new Chart(interactiveGrowthCanvas, {
+                type: 'line',
+                data: {
+                    labels: growthLabels,
+                    datasets: [{
+                        data: growthValues,
+                        borderColor: '#2be2db',
+                        backgroundColor: 'rgba(43, 226, 219, 0.12)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        tension: 0.35,
+                        fill: true
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1300,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${Number(context.raw || 0).toFixed(2)} TB`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(113, 143, 191, 0.18)' },
+                            ticks: { color: '#95a9ce' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(113, 143, 191, 0.14)' },
+                            ticks: {
+                                color: '#95a9ce',
+                                callback: (value) => `${Number(value).toFixed(0)} TB`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const interactiveTypeCanvas = document.getElementById('interactiveTypeChart');
+        if (interactiveTypeCanvas) {
+            new Chart(interactiveTypeCanvas, {
+                type: 'bar',
+                data: {
+                    labels: typeLabels,
+                    datasets: [{
+                        data: typeValues,
+                        backgroundColor: ['#84f548', '#53f0c8', '#2be2db', '#79b5ff', '#65f3a6', '#2ac9f4'],
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1100,
+                        easing: 'easeOutCubic'
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#95a9ce' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(113, 143, 191, 0.14)' },
+                            ticks: { color: '#95a9ce' }
+                        }
+                    }
+                }
+            });
+        }
+
+        const dashboardModeStorageKey = 'storagelens-dashboard-mode';
+        const modePanels = document.querySelectorAll('[data-dashboard-mode-panel]');
+        const modeButtons = document.querySelectorAll('[data-dashboard-mode-btn]');
+
+        const applyDashboardMode = (mode) => {
+            const selectedMode = mode === 'interactive' ? 'interactive' : 'classic';
+            modePanels.forEach((panel) => {
+                const isActive = panel.getAttribute('data-dashboard-mode-panel') === selectedMode;
+                panel.hidden = !isActive;
+            });
+
+            modeButtons.forEach((button) => {
+                const isActive = button.getAttribute('data-dashboard-mode-btn') === selectedMode;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            document.body.classList.toggle('dashboard-interactive-mode', selectedMode === 'interactive');
+            localStorage.setItem(dashboardModeStorageKey, selectedMode);
+        };
+
+        const urlMode = new URLSearchParams(window.location.search).get('dashboardMode');
+        const savedMode = localStorage.getItem(dashboardModeStorageKey);
+        const initialMode = urlMode === 'interactive' || urlMode === 'classic'
+            ? urlMode
+            : (savedMode === 'interactive' ? 'interactive' : 'classic');
+        applyDashboardMode(initialMode);
+
+        modeButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                applyDashboardMode(button.getAttribute('data-dashboard-mode-btn') || 'classic');
+            });
         });
     </script>
 }

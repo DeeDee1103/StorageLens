@@ -1,9 +1,41 @@
 @page
 @model FileInventoryModel
 
-<section class="mb-3 reveal-item">
-    <h1 class="dashboard-title">File Inventory</h1>
-    <p class="text-secondary mb-0">Browse metadata from scanned content and filter by type, name, or path.</p>
+@{
+    var totalFiles = Model.Files.Count;
+    var totalBytes = Model.Files.Sum(file => file.SizeBytes);
+    var uniqueExtensions = Model.Files
+        .Select(file => file.Extension)
+        .Where(extension => !string.IsNullOrWhiteSpace(extension))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Count();
+    var duplicateCount = Model.Files.Count(file => file.HashStatus?.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true);
+    var latestModified = Model.Files.Any() ? Model.Files.Max(file => file.LastModifiedDate) : (DateTimeOffset?)null;
+    var locationSnapshots = Model.Files
+        .GroupBy(file => string.IsNullOrWhiteSpace(file.LocationName) ? "Unassigned" : file.LocationName)
+        .Select(group => new
+        {
+            Name = group.Key,
+            FileCount = group.Count(),
+            TotalBytes = group.Sum(file => file.SizeBytes),
+            LatestModified = group.Max(file => file.LastModifiedDate),
+            DuplicateCount = group.Count(file => file.HashStatus?.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true),
+            HashPendingCount = group.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase))
+        })
+        .OrderByDescending(location => location.FileCount)
+        .ThenBy(location => location.Name)
+        .ToList();
+}
+
+<section class="mb-3 reveal-item file-inventory-mode-header">
+    <div>
+        <h1 class="dashboard-title">File Inventory</h1>
+        <p class="text-secondary mb-0">Browse metadata from scanned content and filter by type, name, or path.</p>
+    </div>
+    <div class="file-inventory-mode-toggle" role="group" aria-label="File inventory mode selector">
+        <button type="button" class="btn file-inventory-mode-btn" data-file-inventory-mode-btn="classic" aria-pressed="true">Original</button>
+        <button type="button" class="btn file-inventory-mode-btn" data-file-inventory-mode-btn="interactive" aria-pressed="false">Interactive</button>
+    </div>
 </section>
 
 @if (Model.ServiceUnavailable)
@@ -14,81 +46,447 @@
     </div>
 }
 
-<section class="card-premium p-3 mb-3 reveal-item">
-    <form method="get" class="row g-2 align-items-end">
-        <div class="col-md-5">
-            <label class="form-label">Search</label>
-            <input class="form-control" asp-for="Search" placeholder="file name or path" />
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Extension</label>
-            <input class="form-control" asp-for="Extension" placeholder=".pdf" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Page</label>
-            <input class="form-control" asp-for="PageNumber" min="1" />
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-gradient w-100" type="submit">Apply</button>
-        </div>
-    </form>
-</section>
+<div class="file-inventory-mode" data-file-inventory-mode-panel="classic">
+    <section class="card-premium p-3 mb-3 reveal-item">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <input class="form-control" asp-for="Search" placeholder="file name or path" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Extension</label>
+                <input class="form-control" asp-for="Extension" placeholder=".pdf" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Page</label>
+                <input class="form-control" asp-for="PageNumber" min="1" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-gradient w-100" type="submit">Apply</button>
+            </div>
+        </form>
+    </section>
 
-<section class="card-premium p-3 reveal-item">
-    <div class="section-title">File Metadata</div>
-    <div class="table-responsive">
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th>File Name</th>
-                    <th>Path</th>
-                    <th>Extension</th>
-                    <th>Size</th>
-                    <th>Last Modified</th>
-                    <th>Location</th>
-                    <th>Hash Status</th>
-                </tr>
-            </thead>
-            <tbody>
+    <section class="card-premium p-3 reveal-item">
+        <div class="section-title">File Metadata</div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Path</th>
+                        <th>Extension</th>
+                        <th>Size</th>
+                        <th>Last Modified</th>
+                        <th>Location</th>
+                        <th>Hash Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (!Model.Files.Any())
+                {
+                    <tr class="empty-state-row">
+                        <td colspan="7"><i class="bi bi-folder2-open empty-state-icon"></i>No files match your search criteria</td>
+                    </tr>
+                }
+                @foreach (var file in Model.Files)
+                {
+                    <tr>
+                        <td>@file.FileName</td>
+                        <td><code>@file.FilePath</code></td>
+                        <td><span class="badge-soft">@file.Extension</span></td>
+                        <td>@SizeFormatter.ToFriendlySize(file.SizeBytes)</td>
+                        <td>@file.LastModifiedDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@file.LocationName</td>
+                        <td>@file.HashStatus</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            @if (Model.PageNumber <= 1)
+            {
+                <button class="btn btn-outline-soft" disabled aria-disabled="true">Previous</button>
+            }
+            else
+            {
+                <a class="btn btn-outline-soft" asp-page="/FileInventory" asp-route-Search="@Model.Search" asp-route-Extension="@Model.Extension" asp-route-PageNumber="@(Model.PageNumber - 1)">Previous</a>
+            }
+            <span class="text-secondary">Page @Model.PageNumber</span>
             @if (!Model.Files.Any())
             {
-                <tr class="empty-state-row">
-                    <td colspan="7"><i class="bi bi-folder2-open empty-state-icon"></i>No files match your search criteria</td>
-                </tr>
+                <button class="btn btn-outline-soft" disabled aria-disabled="true">Next</button>
             }
-            @foreach (var file in Model.Files)
+            else
             {
-                <tr>
-                    <td>@file.FileName</td>
-                    <td><code>@file.FilePath</code></td>
-                    <td><span class="badge-soft">@file.Extension</span></td>
-                    <td>@SizeFormatter.ToFriendlySize(file.SizeBytes)</td>
-                    <td>@file.LastModifiedDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
-                    <td>@file.LocationName</td>
-                    <td>@file.HashStatus</td>
-                </tr>
+                <a class="btn btn-outline-soft" asp-page="/FileInventory" asp-route-Search="@Model.Search" asp-route-Extension="@Model.Extension" asp-route-PageNumber="@(Model.PageNumber + 1)">Next</a>
             }
-            </tbody>
-        </table>
-    </div>
+        </div>
+    </section>
+</div>
 
-    <div class="d-flex justify-content-between align-items-center mt-2">
-        @if (Model.PageNumber <= 1)
-        {
-            <button class="btn btn-outline-soft" disabled aria-disabled="true">Previous</button>
+<div class="file-inventory-mode" data-file-inventory-mode-panel="interactive" hidden>
+    <section class="file-inventory-interactive-shell reveal-item">
+        <div class="file-inventory-breadcrumb-bar">
+            <div class="file-inventory-breadcrumb-path">
+                <span class="file-crumb active">Storage Locations</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                <span class="file-crumb" data-selected-location-name>All Locations</span>
+            </div>
+            <div class="file-inventory-breadcrumb-actions">
+                <button type="button" class="btn file-inventory-icon-btn" data-file-refresh title="Refresh" aria-label="Refresh interactive file list">
+                    <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn file-inventory-icon-btn" data-file-open-telemetry title="Open telemetry view" aria-label="Open telemetry view">
+                    <i class="bi bi-activity" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="file-inventory-interactive-grid">
+            <aside class="file-inventory-folder-rail" aria-label="Location navigator">
+                <div class="file-rail-header">
+                    <h3>Locations</h3>
+                    <span class="badge-soft">@locationSnapshots.Count</span>
+                </div>
+                <div class="file-folder-tree" id="fileInventoryFolderTree">
+                    <button type="button"
+                            class="file-folder-node active"
+                            data-location-name="All Locations"
+                            data-location-files="@totalFiles"
+                            data-location-size="@SizeFormatter.ToFriendlySize(totalBytes)"
+                            data-location-updated="@(latestModified?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "No data")"
+                            data-location-status="Fleet"
+                            data-location-pending="@Model.Files.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase))"
+                            data-location-duplicates="@duplicateCount"
+                            aria-pressed="true">
+                        <i class="bi bi-diagram-3-fill" aria-hidden="true"></i>
+                        <span class="file-folder-node-label">All Locations</span>
+                        <span class="file-folder-count">@totalFiles</span>
+                    </button>
+                    @foreach (var location in locationSnapshots)
+                    {
+                        var locationStatus = location.DuplicateCount > 0 ? "Watch" : (location.HashPendingCount > 0 ? "Syncing" : "Stable");
+                        <button type="button"
+                                class="file-folder-node"
+                                data-location-name="@location.Name"
+                                data-location-files="@location.FileCount"
+                                data-location-size="@SizeFormatter.ToFriendlySize(location.TotalBytes)"
+                                data-location-updated="@location.LatestModified.ToLocalTime().ToString("yyyy-MM-dd HH:mm")"
+                                data-location-status="@locationStatus"
+                                data-location-pending="@location.HashPendingCount"
+                                data-location-duplicates="@location.DuplicateCount"
+                                aria-pressed="false">
+                            <i class="bi bi-folder-fill" aria-hidden="true"></i>
+                            <span class="file-folder-node-label">@location.Name</span>
+                            <span class="file-folder-count">@location.FileCount</span>
+                        </button>
+                    }
+                </div>
+            </aside>
+
+            <section class="file-inventory-metadata-panel">
+                <div class="file-screen-panel active" data-file-screen="navigator">
+                    <article class="file-metadata-card">
+                        <header class="file-card-header">
+                            <h3>Location Metadata</h3>
+                        </header>
+                        <div class="file-metadata-grid">
+                            <div class="file-meta-item">
+                                <span class="file-meta-label">Total Files</span>
+                                <span class="file-meta-value" data-meta-files>@totalFiles</span>
+                            </div>
+                            <div class="file-meta-item">
+                                <span class="file-meta-label">Total Size</span>
+                                <span class="file-meta-value" data-meta-size>@SizeFormatter.ToFriendlySize(totalBytes)</span>
+                            </div>
+                            <div class="file-meta-item">
+                                <span class="file-meta-label">Last Updated</span>
+                                <span class="file-meta-value" data-meta-updated>@(latestModified?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "No data")</span>
+                            </div>
+                            <div class="file-meta-item">
+                                <span class="file-meta-label">Scan Status</span>
+                                <span class="file-meta-badge" data-meta-status>Fleet</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="file-active-users-card">
+                        <header class="file-card-header">
+                            <h3>Active Users</h3>
+                            <span class="file-live-pill">Live</span>
+                        </header>
+                        <div class="file-user-list">
+                            <div class="file-user-item">
+                                <div class="file-user-avatar"><i class="bi bi-person-fill" aria-hidden="true"></i></div>
+                                <div class="file-user-details">
+                                    <div class="file-user-name">System Admin</div>
+                                    <div class="file-user-action">Reviewing scanned metadata</div>
+                                </div>
+                                <span class="file-user-state online" aria-hidden="true"></span>
+                            </div>
+                            <div class="file-user-item">
+                                <div class="file-user-avatar"><i class="bi bi-cpu-fill" aria-hidden="true"></i></div>
+                                <div class="file-user-details">
+                                    <div class="file-user-name">Hash Worker</div>
+                                    <div class="file-user-action"><span data-meta-pending>@Model.Files.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase))</span> files pending hash</div>
+                                </div>
+                                <span class="file-user-state syncing" aria-hidden="true"></span>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="file-screen-panel" data-file-screen="telemetry" hidden>
+                    <article class="file-telemetry-card">
+                        <header class="file-card-header">
+                            <h3>Scan Telemetry</h3>
+                        </header>
+                        <div class="file-telemetry-stack">
+                            <div class="file-telemetry-row">
+                                <span>Files In View</span>
+                                <strong data-telemetry-files>@totalFiles</strong>
+                            </div>
+                            <div class="file-telemetry-row">
+                                <span>Unique Extensions</span>
+                                <strong>@uniqueExtensions</strong>
+                            </div>
+                            <div class="file-telemetry-row">
+                                <span>Potential Duplicates</span>
+                                <strong data-telemetry-duplicates>@duplicateCount</strong>
+                            </div>
+                            <div class="file-telemetry-row">
+                                <span>Hash Queue</span>
+                                <strong data-telemetry-pending>@Model.Files.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase))</strong>
+                            </div>
+                        </div>
+                    </article>
+                    <article class="file-telemetry-card">
+                        <header class="file-card-header">
+                            <h3>Selected File</h3>
+                        </header>
+                        <div class="file-selected-meta">
+                            <div><span>Name</span><strong data-selected-file-name>No file selected</strong></div>
+                            <div><span>Path</span><strong data-selected-file-path>Choose a file from the list</strong></div>
+                            <div><span>Status</span><strong data-selected-file-status>Unknown</strong></div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="file-screen-tabs" role="tablist" aria-label="Interactive screen selector">
+                    <button type="button" class="file-screen-tab active" data-file-screen-tab="navigator" aria-pressed="true">Navigator</button>
+                    <button type="button" class="file-screen-tab" data-file-screen-tab="telemetry" aria-pressed="false">Telemetry</button>
+                </div>
+            </section>
+
+            <section class="file-inventory-list-panel">
+                <div class="file-list-panel-head">
+                    <h3>Files</h3>
+                    <input type="text" class="form-control form-control-sm" placeholder="Quick filter" data-file-quick-filter aria-label="Quick filter interactive file list" />
+                </div>
+                <div class="file-list-scroll" id="fileInventoryInteractiveList">
+                    @if (!Model.Files.Any())
+                    {
+                        <div class="file-list-empty">
+                            <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                            <span>No files available for interactive view.</span>
+                        </div>
+                    }
+                    @foreach (var file in Model.Files.Take(80))
+                    {
+                        var itemStatus = string.IsNullOrWhiteSpace(file.HashStatus) ? "Unknown" : file.HashStatus;
+                        var normalizedLocation = string.IsNullOrWhiteSpace(file.LocationName) ? "Unassigned" : file.LocationName;
+                        <button type="button"
+                                class="file-list-item"
+                                data-file-name="@file.FileName"
+                                data-file-path="@file.FilePath"
+                                data-file-status="@itemStatus"
+                                data-file-location="@normalizedLocation">
+                            <span class="file-list-icon"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span>
+                            <span class="file-list-copy">
+                                <strong>@file.FileName</strong>
+                                <small>@SizeFormatter.ToFriendlySize(file.SizeBytes) · @file.Extension · @normalizedLocation</small>
+                            </span>
+                            @if (itemStatus.Contains("duplicate", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <span class="file-list-pill warn">Dup</span>
+                            }
+                        </button>
+                    }
+                </div>
+            </section>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        const fileInventoryModeStorageKey = 'storagelens-file-inventory-mode';
+        const fileModePanels = document.querySelectorAll('[data-file-inventory-mode-panel]');
+        const fileModeButtons = document.querySelectorAll('[data-file-inventory-mode-btn]');
+
+        const applyFileInventoryMode = (mode) => {
+            const selectedMode = mode === 'interactive' ? 'interactive' : 'classic';
+            fileModePanels.forEach((panel) => {
+                const isActive = panel.getAttribute('data-file-inventory-mode-panel') === selectedMode;
+                panel.hidden = !isActive;
+            });
+
+            fileModeButtons.forEach((button) => {
+                const isActive = button.getAttribute('data-file-inventory-mode-btn') === selectedMode;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            document.body.classList.toggle('fileinventory-interactive-mode', selectedMode === 'interactive');
+            localStorage.setItem(fileInventoryModeStorageKey, selectedMode);
+        };
+
+        const urlMode = new URLSearchParams(window.location.search).get('fileInventoryMode');
+        const savedMode = localStorage.getItem(fileInventoryModeStorageKey);
+        const initialMode = urlMode === 'interactive' || urlMode === 'classic'
+            ? urlMode
+            : (savedMode === 'interactive' ? 'interactive' : 'classic');
+        applyFileInventoryMode(initialMode);
+
+        fileModeButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                applyFileInventoryMode(button.getAttribute('data-file-inventory-mode-btn') || 'classic');
+            });
+        });
+
+        const fileScreenPanels = document.querySelectorAll('[data-file-screen]');
+        const fileScreenTabs = document.querySelectorAll('[data-file-screen-tab]');
+
+        const applyFileScreen = (screen) => {
+            const selectedScreen = screen === 'telemetry' ? 'telemetry' : 'navigator';
+            fileScreenPanels.forEach((panel) => {
+                const isActive = panel.getAttribute('data-file-screen') === selectedScreen;
+                panel.classList.toggle('active', isActive);
+                panel.hidden = !isActive;
+            });
+
+            fileScreenTabs.forEach((tab) => {
+                const isActive = tab.getAttribute('data-file-screen-tab') === selectedScreen;
+                tab.classList.toggle('active', isActive);
+                tab.setAttribute('aria-pressed', String(isActive));
+            });
+        };
+
+        fileScreenTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                applyFileScreen(tab.getAttribute('data-file-screen-tab') || 'navigator');
+            });
+        });
+
+        const locationName = document.querySelector('[data-selected-location-name]');
+        const metaFiles = document.querySelector('[data-meta-files]');
+        const metaSize = document.querySelector('[data-meta-size]');
+        const metaUpdated = document.querySelector('[data-meta-updated]');
+        const metaStatus = document.querySelector('[data-meta-status]');
+        const metaPending = document.querySelector('[data-meta-pending]');
+        const telemetryFiles = document.querySelector('[data-telemetry-files]');
+        const telemetryPending = document.querySelector('[data-telemetry-pending]');
+        const telemetryDuplicates = document.querySelector('[data-telemetry-duplicates]');
+
+        const folderNodes = document.querySelectorAll('.file-folder-node');
+        folderNodes.forEach((node) => {
+            node.addEventListener('click', () => {
+                folderNodes.forEach((item) => {
+                    item.classList.remove('active');
+                    item.setAttribute('aria-pressed', 'false');
+                });
+
+                node.classList.add('active');
+                node.setAttribute('aria-pressed', 'true');
+
+                if (locationName) {
+                    locationName.textContent = node.getAttribute('data-location-name') || 'All Locations';
+                }
+
+                if (metaFiles) {
+                    metaFiles.textContent = node.getAttribute('data-location-files') || '0';
+                }
+
+                if (metaSize) {
+                    metaSize.textContent = node.getAttribute('data-location-size') || '0 B';
+                }
+
+                if (metaUpdated) {
+                    metaUpdated.textContent = node.getAttribute('data-location-updated') || 'No data';
+                }
+
+                if (metaStatus) {
+                    metaStatus.textContent = node.getAttribute('data-location-status') || 'Fleet';
+                }
+
+                if (metaPending) {
+                    metaPending.textContent = node.getAttribute('data-location-pending') || '0';
+                }
+
+                if (telemetryFiles) {
+                    telemetryFiles.textContent = node.getAttribute('data-location-files') || '0';
+                }
+
+                if (telemetryPending) {
+                    telemetryPending.textContent = node.getAttribute('data-location-pending') || '0';
+                }
+
+                if (telemetryDuplicates) {
+                    telemetryDuplicates.textContent = node.getAttribute('data-location-duplicates') || '0';
+                }
+            });
+        });
+
+        const selectedFileName = document.querySelector('[data-selected-file-name]');
+        const selectedFilePath = document.querySelector('[data-selected-file-path]');
+        const selectedFileStatus = document.querySelector('[data-selected-file-status]');
+        const listItems = document.querySelectorAll('.file-list-item');
+
+        listItems.forEach((item) => {
+            item.addEventListener('click', () => {
+                listItems.forEach((entry) => {
+                    entry.classList.remove('active');
+                });
+                item.classList.add('active');
+
+                if (selectedFileName) {
+                    selectedFileName.textContent = item.getAttribute('data-file-name') || 'Unknown';
+                }
+
+                if (selectedFilePath) {
+                    selectedFilePath.textContent = item.getAttribute('data-file-path') || 'Unknown';
+                }
+
+                if (selectedFileStatus) {
+                    selectedFileStatus.textContent = item.getAttribute('data-file-status') || 'Unknown';
+                }
+            });
+        });
+
+        const quickFilter = document.querySelector('[data-file-quick-filter]');
+        if (quickFilter) {
+            quickFilter.addEventListener('input', () => {
+                const query = quickFilter.value.trim().toLowerCase();
+                listItems.forEach((item) => {
+                    const fileName = (item.getAttribute('data-file-name') || '').toLowerCase();
+                    const filePath = (item.getAttribute('data-file-path') || '').toLowerCase();
+                    const shouldShow = query.length === 0 || fileName.includes(query) || filePath.includes(query);
+                    item.hidden = !shouldShow;
+                });
+            });
         }
-        else
-        {
-            <a class="btn btn-outline-soft" asp-page="/FileInventory" asp-route-Search="@Model.Search" asp-route-Extension="@Model.Extension" asp-route-PageNumber="@(Model.PageNumber - 1)">Previous</a>
+
+        const openTelemetryBtn = document.querySelector('[data-file-open-telemetry]');
+        if (openTelemetryBtn) {
+            openTelemetryBtn.addEventListener('click', () => applyFileScreen('telemetry'));
         }
-        <span class="text-secondary">Page @Model.PageNumber</span>
-        @if (!Model.Files.Any())
-        {
-            <button class="btn btn-outline-soft" disabled aria-disabled="true">Next</button>
+
+        const refreshInteractiveBtn = document.querySelector('[data-file-refresh]');
+        if (refreshInteractiveBtn) {
+            refreshInteractiveBtn.addEventListener('click', () => window.location.reload());
         }
-        else
-        {
-            <a class="btn btn-outline-soft" asp-page="/FileInventory" asp-route-Search="@Model.Search" asp-route-Extension="@Model.Extension" asp-route-PageNumber="@(Model.PageNumber + 1)">Next</a>
-        }
-    </div>
-</section>
+    </script>
+}

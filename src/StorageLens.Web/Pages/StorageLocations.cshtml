@@ -1,9 +1,31 @@
 @page
 @model StorageLocationsModel
+@using System.Globalization
 
-<section class="mb-3 reveal-item">
-    <h1 class="dashboard-title">Storage Locations</h1>
-    <p class="text-secondary mb-0">Manage NAS paths, local drives, and file shares monitored by StorageLens.</p>
+@{
+    var totalLocations = Model.Locations.Count;
+    var onlineCount = Model.Locations.Count(location => string.Equals(location.Status, "Online", StringComparison.OrdinalIgnoreCase));
+    var offlineCount = Model.Locations.Count(location => !string.Equals(location.Status, "Online", StringComparison.OrdinalIgnoreCase));
+    var recentScanCount = Model.Locations.Count(location => location.LastScanDate.HasValue && location.LastScanDate.Value >= DateTime.UtcNow.AddDays(-7));
+    var totalUsedBytes = Model.Locations.Sum(location => location.TotalSizeBytes);
+    var totalFiles = Model.Locations.Sum(location => location.FileCount);
+    var fleetHeadroom = Math.Max(0d, 100d - GetFleetHealthScore(Model.Locations));
+    var recentCommandFeed = Model.Locations
+        .OrderByDescending(location => location.LastScanDate ?? DateTimeOffset.MinValue)
+        .Take(5)
+        .ToList();
+    var typeOptions = Html.GetEnumSelectList<StorageLocationType>().ToList();
+}
+
+<section class="mb-3 reveal-item dashboard-mode-header">
+    <div>
+        <h1 class="dashboard-title">Storage Locations</h1>
+        <p class="text-secondary mb-0">Manage NAS paths, local drives, and file shares monitored by StorageLens.</p>
+    </div>
+    <div class="dashboard-mode-toggle" role="group" aria-label="Storage Locations mode selector">
+        <button type="button" class="btn dashboard-mode-btn" data-locations-mode-btn="classic" aria-pressed="true">Original</button>
+        <button type="button" class="btn dashboard-mode-btn" data-locations-mode-btn="interactive" aria-pressed="false">Interactive</button>
+    </div>
 </section>
 
 @if (Model.ServiceUnavailable)
@@ -14,8 +36,11 @@
     </div>
 }
 
+<div class="storage-locations-mode" data-locations-mode-panel="classic">
+
 <section class="card-premium p-3 mb-3 reveal-item">
     <div class="section-title">Add Location</div>
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
     <form method="post" asp-page-handler="Add" class="row g-2 align-items-end">
         <div class="col-md-4">
             <label class="form-label">Name</label>
@@ -134,6 +159,362 @@
     </div>
 </section>
 
+</div>
+
+<div class="storage-locations-mode" data-locations-mode-panel="interactive" hidden>
+    <section class="storage-interactive-shell reveal-item">
+        <div class="storage-interactive-headbar">
+            <div class="storage-headbar-brand">
+                <div class="storage-brand-pill">Node Ops</div>
+                <div>
+                    <div class="storage-interactive-eyebrow">Orbit Control</div>
+                    <h2 class="storage-interactive-title">Storage Fabric Command Deck</h2>
+                </div>
+            </div>
+            <div class="storage-headbar-actions">
+                <div class="storage-interactive-signal">
+                    <span class="storage-signal-dot"></span>
+                    <span>@onlineCount / @totalLocations nodes online</span>
+                </div>
+                <button type="button"
+                        class="btn storage-compact-btn"
+                        data-storage-compact-toggle
+                        aria-pressed="false"
+                        aria-label="Toggle compact command deck layout">
+                    <i class="bi bi-layout-text-window-reverse" aria-hidden="true"></i>
+                    <span>Compact</span>
+                </button>
+                <button type="button"
+                        class="btn storage-help-btn"
+                        data-storage-shortcuts-toggle
+                        aria-label="Toggle keyboard shortcuts">
+                    <i class="bi bi-command" aria-hidden="true"></i>
+                    <span>Shortcuts</span>
+                </button>
+                <div class="storage-headbar-dots" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="storage-command-grid">
+            <article class="storage-command-card storage-command-card-cyan">
+                <div class="storage-command-icon"><i class="bi bi-hdd-network" aria-hidden="true"></i></div>
+                <div class="storage-command-label">Monitored Nodes</div>
+                <div class="storage-command-value">@totalLocations</div>
+                <div class="storage-command-meta">@recentScanCount scanned in the last 7 days</div>
+                <div class="storage-command-trend"><span class="trend-line"></span><span>Fleet visibility</span></div>
+            </article>
+            <article class="storage-command-card storage-command-card-lime">
+                <div class="storage-command-icon"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
+                <div class="storage-command-label">Active Capacity</div>
+                <div class="storage-command-value">@SizeFormatter.ToFriendlySize(totalUsedBytes)</div>
+                <div class="storage-command-meta">Live storage consumed across all locations</div>
+                <div class="storage-command-trend"><span class="trend-line"></span><span>Realtime telemetry</span></div>
+            </article>
+            <article class="storage-command-card storage-command-card-blue">
+                <div class="storage-command-icon"><i class="bi bi-files" aria-hidden="true"></i></div>
+                <div class="storage-command-label">Tracked Files</div>
+                <div class="storage-command-value">@totalFiles.ToString("N0")</div>
+                <div class="storage-command-meta">Indexed across the storage fabric</div>
+                <div class="storage-command-trend"><span class="trend-line"></span><span>Continuous indexing</span></div>
+            </article>
+            <article class="storage-command-card storage-command-card-mint">
+                <div class="storage-command-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></div>
+                <div class="storage-command-label">Network Health</div>
+                <div class="storage-command-value">@GetFleetHealthScore(Model.Locations).ToString("0")%</div>
+                <div class="storage-command-meta">Derived from status, scan recency, and headroom</div>
+                <div class="storage-command-trend"><span class="trend-line"></span><span>Operationally stable</span></div>
+            </article>
+        </div>
+
+        <div class="storage-quick-strip">
+            <a class="btn storage-quick-btn" asp-page="/ScanJobs"><i class="bi bi-play-circle" aria-hidden="true"></i><span>Open Scan Jobs</span></a>
+            <a class="btn storage-quick-btn" asp-page="/FileInventory"><i class="bi bi-folder2-open" aria-hidden="true"></i><span>View Inventory</span></a>
+            <a class="btn storage-quick-btn" asp-page="/Duplicates"><i class="bi bi-copy" aria-hidden="true"></i><span>Analyze Duplicates</span></a>
+        </div>
+
+        <div class="storage-control-grid">
+            <section class="storage-panel storage-control-panel storage-topology-panel">
+                <div class="storage-panel-title">Topology Radar</div>
+                <div class="storage-panel-subtitle">Live fleet posture across the storage fabric.</div>
+                <div class="storage-topology-radar" role="img" aria-label="Topology radar showing online and offline node counts">
+                    <div class="storage-radar-ring storage-radar-ring-a"></div>
+                    <div class="storage-radar-ring storage-radar-ring-b"></div>
+                    <div class="storage-radar-ring storage-radar-ring-c"></div>
+                    <div class="storage-radar-sweep"></div>
+                    <div class="storage-radar-core">
+                        <strong>@onlineCount</strong>
+                        <span>Online</span>
+                    </div>
+                </div>
+                <div class="storage-topology-stats">
+                    <span class="storage-topology-chip">Offline: @offlineCount</span>
+                    <span class="storage-topology-chip">Headroom Delta: @fleetHeadroom.ToString("0")%</span>
+                    <span class="storage-topology-chip">Total Nodes: @totalLocations</span>
+                </div>
+            </section>
+
+            <section class="storage-panel storage-control-panel storage-feed-panel">
+                <div class="storage-panel-title">Command Feed</div>
+                <div class="storage-panel-subtitle">Latest node activity and telemetry events.</div>
+                <div class="storage-alert-ticker" data-alert-ticker>
+                    <span class="storage-alert-label">System Alerts</span>
+                    <span class="storage-alert-text" data-alert-ticker-text>
+                        Fleet online @onlineCount / @totalLocations nodes.
+                    </span>
+                </div>
+                <ul class="storage-command-feed" aria-live="polite">
+                    @if (!recentCommandFeed.Any())
+                    {
+                        <li class="storage-feed-empty">No telemetry yet. Add your first location node to initialize feed.</li>
+                    }
+                    else
+                    {
+                        @foreach (var feedNode in recentCommandFeed)
+                        {
+                            var tone = GetStatusTone(feedNode.Status);
+                            <li class="storage-feed-item">
+                                <span class="storage-feed-dot storage-feed-dot-@tone" aria-hidden="true"></span>
+                                <div class="storage-feed-copy">
+                                    <strong>@feedNode.Name</strong>
+                                    <span>@(feedNode.LastScanDate?.ToLocalTime().ToString("MMM dd, HH:mm") ?? "Telemetry pending") · @feedNode.Status</span>
+                                </div>
+                                <span class="storage-feed-type">@feedNode.Type</span>
+                            </li>
+                        }
+                    }
+                </ul>
+            </section>
+        </div>
+
+        <div class="storage-interactive-grid">
+            <section class="storage-panel storage-add-panel">
+                <div class="storage-panel-title">Add Location Node</div>
+                <div class="storage-panel-subtitle">Provision a new monitored endpoint into the StorageLens fabric.</div>
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                <form method="post" asp-page-handler="Add" class="storage-future-form">
+                    <div class="storage-future-field">
+                        <label for="InteractiveName">Node Name</label>
+                        <input id="InteractiveName" name="Name" class="form-control storage-future-input" value="@Model.Name" required />
+                    </div>
+                    <div class="storage-future-field">
+                        <label for="InteractivePath">Path Vector</label>
+                        <input id="InteractivePath" name="Path" class="form-control storage-future-input" value="@Model.Path" required placeholder="\\nas01\share\folder" />
+                    </div>
+                    <div class="storage-future-row">
+                        <div class="storage-future-field">
+                            <label for="InteractiveType">Node Type</label>
+                            <select id="InteractiveType" name="Type" class="form-select storage-future-input">
+                                @foreach (var option in typeOptions)
+                                {
+                                    var isSelected = string.Equals(option.Value, ((int)Model.Type).ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+                                    <option value="@option.Value" selected="@(isSelected ? "selected" : null)">@option.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="storage-future-field storage-future-field-action">
+                            <button type="submit" class="btn storage-future-submit">Add To Fabric</button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section class="storage-panel storage-pulse-panel">
+                <div class="storage-panel-title">Network Pulse</div>
+                <div class="storage-panel-subtitle">Live status density across monitored infrastructure.</div>
+                <div class="storage-pulse-stack">
+                    <div class="storage-pulse-row">
+                        <span>Online</span>
+                        <div class="storage-pulse-bar"><span style="width:@GetPulseWidth(onlineCount, totalLocations)"></span></div>
+                        <strong>@onlineCount</strong>
+                    </div>
+                    <div class="storage-pulse-row">
+                        <span>Recently Scanned</span>
+                        <div class="storage-pulse-bar"><span style="width:@GetPulseWidth(recentScanCount, totalLocations)"></span></div>
+                        <strong>@recentScanCount</strong>
+                    </div>
+                    <div class="storage-pulse-row">
+                        <span>NAS Nodes</span>
+                        <div class="storage-pulse-bar"><span style="width:@GetPulseWidth(Model.Locations.Count(location => string.Equals(location.Type, nameof(StorageLocationType.Nas), StringComparison.OrdinalIgnoreCase)), totalLocations)"></span></div>
+                        <strong>@Model.Locations.Count(location => string.Equals(location.Type, nameof(StorageLocationType.Nas), StringComparison.OrdinalIgnoreCase))</strong>
+                    </div>
+                </div>
+                <div class="storage-legend-row">
+                    <span class="storage-legend-chip">Animated health bands</span>
+                    <span class="storage-legend-chip">Responsive node cards</span>
+                    <span class="storage-legend-chip">Fast actions</span>
+                </div>
+            </section>
+        </div>
+
+        <section class="storage-panel storage-node-panel">
+            <div class="storage-node-panel-head">
+                <div>
+                    <div class="storage-panel-title">Interactive Node Grid</div>
+                    <div class="storage-panel-subtitle">Filter by topology and launch actions directly from each storage node.</div>
+                </div>
+                <div class="storage-filter-row" role="group" aria-label="Filter storage location cards">
+                    <button type="button" class="btn storage-filter-btn active" data-location-filter-btn="all" aria-pressed="true">All</button>
+                    <button type="button" class="btn storage-filter-btn" data-location-filter-btn="Nas" aria-pressed="false">NAS</button>
+                    <button type="button" class="btn storage-filter-btn" data-location-filter-btn="Local" aria-pressed="false">Local</button>
+                    <button type="button" class="btn storage-filter-btn" data-location-filter-btn="FileShare" aria-pressed="false">File Share</button>
+                </div>
+            </div>
+
+            <div class="storage-node-grid">
+                @if (!Model.Locations.Any())
+                {
+                    <div class="storage-node-empty">
+                        <i class="bi bi-hdd-network" aria-hidden="true"></i>
+                        <div>No storage nodes configured yet. Use the command deck above to add the first location.</div>
+                    </div>
+                }
+                @foreach (var location in Model.Locations)
+                {
+                    var fileUrl = ToFileUrl(location.Path);
+                    var spaceMetrics = GetSpaceMetrics(location.Path);
+                    var healthScore = GetHealthScore(location, spaceMetrics);
+                    var usagePercent = GetUsagePercent(location, spaceMetrics);
+                    var statusTone = GetStatusTone(location.Status);
+                    var gaugeStart = healthScore >= 75d ? "#79f24a" : healthScore >= 45d ? "#ffd26a" : "#ff8e8e";
+                    var gaugeEnd = healthScore >= 75d ? "#2be2db" : healthScore >= 45d ? "#ff9d5c" : "#ff6d6d";
+                    var recencyScore = location.LastScanDate is DateTimeOffset lastScanUtc
+                        ? Math.Clamp(100d - (DateTimeOffset.UtcNow - lastScanUtc).TotalDays * 12d, 8d, 100d)
+                        : 14d;
+                    var sparkHeights = new[]
+                    {
+                        Math.Clamp(usagePercent * 0.35d + 16d, 8d, 95d),
+                        Math.Clamp(healthScore * 0.48d + 10d, 8d, 95d),
+                        Math.Clamp(recencyScore * 0.46d + 12d, 8d, 95d),
+                        Math.Clamp((usagePercent + healthScore) * 0.24d + 10d, 8d, 95d),
+                        Math.Clamp((healthScore + recencyScore) * 0.26d + 8d, 8d, 95d),
+                        Math.Clamp((usagePercent + recencyScore) * 0.24d + 10d, 8d, 95d)
+                    };
+                    <article class="storage-node-card storage-node-card-tone-@statusTone"
+                             data-location-card="true"
+                             data-location-type="@location.Type"
+                             data-location-status="@location.Status">
+                        <div class="storage-node-card-head">
+                            <div>
+                                <div class="storage-node-name">@location.Name</div>
+                                <div class="storage-node-subtext">@location.Type node</div>
+                            </div>
+                            <span class="storage-node-status storage-node-status-@GetStatusTone(location.Status)">@location.Status</span>
+                        </div>
+
+                        <div class="storage-node-path">
+                            <a href="@fileUrl" class="path-link storage-path-link" data-path="@location.Path" onclick="return openStoragePath(event);" title="Open @location.Path">
+                                <code>@location.Path</code>
+                            </a>
+                            <button type="button"
+                                    class="btn copy-path-btn"
+                                    data-path="@location.Path"
+                                    onclick="return copyStoragePath(event);"
+                                    title="Copy path"
+                                    aria-label="Copy path for @location.Name">
+                                <i class="bi bi-clipboard copy-path-icon" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        <div class="storage-node-metrics">
+                            <div>
+                                <span class="storage-node-metric-label">Used</span>
+                                <strong>@SizeFormatter.ToFriendlySize(location.TotalSizeBytes)</strong>
+                            </div>
+                            <div>
+                                <span class="storage-node-metric-label">Capacity</span>
+                                <strong>@(spaceMetrics.TotalBytes is long totalBytes ? SizeFormatter.ToFriendlySize(totalBytes) : "N/A")</strong>
+                            </div>
+                            <div>
+                                <span class="storage-node-metric-label">Files</span>
+                                <strong>@location.FileCount.ToString("N0")</strong>
+                            </div>
+                            <div>
+                                <span class="storage-node-metric-label">Last Scan</span>
+                                <strong>@(location.LastScanDate?.ToLocalTime().ToString("MMM dd, HH:mm") ?? "Pending")</strong>
+                            </div>
+                        </div>
+
+                        <div class="storage-node-health-row">
+                            <div class="storage-node-gauge" style="--gauge-value:@usagePercent.ToString("0.0", CultureInfo.InvariantCulture); --gauge-start:@gaugeStart; --gauge-end:@gaugeEnd;">
+                                <span>@usagePercent.ToString("0")%</span>
+                            </div>
+                            <div class="storage-node-health-meta">
+                                <div class="storage-node-health-title">Storage Utilization</div>
+                                <div class="storage-node-health-bar">
+                                    <span style="width:@healthScore.ToString("0.0", CultureInfo.InvariantCulture)%"></span>
+                                </div>
+                                <div class="storage-node-health-copy">Health score @healthScore.ToString("0")%</div>
+                            </div>
+                        </div>
+
+                        <div class="storage-node-sparkline" aria-hidden="true">
+                            @foreach (var sparkHeight in sparkHeights)
+                            {
+                                <span style="height:@sparkHeight.ToString("0.0", CultureInfo.InvariantCulture)%"></span>
+                            }
+                        </div>
+
+                        <div class="storage-node-actions">
+                            <form method="post" asp-page-handler="StartScan">
+                                <input type="hidden" name="locationId" value="@location.Id" />
+                                <button type="submit" class="btn storage-node-action storage-node-action-primary">
+                                    <i class="bi bi-play-fill" aria-hidden="true"></i>
+                                    <span>Launch Scan</span>
+                                </button>
+                            </form>
+                            <a class="btn storage-node-action storage-node-action-secondary"
+                               href="@fileUrl"
+                               data-path="@location.Path"
+                               onclick="return openStoragePath(event);"
+                               title="Open location path for @location.Name"
+                               aria-label="Open location path for @location.Name">
+                                <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                                <span>Open</span>
+                            </a>
+                            <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Delete this location? This action cannot be undone.');">
+                                <input type="hidden" name="locationId" value="@location.Id" />
+                                <button type="submit" class="btn storage-node-action storage-node-action-danger">
+                                    <i class="bi bi-trash-fill" aria-hidden="true"></i>
+                                    <span>Delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+        </section>
+    </section>
+</div>
+
+<div class="storage-shortcuts-overlay" data-storage-shortcuts hidden>
+    <div class="storage-shortcuts-card" role="dialog" aria-modal="true" aria-label="Storage control keyboard shortcuts">
+        <div class="storage-shortcuts-head">
+            <h3>Operator Shortcuts</h3>
+            <button type="button" class="btn storage-shortcuts-close" data-storage-shortcuts-close aria-label="Close keyboard shortcuts">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <ul class="storage-shortcuts-list">
+            <li><kbd>?</kbd><span>Toggle this shortcuts panel</span></li>
+            <li><kbd>i</kbd><span>Switch to Interactive mode</span></li>
+            <li><kbd>o</kbd><span>Switch to Original mode</span></li>
+            <li><kbd>1</kbd><span>Filter All nodes</span></li>
+            <li><kbd>2</kbd><span>Filter NAS nodes</span></li>
+            <li><kbd>3</kbd><span>Filter Local nodes</span></li>
+            <li><kbd>4</kbd><span>Filter File Share nodes</span></li>
+            <li><kbd>c</kbd><span>Toggle compact command deck mode</span></li>
+            <li><kbd>/</kbd><span>Focus the Path Vector input</span></li>
+            <li><kbd>Esc</kbd><span>Close this panel</span></li>
+        </ul>
+    </div>
+</div>
+
+<div class="storage-operator-toast" data-storage-operator-toast hidden role="status" aria-live="polite"></div>
+
 @functions {
     private readonly record struct SpaceMetrics(long? TotalBytes, double? PercentRemaining);
 
@@ -167,6 +548,96 @@
         }
     }
 
+    private static double GetUsagePercent(StorageLocationDto location, SpaceMetrics spaceMetrics)
+    {
+        if (spaceMetrics.TotalBytes is not long totalBytes || totalBytes <= 0)
+        {
+            return 0;
+        }
+
+        var usedPercent = (location.TotalSizeBytes * 100d) / totalBytes;
+        return Math.Clamp(usedPercent, 0d, 100d);
+    }
+
+    private static double GetHealthScore(StorageLocationDto location, SpaceMetrics spaceMetrics)
+    {
+        var score = 100d;
+
+        if (!string.Equals(location.Status, "Online", StringComparison.OrdinalIgnoreCase))
+        {
+            score -= 28d;
+        }
+
+        if (location.LastScanDate is DateTimeOffset lastScanUtc)
+        {
+            var daysSinceScan = (DateTimeOffset.UtcNow - lastScanUtc).TotalDays;
+            score -= Math.Min(28d, Math.Max(0d, daysSinceScan * 3.5d));
+        }
+        else
+        {
+            score -= 16d;
+        }
+
+        if (spaceMetrics.PercentRemaining is double percentRemaining)
+        {
+            if (percentRemaining < 10d)
+            {
+                score -= 24d;
+            }
+            else if (percentRemaining < 20d)
+            {
+                score -= 12d;
+            }
+        }
+
+        return Math.Clamp(score, 8d, 100d);
+    }
+
+    private static string GetStatusTone(string? status)
+    {
+        if (string.Equals(status, "Online", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            return "online";
+        }
+
+        if (string.Equals(status, "Warning", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(status, "Queued", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            return "warning";
+        }
+
+        return "offline";
+    }
+
+    private static double GetFleetHealthScore(IReadOnlyList<StorageLocationDto> locations)
+    {
+        if (locations.Count == 0)
+        {
+            return 100d;
+        }
+
+        var totalScore = 0d;
+        foreach (var location in locations)
+        {
+            totalScore += GetHealthScore(location, GetSpaceMetrics(location.Path));
+        }
+
+        return totalScore / locations.Count;
+    }
+
+    private static string GetPulseWidth(int count, int total)
+    {
+        if (total <= 0)
+        {
+            return "0%";
+        }
+
+        var width = Math.Clamp((count * 100d) / total, 0d, 100d);
+        return $"{width.ToString("0.0", CultureInfo.InvariantCulture)}%";
+    }
+
     private static string ToFileUrl(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -188,4 +659,289 @@
         var localPath = trimmed.Replace('\\', '/');
         return $"file:///{localPath}";
     }
+}
+
+@section Scripts {
+    <script>
+        const locationsModeStorageKey = 'storagelens-locations-mode';
+        const locationsPanels = document.querySelectorAll('[data-locations-mode-panel]');
+        const locationsModeButtons = document.querySelectorAll('[data-locations-mode-btn]');
+        const locationFilterButtons = document.querySelectorAll('[data-location-filter-btn]');
+        const locationCards = document.querySelectorAll('[data-location-card="true"]');
+        const shortcutsOverlay = document.querySelector('[data-storage-shortcuts]');
+        const shortcutsToggleButtons = document.querySelectorAll('[data-storage-shortcuts-toggle]');
+        const shortcutsCloseButton = document.querySelector('[data-storage-shortcuts-close]');
+        const compactToggleButton = document.querySelector('[data-storage-compact-toggle]');
+        const alertTickerText = document.querySelector('[data-alert-ticker-text]');
+        const operatorToast = document.querySelector('[data-storage-operator-toast]');
+        const compactModeStorageKey = 'storagelens-locations-compact-mode';
+
+        const alertMessages = [
+            'Fleet online @onlineCount / @totalLocations nodes.',
+            'Recent scan cadence: @recentScanCount nodes in the last 7 days.',
+            'Capacity tracked: @SizeFormatter.ToFriendlySize(totalUsedBytes) in use.',
+            'Tracked files: @totalFiles.ToString("N0") objects indexed.',
+            'Health score stable at @GetFleetHealthScore(Model.Locations).ToString("0")%.'
+        ];
+        let alertTickerIndex = 0;
+        let operatorToastTimer = null;
+
+        const showOperatorToast = (message) => {
+            if (!operatorToast || !message) {
+                return;
+            }
+
+            operatorToast.textContent = message;
+            operatorToast.hidden = false;
+            operatorToast.classList.add('is-visible');
+
+            if (operatorToastTimer) {
+                window.clearTimeout(operatorToastTimer);
+            }
+
+            operatorToastTimer = window.setTimeout(() => {
+                operatorToast.classList.remove('is-visible');
+                operatorToast.hidden = true;
+            }, 1550);
+        };
+
+        const applyLocationsMode = (mode) => {
+            const selectedMode = mode === 'interactive' ? 'interactive' : 'classic';
+
+            locationsPanels.forEach((panel) => {
+                const isActive = panel.getAttribute('data-locations-mode-panel') === selectedMode;
+                panel.hidden = !isActive;
+            });
+
+            locationsModeButtons.forEach((button) => {
+                const isActive = button.getAttribute('data-locations-mode-btn') === selectedMode;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            document.body.classList.toggle('storage-locations-interactive-mode', selectedMode === 'interactive');
+            document.body.classList.toggle('storage-locations-interactive-on', selectedMode === 'interactive');
+
+            if (selectedMode !== 'interactive') {
+                closeStorageShortcuts();
+            }
+
+            localStorage.setItem(locationsModeStorageKey, selectedMode);
+        };
+
+        const applyCompactMode = (enabled) => {
+            const isEnabled = Boolean(enabled);
+
+            document.body.classList.toggle('storage-locations-compact-mode', isEnabled);
+            if (compactToggleButton) {
+                compactToggleButton.classList.toggle('active', isEnabled);
+                compactToggleButton.setAttribute('aria-pressed', String(isEnabled));
+            }
+
+            localStorage.setItem(compactModeStorageKey, isEnabled ? '1' : '0');
+        };
+
+        const applyLocationFilter = (filter) => {
+            const selectedFilter = filter || 'all';
+
+            locationFilterButtons.forEach((button) => {
+                const isActive = button.getAttribute('data-location-filter-btn') === selectedFilter;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            locationCards.forEach((card) => {
+                const cardType = card.getAttribute('data-location-type');
+                const isVisible = selectedFilter === 'all' || cardType === selectedFilter;
+                card.hidden = !isVisible;
+                card.classList.toggle('storage-node-card-hidden', !isVisible);
+            });
+        };
+
+        const applyLocationCardStagger = () => {
+            locationCards.forEach((card, index) => {
+                card.style.setProperty('--storage-card-delay', `${Math.min(index * 55, 500)}ms`);
+            });
+        };
+
+        const closeStorageShortcuts = () => {
+            if (!shortcutsOverlay) {
+                return;
+            }
+
+            shortcutsOverlay.hidden = true;
+            document.body.classList.remove('storage-shortcuts-open');
+        };
+
+        const openStorageShortcuts = () => {
+            if (!shortcutsOverlay) {
+                return;
+            }
+
+            shortcutsOverlay.hidden = false;
+            document.body.classList.add('storage-shortcuts-open');
+        };
+
+        const toggleStorageShortcuts = () => {
+            if (!shortcutsOverlay) {
+                return;
+            }
+
+            if (shortcutsOverlay.hidden) {
+                openStorageShortcuts();
+                showOperatorToast('Keyboard shortcuts: active');
+            } else {
+                closeStorageShortcuts();
+                showOperatorToast('Keyboard shortcuts: closed');
+            }
+        };
+
+        const rotateAlertTicker = () => {
+            if (!alertTickerText || alertMessages.length === 0) {
+                return;
+            }
+
+            alertTickerIndex = (alertTickerIndex + 1) % alertMessages.length;
+            alertTickerText.classList.add('is-swapping');
+
+            window.setTimeout(() => {
+                alertTickerText.textContent = alertMessages[alertTickerIndex];
+                alertTickerText.classList.remove('is-swapping');
+            }, 180);
+        };
+
+        const focusInteractivePathInput = () => {
+            const pathInput = document.getElementById('InteractivePath');
+            if (pathInput && !pathInput.hidden) {
+                pathInput.focus();
+                pathInput.select();
+            }
+        };
+
+        const initialLocationsMode = (() => {
+            const urlMode = new URLSearchParams(window.location.search).get('locationsMode');
+            if (urlMode === 'interactive' || urlMode === 'classic') {
+                return urlMode;
+            }
+
+            const savedMode = localStorage.getItem(locationsModeStorageKey);
+            return savedMode === 'interactive' ? 'interactive' : 'classic';
+        })();
+
+        const initialCompactMode = localStorage.getItem(compactModeStorageKey) === '1';
+
+        applyLocationsMode(initialLocationsMode);
+        applyCompactMode(initialCompactMode);
+        applyLocationCardStagger();
+        applyLocationFilter('all');
+        window.setInterval(rotateAlertTicker, 4200);
+
+        locationsModeButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                applyLocationsMode(button.getAttribute('data-locations-mode-btn') || 'classic');
+            });
+        });
+
+        locationFilterButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                applyLocationFilter(button.getAttribute('data-location-filter-btn') || 'all');
+            });
+        });
+
+        shortcutsToggleButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                toggleStorageShortcuts();
+            });
+        });
+
+        if (compactToggleButton) {
+            compactToggleButton.addEventListener('click', () => {
+                const willEnable = !document.body.classList.contains('storage-locations-compact-mode');
+                applyCompactMode(willEnable);
+                showOperatorToast(willEnable ? 'Compact mode: enabled' : 'Compact mode: disabled');
+            });
+        }
+
+        if (shortcutsCloseButton) {
+            shortcutsCloseButton.addEventListener('click', closeStorageShortcuts);
+        }
+
+        if (shortcutsOverlay) {
+            shortcutsOverlay.addEventListener('click', (event) => {
+                if (event.target === shortcutsOverlay) {
+                    closeStorageShortcuts();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            const tagName = (event.target?.tagName || '').toLowerCase();
+            const isTypingField = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+
+            if (event.key === 'Escape') {
+                closeStorageShortcuts();
+                return;
+            }
+
+            if (isTypingField) {
+                return;
+            }
+
+            if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
+                event.preventDefault();
+                toggleStorageShortcuts();
+                return;
+            }
+
+            if (event.key === 'i' || event.key === 'I') {
+                applyLocationsMode('interactive');
+                showOperatorToast('Mode switched: Interactive');
+                return;
+            }
+
+            if (event.key === 'o' || event.key === 'O') {
+                applyLocationsMode('classic');
+                showOperatorToast('Mode switched: Original');
+                return;
+            }
+
+            if (event.key === '1') {
+                applyLocationFilter('all');
+                showOperatorToast('Filter applied: All nodes');
+                return;
+            }
+
+            if (event.key === '2') {
+                applyLocationFilter('Nas');
+                showOperatorToast('Filter applied: NAS');
+                return;
+            }
+
+            if (event.key === '3') {
+                applyLocationFilter('Local');
+                showOperatorToast('Filter applied: Local');
+                return;
+            }
+
+            if (event.key === '4') {
+                applyLocationFilter('FileShare');
+                showOperatorToast('Filter applied: File Share');
+                return;
+            }
+
+            if (event.key === '/') {
+                event.preventDefault();
+                applyLocationsMode('interactive');
+                focusInteractivePathInput();
+                showOperatorToast('Path vector focused');
+                return;
+            }
+
+            if (event.key === 'c' || event.key === 'C') {
+                const willEnable = !document.body.classList.contains('storage-locations-compact-mode');
+                applyCompactMode(willEnable);
+                showOperatorToast(willEnable ? 'Compact mode: enabled' : 'Compact mode: disabled');
+            }
+        });
+    </script>
 }

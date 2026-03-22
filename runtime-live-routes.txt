@@ -1,0 +1,4 @@
+﻿URL=http://localhost:5001/ STATUS=200
+URL=http://localhost:5001/Index STATUS=200
+URL=http://localhost:5001/ScanJobs STATUS=200
+URL=http://localhost:5001/StorageLocations STATUS=200

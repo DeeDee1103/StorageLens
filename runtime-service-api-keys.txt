@@ -1,0 +1,3 @@
+web|ServiceApiKey=storagelens-dev-key
+locations|MISSING
+scanjobs|MISSING

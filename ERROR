@@ -1,11 +1,16 @@
 At line:1 char:639
-+ ... agelens-dev-key' }; $result += $u = $($_.Exception.Message) } } }; $r ...
-+                                                                  ~
++ ... agelens-dev-key' }; $result += $u = 
+$($_.Exception.Message) } } }; $r ...
++                                                         
+         ~
 The Try statement is missing its Catch or Finally block.
 At line:1 char:642
-+ ... ens-dev-key' }; $result += $u = $($_.Exception.Message) } } }; $resul ...
-+                                                                 ~
++ ... ens-dev-key' }; $result += $u = 
+$($_.Exception.Message) } } }; $resul ...
++                                                         
+        ~
 Unexpected token '}' in expression or statement.
-    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + CategoryInfo          : ParserError: (:) [], Parent 
+   ContainsErrorRecordException
     + FullyQualifiedErrorId : MissingCatchOrFinally
  
