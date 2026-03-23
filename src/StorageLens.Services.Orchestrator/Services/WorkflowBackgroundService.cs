@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using StorageLens.Services.Orchestrator.Clients;
+using StorageLens.Services.Orchestrator.Data;
 using StorageLens.Services.Orchestrator.Interfaces;
 
 namespace StorageLens.Services.Orchestrator.Services;
@@ -17,6 +19,7 @@ public class WorkflowBackgroundService(
         var activeTasks = new System.Collections.Concurrent.ConcurrentDictionary<Guid, Task>();
 
         logger.LogInformation("Workflow background service started with MaxConcurrentWorkflows={Max}", maxConcurrent);
+        await EnqueueRecoverableWorkflowsAsync(stoppingToken);
 
         try
         {
@@ -75,6 +78,29 @@ public class WorkflowBackgroundService(
         {
             logger.LogInformation("Waiting for {Count} in-flight workflow(s) to complete...", activeTasks.Count);
             await Task.WhenAll(activeTasks.Values);
+        }
+    }
+
+    private async Task EnqueueRecoverableWorkflowsAsync(CancellationToken cancellationToken)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<OrchestratorDbContext>();
+
+        var workflowIds = await dbContext.WorkflowInstances
+            .AsNoTracking()
+            .Where(x => x.Status == "Pending" || x.Status == "RetryQueued")
+            .OrderBy(x => x.CreatedAtUtc)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var workflowId in workflowIds)
+        {
+            await workflowQueue.EnqueueAsync(workflowId, cancellationToken);
+        }
+
+        if (workflowIds.Count > 0)
+        {
+            logger.LogInformation("Recovered {Count} pending workflow(s) into the in-memory queue.", workflowIds.Count);
         }
     }
 }

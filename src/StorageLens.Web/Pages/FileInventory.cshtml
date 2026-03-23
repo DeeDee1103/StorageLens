@@ -38,287 +38,710 @@
     </div>
 </section>
 
-@if (Model.ServiceUnavailable)
-{
-    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
-        <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
-        <span>File Inventory service is currently unavailable. Please check your service configuration and try again.</span>
+<section class="card-premium p-3 mb-3 reveal-item scan-jobs-live-strip" id="fileInventoryLiveStrip">
+    <div class="scan-jobs-live-strip-copy">
+        <div class="scan-jobs-live-strip-title-row">
+            <span class="scan-jobs-live-pill" id="fileInventoryLivePill">
+                <i class="bi bi-broadcast-pin" aria-hidden="true"></i>
+                <span id="fileInventoryLivePillText">Inventory live updates standing by</span>
+            </span>
+            <span class="scan-jobs-live-strip-status" id="fileInventoryLastUpdated">Loaded just now</span>
+        </div>
+        <div class="scan-jobs-live-strip-subtitle" id="fileInventoryLiveSummary">
+            File and location metadata updates in place, so filters, scroll position, and preview context stay put.
+        </div>
     </div>
-}
+    <div class="scan-jobs-live-strip-actions">
+        <button type="button" class="btn btn-outline-soft scan-jobs-live-btn" id="fileInventoryRefreshNow">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+            Refresh now
+                    const fileInventoryModeStorageKey = 'storagelens-file-inventory-mode';
+                    const fileInventoryScreenStorageKey = 'storagelens-file-inventory-screen';
+                    const fileInventoryQuietModeStorageKey = 'storagelens-file-inventory-quiet-mode';
+                    const fileInventoryRefreshStorageKey = 'sl-fileinventory-refresh';
+                    const DEFAULT_FILE_REFRESH_SECONDS = @Model.LiveRefreshSeconds;
+                    const fileModePanels = document.querySelectorAll('[data-file-inventory-mode-panel]');
+                    const fileModeButtons = document.querySelectorAll('[data-file-inventory-mode-btn]');
+                    const fileScreenPanels = document.querySelectorAll('[data-file-screen]');
+                    const fileScreenTabs = document.querySelectorAll('[data-file-screen-tab]');
+                    const locationName = document.querySelector('[data-selected-location-name]');
+                    const metaFiles = document.querySelector('[data-meta-files]');
+                    const metaSize = document.querySelector('[data-meta-size]');
+                    const metaUpdated = document.querySelector('[data-meta-updated]');
+                    const metaStatus = document.querySelector('[data-meta-status]');
+                    const metaPending = document.querySelector('[data-meta-pending]');
+                    const telemetryFiles = document.querySelector('[data-telemetry-files]');
+                    const telemetryPending = document.querySelector('[data-telemetry-pending]');
+                    const telemetryDuplicates = document.querySelector('[data-telemetry-duplicates]');
+                    const fileInventoryLocationCount = document.getElementById('fileInventoryLocationCount');
+                    const fileInventoryUniqueExtensions = document.getElementById('fileInventoryUniqueExtensions');
+                    const fileInventoryLivePill = document.getElementById('fileInventoryLivePill');
+                    const fileInventoryLivePillText = document.getElementById('fileInventoryLivePillText');
+                    const fileInventoryLastUpdated = document.getElementById('fileInventoryLastUpdated');
+                    const fileInventoryLiveSummary = document.getElementById('fileInventoryLiveSummary');
+                    const fileInventoryRefreshNow = document.getElementById('fileInventoryRefreshNow');
+                    const fileInventoryQuietModeToggle = document.getElementById('fileInventoryQuietModeToggle');
+                    const fileInventoryLiveBadge = document.getElementById('fileInventoryLiveBadge');
+                    const fileInventoryClassicTableBody = document.getElementById('fileInventoryClassicTableBody');
+                    const fileInventoryFolderTree = document.getElementById('fileInventoryFolderTree');
+                    const fileInventoryInteractiveList = document.getElementById('fileInventoryInteractiveList');
+                    const selectedFileName = document.querySelector('[data-selected-file-name]');
+                    const selectedFilePath = document.querySelector('[data-selected-file-path]');
+                    const selectedFileStatus = document.querySelector('[data-selected-file-status]');
+                    const quickFilter = document.querySelector('[data-file-quick-filter]');
+                    const openTelemetryBtn = document.querySelector('[data-file-open-telemetry]');
+                    const refreshInteractiveBtn = document.querySelector('[data-file-refresh]');
+                    const fiPreviewPanel  = document.getElementById('fiPreviewPanel');
+                    const fiPreviewClose  = document.getElementById('fiPreviewClose');
+                    const fiPreviewGrid   = document.querySelector('.file-inventory-interactive-grid');
+                    const fiPreviewIcon   = document.getElementById('fiPreviewIcon');
+                    const fiPreviewBigIcon = document.getElementById('fiPreviewBigIcon');
+                    const fiPreviewExtBadge = document.getElementById('fiPreviewExtBadge');
+                    const fiPreviewFilename = document.getElementById('fiPreviewFilename');
+                    const fiPreviewContent  = document.getElementById('fiPreviewContent');
+                    const fiActionCopy    = document.getElementById('fiActionCopy');
+                    const fiActionOpen    = document.getElementById('fiActionOpen');
+                    const fiPreviewToast  = document.getElementById('fiPreviewToast');
+                    const fiPreviewToastMsg = document.getElementById('fiPreviewToastMsg');
+                    const fpTabs          = document.querySelectorAll('[data-fp-tab]');
+                    const fpPanels        = document.querySelectorAll('[data-fp-panel]');
 
-<div class="file-inventory-mode" data-file-inventory-mode-panel="classic">
-    <section class="card-premium p-3 mb-3 reveal-item">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-5">
-                <label class="form-label">Search</label>
-                <input class="form-control" asp-for="Search" placeholder="file name or path" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Extension</label>
-                <input class="form-control" asp-for="Extension" placeholder=".pdf" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Page</label>
-                <input class="form-control" asp-for="PageNumber" min="1" />
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-gradient w-100" type="submit">Apply</button>
-            </div>
-        </form>
-    </section>
+                    const initialSnapshot = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                        new
+                        {
+                            files = Model.Files,
+                            totalFiles,
+                            totalBytes,
+                            uniqueExtensions,
+                            duplicateCount,
+                            latestModified,
+                            pendingHashCount = Model.Files.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase) || string.Equals(file.HashStatus, "InProgress", StringComparison.OrdinalIgnoreCase)),
+                            hasActiveWork = Model.Files.Any(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase) || string.Equals(file.HashStatus, "InProgress", StringComparison.OrdinalIgnoreCase)),
+                            locationSnapshots,
+                            generatedAtUtc = DateTimeOffset.UtcNow
+                        },
+                        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
 
-    <section class="card-premium p-3 reveal-item">
-        <div class="section-title">File Metadata</div>
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>File Name</th>
-                        <th>Path</th>
-                        <th>Extension</th>
-                        <th>Size</th>
-                        <th>Last Modified</th>
-                        <th>Location</th>
-                        <th>Hash Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (!Model.Files.Any())
-                {
-                    <tr class="empty-state-row">
-                        <td colspan="7"><i class="bi bi-folder2-open empty-state-icon"></i>No files match your search criteria</td>
-                    </tr>
-                }
-                @foreach (var file in Model.Files)
-                {
-                    <tr>
-                        <td>@file.FileName</td>
-                        <td><code>@file.FilePath</code></td>
-                        <td><span class="badge-soft">@file.Extension</span></td>
-                        <td>@SizeFormatter.ToFriendlySize(file.SizeBytes)</td>
-                        <td>@file.LastModifiedDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
-                        <td>@file.LocationName</td>
-                        <td>@file.HashStatus</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+                    let currentSnapshot = initialSnapshot;
+                    let quietModeEnabled = localStorage.getItem(fileInventoryQuietModeStorageKey) === 'true';
+                    let refreshIntervalSeconds = Number.parseInt(localStorage.getItem(fileInventoryRefreshStorageKey) || `${DEFAULT_FILE_REFRESH_SECONDS}`, 10);
+                    let liveRefreshTimer = null;
+                    let isFetchingSnapshot = false;
+                    let selectedLocationKey = 'All Locations';
+                    let selectedFileId = '';
+                    let currentFilePath = '';
+                    let currentQuickFilter = '';
+                    let lastSnapshotSignature = JSON.stringify(initialSnapshot.files || []);
+                    let toastTimer = null;
 
-        <div class="d-flex justify-content-between align-items-center mt-2">
-            @if (Model.PageNumber <= 1)
-            {
-                <button class="btn btn-outline-soft" disabled aria-disabled="true">Previous</button>
-            }
-            else
-            {
-                <a class="btn btn-outline-soft" asp-page="/FileInventory" asp-route-Search="@Model.Search" asp-route-Extension="@Model.Extension" asp-route-PageNumber="@(Model.PageNumber - 1)">Previous</a>
-            }
-            <span class="text-secondary">Page @Model.PageNumber</span>
-            @if (!Model.Files.Any())
-            {
-                <button class="btn btn-outline-soft" disabled aria-disabled="true">Next</button>
-            }
-            else
-            {
-                <a class="btn btn-outline-soft" asp-page="/FileInventory" asp-route-Search="@Model.Search" asp-route-Extension="@Model.Extension" asp-route-PageNumber="@(Model.PageNumber + 1)">Next</a>
-            }
-        </div>
-    </section>
-</div>
-
-<div class="file-inventory-mode" data-file-inventory-mode-panel="interactive" hidden>
-    <section class="file-inventory-interactive-shell reveal-item">
-        <div class="file-inventory-breadcrumb-bar">
-            <div class="file-inventory-breadcrumb-path">
-                <span class="file-crumb active">Storage Locations</span>
-                <i class="bi bi-chevron-right" aria-hidden="true"></i>
-                <span class="file-crumb" data-selected-location-name>All Locations</span>
-            </div>
-            <div class="file-inventory-breadcrumb-actions">
-                <button type="button" class="btn file-inventory-icon-btn" data-file-refresh title="Refresh" aria-label="Refresh interactive file list">
-                    <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="btn file-inventory-icon-btn" data-file-open-telemetry title="Open telemetry view" aria-label="Open telemetry view">
-                    <i class="bi bi-activity" aria-hidden="true"></i>
-                </button>
-            </div>
-        </div>
-
-        <div class="file-inventory-interactive-grid">
-            <aside class="file-inventory-folder-rail" aria-label="Location navigator">
-                <div class="file-rail-header">
-                    <h3>Locations</h3>
-                    <span class="badge-soft">@locationSnapshots.Count</span>
-                </div>
-                <div class="file-folder-tree" id="fileInventoryFolderTree">
-                    <button type="button"
-                            class="file-folder-node active"
-                            data-location-name="All Locations"
-                            data-location-files="@totalFiles"
-                            data-location-size="@SizeFormatter.ToFriendlySize(totalBytes)"
-                            data-location-updated="@(latestModified?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "No data")"
-                            data-location-status="Fleet"
-                            data-location-pending="@Model.Files.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase))"
-                            data-location-duplicates="@duplicateCount"
-                            aria-pressed="true">
-                        <i class="bi bi-diagram-3-fill" aria-hidden="true"></i>
-                        <span class="file-folder-node-label">All Locations</span>
-                        <span class="file-folder-count">@totalFiles</span>
-                    </button>
-                    @foreach (var location in locationSnapshots)
-                    {
-                        var locationStatus = location.DuplicateCount > 0 ? "Watch" : (location.HashPendingCount > 0 ? "Syncing" : "Stable");
-                        <button type="button"
-                                class="file-folder-node"
-                                data-location-name="@location.Name"
-                                data-location-files="@location.FileCount"
-                                data-location-size="@SizeFormatter.ToFriendlySize(location.TotalBytes)"
-                                data-location-updated="@location.LatestModified.ToLocalTime().ToString("yyyy-MM-dd HH:mm")"
-                                data-location-status="@locationStatus"
-                                data-location-pending="@location.HashPendingCount"
-                                data-location-duplicates="@location.DuplicateCount"
-                                aria-pressed="false">
-                            <i class="bi bi-folder-fill" aria-hidden="true"></i>
-                            <span class="file-folder-node-label">@location.Name</span>
-                            <span class="file-folder-count">@location.FileCount</span>
+                    if (!Number.isFinite(refreshIntervalSeconds) || refreshIntervalSeconds < 0) {
                         </button>
-                    }
-                </div>
-            </aside>
+                        <button type="button" class="btn btn-outline-soft scan-jobs-live-btn" id="fileInventoryQuietModeToggle" aria-pressed="false">
+                            <i class="bi bi-volume-up" aria-hidden="true"></i>
+                            Quiet mode off
+                        </button>
+                    const buildSnapshotUrl = () => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('handler', 'Snapshot');
+                        return url.toString();
+                    };
 
-            <section class="file-inventory-metadata-panel">
-                <div class="file-screen-panel active" data-file-screen="navigator">
-                    <article class="file-metadata-card">
-                        <header class="file-card-header">
-                            <h3>Location Metadata</h3>
-                        </header>
-                        <div class="file-metadata-grid">
-                            <div class="file-meta-item">
-                                <span class="file-meta-label">Total Files</span>
-                                <span class="file-meta-value" data-meta-files>@totalFiles</span>
-                            </div>
-                            <div class="file-meta-item">
-                                <span class="file-meta-label">Total Size</span>
-                                <span class="file-meta-value" data-meta-size>@SizeFormatter.ToFriendlySize(totalBytes)</span>
-                            </div>
-                            <div class="file-meta-item">
-                                <span class="file-meta-label">Last Updated</span>
-                                <span class="file-meta-value" data-meta-updated>@(latestModified?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "No data")</span>
-                            </div>
-                            <div class="file-meta-item">
-                                <span class="file-meta-label">Scan Status</span>
-                                <span class="file-meta-badge" data-meta-status>Fleet</span>
-                            </div>
-                        </div>
-                    </article>
+                    const applyFileInventoryMode = (mode) => {
+                        const selectedMode = mode === 'interactive' ? 'interactive' : 'classic';
+                        fileModePanels.forEach((panel) => {
+                            const isActive = panel.getAttribute('data-file-inventory-mode-panel') === selectedMode;
+                            panel.hidden = !isActive;
+                        });
 
-                    <article class="file-active-users-card">
-                        <header class="file-card-header">
-                            <h3>Active Users</h3>
-                            <span class="file-live-pill">Live</span>
-                        </header>
-                        <div class="file-user-list">
-                            <div class="file-user-item">
-                                <div class="file-user-avatar"><i class="bi bi-person-fill" aria-hidden="true"></i></div>
-                                <div class="file-user-details">
-                                    <div class="file-user-name">System Admin</div>
-                                    <div class="file-user-action">Reviewing scanned metadata</div>
-                                </div>
-                                <span class="file-user-state online" aria-hidden="true"></span>
-                            </div>
-                            <div class="file-user-item">
-                                <div class="file-user-avatar"><i class="bi bi-cpu-fill" aria-hidden="true"></i></div>
-                                <div class="file-user-details">
-                                    <div class="file-user-name">Hash Worker</div>
-                                    <div class="file-user-action"><span data-meta-pending>@Model.Files.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase))</span> files pending hash</div>
-                                </div>
-                                <span class="file-user-state syncing" aria-hidden="true"></span>
-                            </div>
-                        </div>
-                    </article>
-                </div>
+                        fileModeButtons.forEach((button) => {
+                            const isActive = button.getAttribute('data-file-inventory-mode-btn') === selectedMode;
+                            button.classList.toggle('active', isActive);
+                            button.setAttribute('aria-pressed', String(isActive));
+                        });
 
-                <div class="file-screen-panel" data-file-screen="telemetry" hidden>
-                    <article class="file-telemetry-card">
-                        <header class="file-card-header">
-                            <h3>Scan Telemetry</h3>
-                        </header>
-                        <div class="file-telemetry-stack">
-                            <div class="file-telemetry-row">
-                                <span>Files In View</span>
-                                <strong data-telemetry-files>@totalFiles</strong>
-                            </div>
-                            <div class="file-telemetry-row">
-                                <span>Unique Extensions</span>
-                                <strong>@uniqueExtensions</strong>
-                            </div>
-                            <div class="file-telemetry-row">
-                                <span>Potential Duplicates</span>
-                                <strong data-telemetry-duplicates>@duplicateCount</strong>
-                            </div>
-                            <div class="file-telemetry-row">
-                                <span>Hash Queue</span>
-                                <strong data-telemetry-pending>@Model.Files.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase))</strong>
-                            </div>
-                        </div>
-                    </article>
-                    <article class="file-telemetry-card">
-                        <header class="file-card-header">
-                            <h3>Selected File</h3>
-                        </header>
-                        <div class="file-selected-meta">
-                            <div><span>Name</span><strong data-selected-file-name>No file selected</strong></div>
-                            <div><span>Path</span><strong data-selected-file-path>Choose a file from the list</strong></div>
-                            <div><span>Status</span><strong data-selected-file-status>Unknown</strong></div>
-                        </div>
-                    </article>
-                </div>
+                        document.body.classList.toggle('fileinventory-interactive-mode', selectedMode === 'interactive');
+                        localStorage.setItem(fileInventoryModeStorageKey, selectedMode);
+                    };
 
-                <div class="file-screen-tabs" role="tablist" aria-label="Interactive screen selector">
-                    <button type="button" class="file-screen-tab active" data-file-screen-tab="navigator" aria-pressed="true">Navigator</button>
-                    <button type="button" class="file-screen-tab" data-file-screen-tab="telemetry" aria-pressed="false">Telemetry</button>
-                </div>
-            </section>
+                    const applyFileScreen = (screen) => {
+                        const selectedScreen = screen === 'telemetry' ? 'telemetry' : 'navigator';
+                        fileScreenPanels.forEach((panel) => {
+                            const isActive = panel.getAttribute('data-file-screen') === selectedScreen;
+                            panel.classList.toggle('active', isActive);
+                            panel.hidden = !isActive;
+                        });
 
-            <section class="file-inventory-list-panel">
-                <div class="file-list-panel-head">
-                    <h3>Files</h3>
-                    <input type="text" class="form-control form-control-sm" placeholder="Quick filter" data-file-quick-filter aria-label="Quick filter interactive file list" />
-                </div>
-                <div class="file-list-scroll" id="fileInventoryInteractiveList">
-                    @if (!Model.Files.Any())
-                    {
-                        <div class="file-list-empty">
-                            <i class="bi bi-folder2-open" aria-hidden="true"></i>
-                            <span>No files available for interactive view.</span>
-                        </div>
-                    }
-                    @foreach (var file in Model.Files.Take(80))
-                    {
-                        var itemStatus = string.IsNullOrWhiteSpace(file.HashStatus) ? "Unknown" : file.HashStatus;
-                        var normalizedLocation = string.IsNullOrWhiteSpace(file.LocationName) ? "Unassigned" : file.LocationName;
-                        <button type="button"
-                                class="file-list-item"
-                                data-file-name="@file.FileName"
-                                data-file-path="@file.FilePath"
-                                data-file-status="@itemStatus"
-                                data-file-location="@normalizedLocation">
-                            <span class="file-list-icon"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span>
-                            <span class="file-list-copy">
-                                <strong>@file.FileName</strong>
-                                <small>@SizeFormatter.ToFriendlySize(file.SizeBytes) · @file.Extension · @normalizedLocation</small>
-                            </span>
-                            @if (itemStatus.Contains("duplicate", StringComparison.OrdinalIgnoreCase))
-                            {
-                                <span class="file-list-pill warn">Dup</span>
+                        fileScreenTabs.forEach((tab) => {
+                            const isActive = tab.getAttribute('data-file-screen-tab') === selectedScreen;
+                            tab.classList.toggle('active', isActive);
+                            tab.setAttribute('aria-pressed', String(isActive));
+                        });
+
+                        localStorage.setItem(fileInventoryScreenStorageKey, selectedScreen);
+                    };
+
+                    const applyLocationNodeMetrics = (node) => {
+                        if (!node) {
+                            return;
+                        }
+
+                        if (locationName) locationName.textContent = node.getAttribute('data-location-name') || 'All Locations';
+                        if (metaFiles) metaFiles.textContent = node.getAttribute('data-location-files') || '0';
+                        if (metaSize) metaSize.textContent = node.getAttribute('data-location-size') || '0 B';
+                        if (metaUpdated) metaUpdated.textContent = node.getAttribute('data-location-updated') || 'No data';
+                        if (metaStatus) metaStatus.textContent = node.getAttribute('data-location-status') || 'Fleet';
+                        if (metaPending) metaPending.textContent = node.getAttribute('data-location-pending') || '0';
+                        if (telemetryFiles) telemetryFiles.textContent = node.getAttribute('data-location-files') || '0';
+                        if (telemetryPending) telemetryPending.textContent = node.getAttribute('data-location-pending') || '0';
+                        if (telemetryDuplicates) telemetryDuplicates.textContent = node.getAttribute('data-location-duplicates') || '0';
+                    };
+
+                    const activateLocationNode = (locationKey) => {
+                        const nodes = [...fileInventoryFolderTree.querySelectorAll('.file-folder-node')];
+                        const target = nodes.find((node) => (node.getAttribute('data-location-key') || '') === locationKey) || nodes[0];
+                        nodes.forEach((node) => {
+                            const isActive = node === target;
+                            node.classList.toggle('active', isActive);
+                            node.setAttribute('aria-pressed', String(isActive));
+                        });
+                        selectedLocationKey = target?.getAttribute('data-location-key') || 'All Locations';
+                        applyLocationNodeMetrics(target);
+                    };
+
+                    const applyQuickFilter = (query) => {
+                        currentQuickFilter = query.trim().toLowerCase();
+                        fileInventoryInteractiveList.querySelectorAll('.file-list-item').forEach((item) => {
+                            const fileName = (item.getAttribute('data-file-name') || '').toLowerCase();
+                            const filePath = (item.getAttribute('data-file-path') || '').toLowerCase();
+                            item.hidden = currentQuickFilter.length > 0 && !fileName.includes(currentQuickFilter) && !filePath.includes(currentQuickFilter);
+                        });
+                    };
+
+                    const showPreviewToast = (msg, isError = false) => {
+                        if (!fiPreviewToast || !fiPreviewToastMsg) return;
+                        fiPreviewToastMsg.textContent = msg;
+                        fiPreviewToast.classList.toggle('fi-preview-toast--error', isError);
+                        fiPreviewToast.hidden = false;
+                        clearTimeout(toastTimer);
+                        toastTimer = setTimeout(() => { fiPreviewToast.hidden = true; }, 2400);
+                    };
+
+                    const applyFpTab = (tab) => {
+                        fpTabs.forEach((t) => {
+                            const active = t.getAttribute('data-fp-tab') === tab;
+                            t.classList.toggle('active', active);
+                            t.setAttribute('aria-pressed', String(active));
+                        });
+                        fpPanels.forEach((p) => {
+                            p.hidden = p.getAttribute('data-fp-panel') !== tab;
+                        });
+                    };
+
+                    const EXT_ICONS = {
+                        jpg: 'bi-file-earmark-image', jpeg: 'bi-file-earmark-image', png: 'bi-file-earmark-image', gif: 'bi-file-earmark-image',
+                        webp: 'bi-file-earmark-image', bmp: 'bi-file-earmark-image', svg: 'bi-file-earmark-image', tiff: 'bi-file-earmark-image',
+                        mp4: 'bi-file-earmark-play', mov: 'bi-file-earmark-play', avi: 'bi-file-earmark-play', mkv: 'bi-file-earmark-play', wmv: 'bi-file-earmark-play',
+                        mp3: 'bi-file-earmark-music', wav: 'bi-file-earmark-music', flac: 'bi-file-earmark-music',
+                        pdf: 'bi-file-earmark-pdf', doc: 'bi-file-earmark-word', docx: 'bi-file-earmark-word',
+                        xls: 'bi-file-earmark-excel', xlsx: 'bi-file-earmark-excel', ppt: 'bi-file-earmark-ppt', pptx: 'bi-file-earmark-ppt',
+                        txt: 'bi-file-earmark-text', log: 'bi-file-earmark-text', md: 'bi-file-earmark-text',
+                        json: 'bi-file-earmark-code', xml: 'bi-file-earmark-code', yaml: 'bi-file-earmark-code', yml: 'bi-file-earmark-code', csv: 'bi-file-earmark-spreadsheet',
+                        js: 'bi-file-earmark-code', ts: 'bi-file-earmark-code', cs: 'bi-file-earmark-code', py: 'bi-file-earmark-code', html: 'bi-file-earmark-code', css: 'bi-file-earmark-code',
+                        zip: 'bi-file-earmark-zip', rar: 'bi-file-earmark-zip', gz: 'bi-file-earmark-zip', tar: 'bi-file-earmark-zip', '7z': 'bi-file-earmark-zip',
+                        exe: 'bi-file-earmark-binary', dll: 'bi-file-earmark-binary', msi: 'bi-file-earmark-binary', msg: 'bi-file-earmark-richtext', eml: 'bi-file-earmark-richtext'
+                    };
+
+                    const EXT_COLORS = {
+                        jpg: '#f59e0b', jpeg: '#f59e0b', png: '#10b981', gif: '#8b5cf6', webp: '#10b981', bmp: '#f59e0b', svg: '#8b5cf6', tiff: '#f59e0b',
+                        mp4: '#ef4444', mov: '#ef4444', avi: '#ef4444', mkv: '#ef4444', mp3: '#ec4899', wav: '#ec4899', flac: '#ec4899',
+                        pdf: '#ef4444', doc: '#2563eb', docx: '#2563eb', xls: '#16a34a', xlsx: '#16a34a', ppt: '#ea580c', pptx: '#ea580c',
+                        txt: '#6b7280', log: '#6b7280', md: '#6b7280', csv: '#16a34a', json: '#f59e0b', xml: '#f59e0b', yaml: '#f59e0b', yml: '#f59e0b',
+                        js: '#f59e0b', ts: '#2563eb', cs: '#7c3aed', py: '#3b82f6', html: '#ea580c', css: '#2563eb',
+                        zip: '#78716c', rar: '#78716c', gz: '#78716c', tar: '#78716c', '7z': '#78716c', exe: '#dc2626', dll: '#dc2626', msi: '#dc2626',
+                        msg: '#0ea5e9', eml: '#0ea5e9'
+                    };
+
+                    const EXT_PREVIEW_TYPE = {
+                        jpg: 'image', jpeg: 'image', png: 'image', gif: 'image', webp: 'image', bmp: 'image', svg: 'image', tiff: 'image',
+                        txt: 'text', log: 'text', md: 'text', json: 'code', xml: 'code', yaml: 'code', yml: 'code', js: 'code', ts: 'code', cs: 'code', py: 'code', html: 'code', css: 'code', csv: 'text',
+                        pdf: 'pdf', mp4: 'video', mov: 'video', avi: 'video', mkv: 'video', mp3: 'audio', wav: 'audio', flac: 'audio',
+                        zip: 'archive', rar: 'archive', gz: 'archive', tar: 'archive', '7z': 'archive', exe: 'binary', dll: 'binary', msi: 'binary'
+                    };
+
+                    const PREVIEW_MESSAGES = {
+                        image:   { icon: 'bi-file-earmark-image', title: 'Image File', sub: 'Image preview unavailable — file is on network storage. Use "Open File" to view it.' },
+                        text:    { icon: 'bi-file-earmark-lines', title: 'Text Document', sub: 'Text content is stored on a network location. Open the file to read its contents.' },
+                        code:    { icon: 'bi-file-earmark-code', title: 'Code / Data File', sub: 'Source or structured data file. Open with your preferred editor to inspect contents.' },
+                        pdf:     { icon: 'bi-file-earmark-pdf', title: 'PDF Document', sub: 'PDF rendering is unavailable for network files. Click "Open File" to view in your PDF reader.' },
+                        video:   { icon: 'bi-file-earmark-play', title: 'Video File', sub: 'Video playback is unavailable for network files. Open the file with your media player.' },
+                        audio:   { icon: 'bi-file-earmark-music', title: 'Audio File', sub: 'Audio playback is unavailable for network files. Open the file with your media player.' },
+                        archive: { icon: 'bi-file-earmark-zip', title: 'Archive / Package', sub: 'Compressed archive. Use your file manager to extract and browse its contents.' },
+                        binary:  { icon: 'bi-file-earmark-binary', title: 'Executable / Binary', sub: 'Binary file — no preview available. Exercise caution before opening executables.' }
+                    };
+
+                    const openPreviewPanel = (item) => {
+                        if (!item) {
+                            return;
+                        }
+
+                        const name = item.getAttribute('data-file-name') || 'Unknown';
+                        const path = item.getAttribute('data-file-path') || '';
+                        const status = item.getAttribute('data-file-status') || 'Unknown';
+                        const location = item.getAttribute('data-file-location') || '—';
+                        const size = item.getAttribute('data-file-size') || '—';
+                        const ext = (item.getAttribute('data-file-ext') || '').replace('.', '').toLowerCase();
+                        const modified = item.getAttribute('data-file-modified') || '—';
+
+                        currentFilePath = path;
+                        selectedFileId = item.getAttribute('data-file-id') || '';
+
+                        const iconClass = EXT_ICONS[ext] || 'bi-file-earmark';
+                        const colour = EXT_COLORS[ext] || '#95a9ce';
+                        if (fiPreviewIcon) fiPreviewIcon.className = `bi ${iconClass}`;
+                        if (fiPreviewBigIcon) fiPreviewBigIcon.style.setProperty('--fp-icon-color', colour);
+                        if (fiPreviewExtBadge) {
+                            fiPreviewExtBadge.textContent = ext ? `.${ext}` : 'file';
+                            fiPreviewExtBadge.style.background = `${colour}28`;
+                            fiPreviewExtBadge.style.color = colour;
+                        }
+                        if (fiPreviewFilename) fiPreviewFilename.textContent = name;
+
+                        const previewType = EXT_PREVIEW_TYPE[ext] || 'generic';
+                        const msg = PREVIEW_MESSAGES[previewType] || { icon: 'bi-file-earmark', title: 'File', sub: 'No preview available for this file type.' };
+                        if (fiPreviewContent) {
+                            const phIcon = document.getElementById('fiPreviewPhIcon');
+                            const phTitle = document.getElementById('fiPreviewPhTitle');
+                            const phSub = document.getElementById('fiPreviewPhSub');
+                            if (phIcon) phIcon.className = `bi ${msg.icon} fi-preview-ph-icon`;
+                            if (phTitle) phTitle.textContent = msg.title;
+                            if (phSub) phSub.textContent = msg.sub;
+                        }
+
+                        document.getElementById('fi-det-name').textContent = name;
+                        document.getElementById('fi-det-ext').textContent = ext ? `.${ext}` : '—';
+                        document.getElementById('fi-det-size').textContent = size;
+                        document.getElementById('fi-det-modified').textContent = modified;
+                        document.getElementById('fi-det-location').textContent = location;
+                        document.getElementById('fi-det-path').textContent = path || '—';
+                        document.getElementById('fi-det-status').textContent = status;
+
+                        if (selectedFileName) selectedFileName.textContent = name;
+                        if (selectedFilePath) selectedFilePath.textContent = path;
+                        if (selectedFileStatus) selectedFileStatus.textContent = status;
+
+                        applyFpTab('preview');
+                        if (fiPreviewPanel) {
+                            fiPreviewPanel.hidden = false;
+                            fiPreviewPanel.classList.add('fi-preview-open');
+                        }
+                        if (fiPreviewGrid) fiPreviewGrid.classList.add('fi-preview-open');
+                    };
+
+                    const clearPreviewSelection = () => {
+                        selectedFileId = '';
+                        currentFilePath = '';
+                        fileInventoryInteractiveList.querySelectorAll('.file-list-item').forEach((item) => item.classList.remove('active'));
+                        if (fiPreviewPanel) {
+                            fiPreviewPanel.hidden = true;
+                            fiPreviewPanel.classList.remove('fi-preview-open');
+                        }
+                        if (fiPreviewGrid) fiPreviewGrid.classList.remove('fi-preview-open');
+                    };
+
+                    const ensureSelectedFileState = () => {
+                        if (!selectedFileId) {
+                            return;
+                        }
+
+                        const selectedItem = fileInventoryInteractiveList.querySelector(`.file-list-item[data-file-id="${CSS.escape(selectedFileId)}"]`);
+                        if (!selectedItem) {
+                            clearPreviewSelection();
+                            return;
+                        }
+
+                        fileInventoryInteractiveList.querySelectorAll('.file-list-item').forEach((item) => item.classList.toggle('active', item === selectedItem));
+                        if (!fiPreviewPanel?.hidden) {
+                            openPreviewPanel(selectedItem);
+                        }
+                    };
+
+                    const renderClassicRow = (file, signature) => `
+                        <tr data-file-id="${escapeAttr(file.id)}" data-live-signature="${escapeAttr(signature)}">
+                            <td>${escapeHtml(file.fileName)}</td>
+                            <td><code>${escapeHtml(file.filePath)}</code></td>
+                            <td><span class="badge-soft">${escapeHtml(file.extension)}</span></td>
+                            <td>${escapeHtml(formatBytes(file.sizeBytes))}</td>
+                            <td>${escapeHtml(formatDate(file.lastModifiedDate))}</td>
+                            <td>${escapeHtml(file.locationName)}</td>
+                            <td>${escapeHtml(deriveFileStatus(file))}</td>
+                        </tr>`;
+
+                    const syncClassicRows = (files) => {
+                        fileInventoryClassicTableBody.querySelector('.empty-state-row')?.remove();
+                        if (!files.length) {
+                            fileInventoryClassicTableBody.innerHTML = '<tr class="empty-state-row"><td colspan="7"><i class="bi bi-folder2-open empty-state-icon"></i>No files match your search criteria</td></tr>';
+                            return;
+                        }
+
+                        const existing = new Map([...fileInventoryClassicTableBody.querySelectorAll('tr[data-file-id]')].map((element) => [element.getAttribute('data-file-id'), element]));
+                        let previous = null;
+
+                        files.forEach((file) => {
+                            const key = String(file.id);
+                            const signature = getFileSignature(file);
+                            let row = existing.get(key);
+
+                            if (!row) {
+                                row = createNodeFromHtml(renderClassicRow(file, signature));
+                                if (previous) previous.insertAdjacentElement('afterend', row); else fileInventoryClassicTableBody.prepend(row);
+                                markLiveChanged(row);
+                            } else if (row.getAttribute('data-live-signature') !== signature) {
+                                const updatedRow = createNodeFromHtml(renderClassicRow(file, signature));
+                                row.replaceWith(updatedRow);
+                                row = updatedRow;
+                                markLiveChanged(row);
                             }
-                        </button>
+
+                            if (previous && previous.nextElementSibling !== row) {
+                                fileInventoryClassicTableBody.insertBefore(row, previous.nextElementSibling);
+                            } else if (!previous && fileInventoryClassicTableBody.firstElementChild !== row) {
+                                fileInventoryClassicTableBody.prepend(row);
+                            }
+
+                            previous = row;
+                            existing.delete(key);
+                        });
+
+                        existing.forEach((row) => row.remove());
+                    };
+
+                    const renderLocationNode = (location, signature) => {
+                        const status = deriveLocationStatus(location);
+                        return `
+                            <button type="button" class="file-folder-node" data-location-key="${escapeAttr(location.name)}" data-live-signature="${escapeAttr(signature)}" data-location-name="${escapeAttr(location.name)}" data-location-files="${escapeAttr(location.fileCount)}" data-location-size="${escapeAttr(formatBytes(location.totalBytes))}" data-location-updated="${escapeAttr(formatDateTime(location.latestModified))}" data-location-status="${escapeAttr(status)}" data-location-pending="${escapeAttr(location.hashPendingCount)}" data-location-duplicates="${escapeAttr(location.duplicateCount)}" aria-pressed="false">
+                                <i class="bi bi-folder-fill" aria-hidden="true"></i>
+                                <span class="file-folder-node-label">${escapeHtml(location.name)}</span>
+                                <span class="file-folder-count">${escapeHtml(location.fileCount)}</span>
+                            </button>`;
+                    };
+
+                    const syncLocationNodes = (snapshot) => {
+                        const allSignature = `all:${snapshot.totalFiles}:${snapshot.totalBytes}:${snapshot.duplicateCount}:${snapshot.pendingHashCount}`;
+                        const desiredLocations = [{
+                            name: 'All Locations',
+                            fileCount: snapshot.totalFiles,
+                            totalBytes: snapshot.totalBytes,
+                            latestModified: snapshot.latestModified,
+                            duplicateCount: snapshot.duplicateCount,
+                            hashPendingCount: snapshot.pendingHashCount,
+                            isAll: true,
+                            signature: allSignature
+                        }, ...(snapshot.locationSnapshots || []).map((location) => ({ ...location, isAll: false, signature: getLocationSignature(location) }))];
+
+                        const existing = new Map([...fileInventoryFolderTree.querySelectorAll('.file-folder-node')].map((element) => [element.getAttribute('data-location-key'), element]));
+                        let previous = null;
+
+                        desiredLocations.forEach((location) => {
+                            const key = location.name;
+                            let node = existing.get(key);
+                            const html = location.isAll
+                                ? `<button type="button" class="file-folder-node" data-location-key="All Locations" data-live-signature="${escapeAttr(location.signature)}" data-location-name="All Locations" data-location-files="${escapeAttr(location.fileCount)}" data-location-size="${escapeAttr(formatBytes(location.totalBytes))}" data-location-updated="${escapeAttr(formatDateTime(location.latestModified))}" data-location-status="Fleet" data-location-pending="${escapeAttr(location.hashPendingCount)}" data-location-duplicates="${escapeAttr(location.duplicateCount)}" aria-pressed="false"><i class="bi bi-diagram-3-fill" aria-hidden="true"></i><span class="file-folder-node-label">All Locations</span><span class="file-folder-count">${escapeHtml(location.fileCount)}</span></button>`
+                                : renderLocationNode(location, location.signature);
+
+                            if (!node) {
+                                node = createNodeFromHtml(html);
+                                if (previous) previous.insertAdjacentElement('afterend', node); else fileInventoryFolderTree.prepend(node);
+                                markLiveChanged(node);
+                            } else if (node.getAttribute('data-live-signature') !== location.signature) {
+                                const updatedNode = createNodeFromHtml(html);
+                                node.replaceWith(updatedNode);
+                                node = updatedNode;
+                                markLiveChanged(node);
+                            }
+
+                            if (previous && previous.nextElementSibling !== node) {
+                                fileInventoryFolderTree.insertBefore(node, previous.nextElementSibling);
+                            } else if (!previous && fileInventoryFolderTree.firstElementChild !== node) {
+                                fileInventoryFolderTree.prepend(node);
+                            }
+
+                            previous = node;
+                            existing.delete(key);
+                        });
+
+                        existing.forEach((node) => node.remove());
+                        if (fileInventoryLocationCount) fileInventoryLocationCount.textContent = String(snapshot.locationSnapshots?.length || 0);
+                        activateLocationNode(selectedLocationKey);
+                    };
+
+                    const renderFileListItem = (file, signature) => {
+                        const itemStatus = deriveFileStatus(file);
+                        const normalizedLocation = file.locationName || 'Unassigned';
+                        const pill = itemStatus.toLowerCase().includes('duplicate') || file.isDuplicate
+                            ? '<span class="file-list-pill warn">Dup</span>'
+                            : '';
+                        return `
+                            <button type="button" class="file-list-item" data-file-id="${escapeAttr(file.id)}" data-live-signature="${escapeAttr(signature)}" data-file-name="${escapeAttr(file.fileName)}" data-file-path="${escapeAttr(file.filePath)}" data-file-status="${escapeAttr(itemStatus)}" data-file-location="${escapeAttr(normalizedLocation)}" data-file-size="${escapeAttr(formatBytes(file.sizeBytes))}" data-file-ext="${escapeAttr(file.extension)}" data-file-modified="${escapeAttr(formatDateTime(file.lastModifiedDate))}">
+                                <span class="file-list-icon"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span>
+                                <span class="file-list-copy">
+                                    <strong>${escapeHtml(file.fileName)}</strong>
+                                    <small>${escapeHtml(formatBytes(file.sizeBytes))} · ${escapeHtml(file.extension)} · ${escapeHtml(normalizedLocation)}</small>
+                                </span>
+                                ${pill}
+                            </button>`;
+                    };
+
+                    const syncInteractiveList = (files) => {
+                        const interactiveFiles = files.slice(0, 80);
+                        fileInventoryInteractiveList.querySelector('.file-list-empty')?.remove();
+
+                        if (!interactiveFiles.length) {
+                            fileInventoryInteractiveList.innerHTML = '<div class="file-list-empty"><i class="bi bi-folder2-open" aria-hidden="true"></i><span>No files available for interactive view.</span></div>';
+                            clearPreviewSelection();
+                            return;
+                        }
+
+                        const existing = new Map([...fileInventoryInteractiveList.querySelectorAll('.file-list-item')].map((element) => [element.getAttribute('data-file-id'), element]));
+                        let previous = null;
+
+                        interactiveFiles.forEach((file) => {
+                            const key = String(file.id);
+                            const signature = getFileSignature(file);
+                            let item = existing.get(key);
+
+                            if (!item) {
+                                item = createNodeFromHtml(renderFileListItem(file, signature));
+                                if (previous) previous.insertAdjacentElement('afterend', item); else fileInventoryInteractiveList.prepend(item);
+                                markLiveChanged(item);
+                            } else if (item.getAttribute('data-live-signature') !== signature) {
+                                const updatedItem = createNodeFromHtml(renderFileListItem(file, signature));
+                                item.replaceWith(updatedItem);
+                                item = updatedItem;
+                                markLiveChanged(item);
+                            }
+
+                            if (previous && previous.nextElementSibling !== item) {
+                                fileInventoryInteractiveList.insertBefore(item, previous.nextElementSibling);
+                            } else if (!previous && fileInventoryInteractiveList.firstElementChild !== item) {
+                                fileInventoryInteractiveList.prepend(item);
+                            }
+
+                            previous = item;
+                            existing.delete(key);
+                        });
+
+                        existing.forEach((item) => item.remove());
+                        applyQuickFilter(currentQuickFilter);
+                        ensureSelectedFileState();
+                    };
+
+                    const updateLiveChrome = (snapshot, hadError = false, wasChanged = false) => {
+                        const liveEnabled = refreshIntervalSeconds > 0 && !quietModeEnabled;
+                        const liveRunning = liveEnabled && !hadError;
+
+                        fileInventoryLivePill.classList.remove('is-warning');
+                        fileInventoryLivePill.classList.toggle('is-live', liveRunning && Boolean(snapshot?.hasActiveWork));
+                        fileInventoryLiveBadge.textContent = quietModeEnabled ? 'Quiet' : liveRunning ? 'Live' : 'Manual';
+
+                        if (hadError) {
+                            fileInventoryLivePill.classList.add('is-warning');
+                            fileInventoryLivePillText.textContent = 'Inventory updates interrupted';
+                            fileInventoryLiveSummary.textContent = 'The page remains usable. Use Refresh now to pull a new snapshot without reloading.';
+                            return;
+                        }
+
+                        fileInventoryLivePillText.textContent = quietModeEnabled
+                            ? 'Inventory quiet mode enabled'
+                            : snapshot?.hasActiveWork
+                                ? 'Inventory live updates active'
+                                : 'Inventory live updates standing by';
+
+                        if (quietModeEnabled) {
+                            fileInventoryLiveSummary.textContent = 'Quiet mode keeps File Inventory in manual-refresh mode by default.';
+                        } else if (refreshIntervalSeconds <= 0) {
+                            fileInventoryLiveSummary.textContent = 'Auto-refresh is disabled. Use Refresh now whenever you need updated metadata.';
+                        } else if (snapshot?.hasActiveWork) {
+                            fileInventoryLiveSummary.textContent = `Metadata refreshes every ${refreshIntervalSeconds}s in place while hashing or duplicate work is still moving.`;
+                        } else {
+                            fileInventoryLiveSummary.textContent = wasChanged
+                                ? 'Inventory changed and has been patched in place without resetting the page.'
+                                : 'No active metadata work right now. The page stays stable until you refresh or new work appears.';
+                        }
+                    };
+
+                    const renderSnapshot = (snapshot, wasChanged = false) => {
+                        currentSnapshot = snapshot;
+                        syncClassicRows(snapshot.files || []);
+                        syncLocationNodes(snapshot);
+                        syncInteractiveList(snapshot.files || []);
+                        if (fileInventoryUniqueExtensions) fileInventoryUniqueExtensions.textContent = String(snapshot.uniqueExtensions || 0);
+                        updateLiveChrome(snapshot, false, wasChanged);
+                        const updatedAt = snapshot.generatedAtUtc ? new Date(snapshot.generatedAtUtc) : new Date();
+                        fileInventoryLastUpdated.textContent = describeLastUpdated(updatedAt);
+                    };
+
+                    const scheduleLiveRefresh = () => {
+                        if (liveRefreshTimer) {
+                            clearInterval(liveRefreshTimer);
+                            liveRefreshTimer = null;
+                        }
+
+                        if (refreshIntervalSeconds <= 0 || quietModeEnabled) {
+                            updateLiveChrome(currentSnapshot);
+                            return;
+                        }
+
+                        liveRefreshTimer = window.setInterval(() => {
+                            if (document.hidden || quietModeEnabled) {
+                                return;
+                            }
+                            void fetchSnapshot();
+                        }, refreshIntervalSeconds * 1000);
+                    };
+
+                    const fetchSnapshot = async ({ manual = false } = {}) => {
+                        if (isFetchingSnapshot) {
+                            return;
+                        }
+
+                        if (!manual && (document.hidden || quietModeEnabled || refreshIntervalSeconds <= 0)) {
+                            return;
+                        }
+
+                        isFetchingSnapshot = true;
+                        fileInventoryRefreshNow.disabled = true;
+                        if (refreshInteractiveBtn) refreshInteractiveBtn.disabled = true;
+
+                        try {
+                            const response = await fetch(buildSnapshotUrl(), {
+                                headers: { 'X-Requested-With': 'fetch' },
+                                cache: 'no-store'
+                            });
+                            if (!response.ok) {
+                                throw new Error(`Snapshot request failed with ${response.status}`);
+                            }
+
+                            const snapshot = await response.json();
+                            const signature = JSON.stringify(snapshot.files || []);
+                            const wasChanged = signature !== lastSnapshotSignature;
+                            lastSnapshotSignature = signature;
+                            renderSnapshot(snapshot, wasChanged);
+                        } catch (error) {
+                            console.error(error);
+                            fileInventoryLastUpdated.textContent = 'Update failed';
+                            updateLiveChrome(currentSnapshot, true, false);
+                        } finally {
+                            isFetchingSnapshot = false;
+                            fileInventoryRefreshNow.disabled = false;
+                            if (refreshInteractiveBtn) refreshInteractiveBtn.disabled = false;
+                        }
+                    };
+
+                    const urlMode = new URLSearchParams(window.location.search).get('fileInventoryMode');
+                    const savedMode = localStorage.getItem(fileInventoryModeStorageKey);
+                    const initialMode = urlMode === 'interactive' || urlMode === 'classic' ? urlMode : (savedMode === 'interactive' ? 'interactive' : 'classic');
+                    applyFileInventoryMode(initialMode);
+
+                    const savedScreen = localStorage.getItem(fileInventoryScreenStorageKey);
+                    applyFileScreen(savedScreen === 'telemetry' ? 'telemetry' : 'navigator');
+
+                    fileModeButtons.forEach((button) => {
+                        button.addEventListener('click', () => applyFileInventoryMode(button.getAttribute('data-file-inventory-mode-btn') || 'classic'));
+                    });
+
+                    fileScreenTabs.forEach((tab) => {
+                        tab.addEventListener('click', () => applyFileScreen(tab.getAttribute('data-file-screen-tab') || 'navigator'));
+                    });
+
+                    fpTabs.forEach((tab) => tab.addEventListener('click', () => applyFpTab(tab.getAttribute('data-fp-tab') || 'preview')));
+
+                    fileInventoryFolderTree.addEventListener('click', (event) => {
+                        const node = event.target.closest('.file-folder-node');
+                        if (!node) {
+                            return;
+                        }
+                        activateLocationNode(node.getAttribute('data-location-key') || 'All Locations');
+                    });
+
+                    fileInventoryInteractiveList.addEventListener('click', (event) => {
+                        const item = event.target.closest('.file-list-item');
+                        if (!item) {
+                            return;
+                        }
+                        selectedFileId = item.getAttribute('data-file-id') || '';
+                        fileInventoryInteractiveList.querySelectorAll('.file-list-item').forEach((entry) => entry.classList.toggle('active', entry === item));
+                        openPreviewPanel(item);
+                    });
+
+                    if (quickFilter) {
+                        quickFilter.addEventListener('input', () => applyQuickFilter(quickFilter.value));
                     }
-                </div>
-            </section>
-        </div>
-    </section>
+
+                    if (fiPreviewClose) {
+                        fiPreviewClose.addEventListener('click', () => clearPreviewSelection());
+                    }
+
+                    if (fiActionCopy) {
+                        fiActionCopy.addEventListener('click', () => {
+                            if (!currentFilePath) { showPreviewToast('No file selected', true); return; }
+                            navigator.clipboard.writeText(currentFilePath)
+                                .then(() => showPreviewToast('Path copied to clipboard!'))
+                                .catch(() => showPreviewToast('Copy failed — check browser permissions', true));
+                        });
+                    }
+
+                    if (fiActionOpen) {
+                        fiActionOpen.addEventListener('click', () => {
+                            if (!currentFilePath) { showPreviewToast('No file selected', true); return; }
+                            let uri = currentFilePath;
+                            if (uri.startsWith('\\\\')) {
+                                uri = 'file:' + uri.replace(/\\/g, '/');
+                            } else if (/^[A-Za-z]:\\/.test(uri)) {
+                                uri = 'file:///' + uri.replace(/\\/g, '/');
+                            }
+                            window.open(uri, '_blank', 'noopener');
+                        });
+                    }
+
+                    if (openTelemetryBtn) {
+                        openTelemetryBtn.addEventListener('click', () => applyFileScreen('telemetry'));
+                    }
+
+                    fileInventoryRefreshNow.addEventListener('click', () => void fetchSnapshot({ manual: true }));
+                    if (refreshInteractiveBtn) {
+                        refreshInteractiveBtn.addEventListener('click', () => void fetchSnapshot({ manual: true }));
+                    }
+
+                    fileInventoryQuietModeToggle.addEventListener('click', () => {
+                        quietModeEnabled = !quietModeEnabled;
+                        localStorage.setItem(fileInventoryQuietModeStorageKey, String(quietModeEnabled));
+                        fileInventoryQuietModeToggle.setAttribute('aria-pressed', String(quietModeEnabled));
+                        fileInventoryQuietModeToggle.innerHTML = quietModeEnabled
+                            ? '<i class="bi bi-volume-mute" aria-hidden="true"></i> Quiet mode on'
+                            : '<i class="bi bi-volume-up" aria-hidden="true"></i> Quiet mode off';
+                        updateLiveChrome(currentSnapshot);
+                        scheduleLiveRefresh();
+                        if (!quietModeEnabled) {
+                            void fetchSnapshot({ manual: true });
+                        }
+                    });
+
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden && !quietModeEnabled) {
+                            void fetchSnapshot({ manual: true });
+                        }
+                    });
+
+                    activateLocationNode(selectedLocationKey);
+                    if (quickFilter) {
+                        applyQuickFilter(quickFilter.value || '');
+                    }
+                    fileInventoryQuietModeToggle.setAttribute('aria-pressed', String(quietModeEnabled));
+                    fileInventoryQuietModeToggle.innerHTML = quietModeEnabled
+                        ? '<i class="bi bi-volume-mute" aria-hidden="true"></i> Quiet mode on'
+                        : '<i class="bi bi-volume-up" aria-hidden="true"></i> Quiet mode off';
+                    renderSnapshot(initialSnapshot, false);
+                    scheduleLiveRefresh();
 </div>
 
 @section Scripts {
@@ -445,24 +868,223 @@
         const selectedFileStatus = document.querySelector('[data-selected-file-status]');
         const listItems = document.querySelectorAll('.file-list-item');
 
+        // ── File Preview Panel ──────────────────────────────────────────
+        const fiPreviewPanel  = document.getElementById('fiPreviewPanel');
+        const fiPreviewClose  = document.getElementById('fiPreviewClose');
+        const fiPreviewGrid   = document.querySelector('.file-inventory-interactive-grid');
+        const fiPreviewIcon   = document.getElementById('fiPreviewIcon');
+        const fiPreviewBigIcon = document.getElementById('fiPreviewBigIcon');
+        const fiPreviewExtBadge = document.getElementById('fiPreviewExtBadge');
+        const fiPreviewFilename = document.getElementById('fiPreviewFilename');
+        const fiPreviewContent  = document.getElementById('fiPreviewContent');
+        const fiActionCopy    = document.getElementById('fiActionCopy');
+        const fiActionOpen    = document.getElementById('fiActionOpen');
+        const fiPreviewToast  = document.getElementById('fiPreviewToast');
+        const fiPreviewToastMsg = document.getElementById('fiPreviewToastMsg');
+        const fpTabs          = document.querySelectorAll('[data-fp-tab]');
+        const fpPanels        = document.querySelectorAll('[data-fp-panel]');
+
+        let currentFilePath = '';
+        let toastTimer = null;
+
+        const EXT_ICONS = {
+            // Images
+            jpg: 'bi-file-earmark-image', jpeg: 'bi-file-earmark-image', png: 'bi-file-earmark-image',
+            gif: 'bi-file-earmark-image', webp: 'bi-file-earmark-image', bmp: 'bi-file-earmark-image',
+            svg: 'bi-file-earmark-image', tiff: 'bi-file-earmark-image',
+            // Video
+            mp4: 'bi-file-earmark-play', mov: 'bi-file-earmark-play', avi: 'bi-file-earmark-play',
+            mkv: 'bi-file-earmark-play', wmv: 'bi-file-earmark-play',
+            // Audio
+            mp3: 'bi-file-earmark-music', wav: 'bi-file-earmark-music', flac: 'bi-file-earmark-music',
+            // Documents
+            pdf: 'bi-file-earmark-pdf', doc: 'bi-file-earmark-word', docx: 'bi-file-earmark-word',
+            xls: 'bi-file-earmark-excel', xlsx: 'bi-file-earmark-excel',
+            ppt: 'bi-file-earmark-ppt', pptx: 'bi-file-earmark-ppt',
+            // Code / Text
+            txt: 'bi-file-earmark-text', log: 'bi-file-earmark-text', md: 'bi-file-earmark-text',
+            json: 'bi-file-earmark-code', xml: 'bi-file-earmark-code', yaml: 'bi-file-earmark-code',
+            yml: 'bi-file-earmark-code', csv: 'bi-file-earmark-spreadsheet',
+            js: 'bi-file-earmark-code', ts: 'bi-file-earmark-code', cs: 'bi-file-earmark-code',
+            py: 'bi-file-earmark-code', html: 'bi-file-earmark-code', css: 'bi-file-earmark-code',
+            // Archives
+            zip: 'bi-file-earmark-zip', rar: 'bi-file-earmark-zip', gz: 'bi-file-earmark-zip',
+            tar: 'bi-file-earmark-zip', '7z': 'bi-file-earmark-zip',
+            // Executables
+            exe: 'bi-file-earmark-binary', dll: 'bi-file-earmark-binary', msi: 'bi-file-earmark-binary',
+            // Email
+            msg: 'bi-file-earmark-richtext', eml: 'bi-file-earmark-richtext',
+        };
+
+        const EXT_COLORS = {
+            jpg: '#f59e0b', jpeg: '#f59e0b', png: '#10b981', gif: '#8b5cf6',
+            webp: '#10b981', bmp: '#f59e0b', svg: '#8b5cf6', tiff: '#f59e0b',
+            mp4: '#ef4444', mov: '#ef4444', avi: '#ef4444', mkv: '#ef4444',
+            mp3: '#ec4899', wav: '#ec4899', flac: '#ec4899',
+            pdf: '#ef4444', doc: '#2563eb', docx: '#2563eb',
+            xls: '#16a34a', xlsx: '#16a34a', ppt: '#ea580c', pptx: '#ea580c',
+            txt: '#6b7280', log: '#6b7280', md: '#6b7280', csv: '#16a34a',
+            json: '#f59e0b', xml: '#f59e0b', yaml: '#f59e0b', yml: '#f59e0b',
+            js: '#f59e0b', ts: '#2563eb', cs: '#7c3aed', py: '#3b82f6',
+            html: '#ea580c', css: '#2563eb',
+            zip: '#78716c', rar: '#78716c', gz: '#78716c', tar: '#78716c', '7z': '#78716c',
+            exe: '#dc2626', dll: '#dc2626', msi: '#dc2626',
+            msg: '#0ea5e9', eml: '#0ea5e9',
+        };
+
+        const EXT_PREVIEW_TYPE = {
+            jpg: 'image', jpeg: 'image', png: 'image', gif: 'image',
+            webp: 'image', bmp: 'image', svg: 'image', tiff: 'image',
+            txt: 'text', log: 'text', md: 'text',
+            json: 'code', xml: 'code', yaml: 'code', yml: 'code',
+            js: 'code', ts: 'code', cs: 'code', py: 'code',
+            html: 'code', css: 'code', csv: 'text',
+            pdf: 'pdf',
+            mp4: 'video', mov: 'video', avi: 'video', mkv: 'video',
+            mp3: 'audio', wav: 'audio', flac: 'audio',
+            zip: 'archive', rar: 'archive', gz: 'archive', tar: 'archive', '7z': 'archive',
+            exe: 'binary', dll: 'binary', msi: 'binary',
+        };
+
+        const PREVIEW_MESSAGES = {
+            image:   { icon: 'bi-file-earmark-image',  title: 'Image File',        sub: 'Image preview unavailable — file is on network storage. Use "Open File" to view it.' },
+            text:    { icon: 'bi-file-earmark-lines',   title: 'Text Document',     sub: 'Text content is stored on a network location. Open the file to read its contents.' },
+            code:    { icon: 'bi-file-earmark-code',    title: 'Code / Data File',  sub: 'Source or structured data file. Open with your preferred editor to inspect contents.' },
+            pdf:     { icon: 'bi-file-earmark-pdf',     title: 'PDF Document',      sub: 'PDF rendering is unavailable for network files. Click "Open File" to view in your PDF reader.' },
+            video:   { icon: 'bi-file-earmark-play',    title: 'Video File',        sub: 'Video playback is unavailable for network files. Open the file with your media player.' },
+            audio:   { icon: 'bi-file-earmark-music',   title: 'Audio File',        sub: 'Audio playback is unavailable for network files. Open the file with your media player.' },
+            archive: { icon: 'bi-file-earmark-zip',     title: 'Archive / Package', sub: 'Compressed archive. Use your file manager to extract and browse its contents.' },
+            binary:  { icon: 'bi-file-earmark-binary',  title: 'Executable / Binary', sub: 'Binary file — no preview available. Exercise caution before opening executables.' },
+        };
+
+        const showPreviewToast = (msg, isError = false) => {
+            if (!fiPreviewToast || !fiPreviewToastMsg) return;
+            fiPreviewToastMsg.textContent = msg;
+            fiPreviewToast.classList.toggle('fi-preview-toast--error', isError);
+            fiPreviewToast.hidden = false;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { fiPreviewToast.hidden = true; }, 2400);
+        };
+
+        const applyFpTab = (tab) => {
+            fpTabs.forEach((t) => {
+                const active = t.getAttribute('data-fp-tab') === tab;
+                t.classList.toggle('active', active);
+                t.setAttribute('aria-pressed', String(active));
+            });
+            fpPanels.forEach((p) => {
+                p.hidden = p.getAttribute('data-fp-panel') !== tab;
+            });
+        };
+
+        fpTabs.forEach((t) => t.addEventListener('click', () => applyFpTab(t.getAttribute('data-fp-tab'))));
+
+        const openPreviewPanel = (item) => {
+            const name     = item.getAttribute('data-file-name') || 'Unknown';
+            const path     = item.getAttribute('data-file-path') || '';
+            const status   = item.getAttribute('data-file-status') || 'Unknown';
+            const location = item.getAttribute('data-file-location') || '—';
+            const size     = item.getAttribute('data-file-size') || '—';
+            const ext      = (item.getAttribute('data-file-ext') || '').replace('.', '').toLowerCase();
+            const modified = item.getAttribute('data-file-modified') || '—';
+
+            currentFilePath = path;
+
+            // Icon + colour
+            const iconClass = EXT_ICONS[ext] || 'bi-file-earmark';
+            const colour    = EXT_COLORS[ext] || '#95a9ce';
+            if (fiPreviewIcon) {
+                fiPreviewIcon.className = `bi ${iconClass}`;
+            }
+            if (fiPreviewBigIcon) {
+                fiPreviewBigIcon.style.setProperty('--fp-icon-color', colour);
+            }
+            if (fiPreviewExtBadge) {
+                fiPreviewExtBadge.textContent = ext ? `.${ext}` : 'file';
+                fiPreviewExtBadge.style.background = colour + '28';
+                fiPreviewExtBadge.style.color = colour;
+            }
+            if (fiPreviewFilename) {
+                fiPreviewFilename.textContent = name;
+            }
+
+            // Preview content
+            const previewType = EXT_PREVIEW_TYPE[ext] || 'generic';
+            const msg = PREVIEW_MESSAGES[previewType] || { icon: 'bi-file-earmark', title: 'File', sub: 'No preview available for this file type.' };
+
+            if (fiPreviewContent) {
+                const phIcon  = document.getElementById('fiPreviewPhIcon');
+                const phTitle = document.getElementById('fiPreviewPhTitle');
+                const phSub   = document.getElementById('fiPreviewPhSub');
+                if (phIcon)  phIcon.className  = `bi ${msg.icon} fi-preview-ph-icon`;
+                if (phTitle) phTitle.textContent = msg.title;
+                if (phSub)   phSub.textContent  = msg.sub;
+            }
+
+            // Details tab
+            document.getElementById('fi-det-name').textContent     = name;
+            document.getElementById('fi-det-ext').textContent      = ext ? `.${ext}` : '—';
+            document.getElementById('fi-det-size').textContent     = size;
+            document.getElementById('fi-det-modified').textContent = modified;
+            document.getElementById('fi-det-location').textContent = location;
+            document.getElementById('fi-det-path').textContent     = path || '—';
+            document.getElementById('fi-det-status').textContent   = status;
+
+            // Telemetry panel (existing)
+            if (selectedFileName)   selectedFileName.textContent  = name;
+            if (selectedFilePath)   selectedFilePath.textContent  = path;
+            if (selectedFileStatus) selectedFileStatus.textContent = status;
+
+            // Show panel
+            applyFpTab('preview');
+            if (fiPreviewPanel) {
+                fiPreviewPanel.hidden = false;
+                fiPreviewPanel.classList.add('fi-preview-open');
+            }
+            if (fiPreviewGrid) {
+                fiPreviewGrid.classList.add('fi-preview-open');
+            }
+        };
+
+        if (fiPreviewClose) {
+            fiPreviewClose.addEventListener('click', () => {
+                if (fiPreviewPanel) {
+                    fiPreviewPanel.hidden = true;
+                    fiPreviewPanel.classList.remove('fi-preview-open');
+                }
+                if (fiPreviewGrid) fiPreviewGrid.classList.remove('fi-preview-open');
+                listItems.forEach((e) => e.classList.remove('active'));
+            });
+        }
+
+        if (fiActionCopy) {
+            fiActionCopy.addEventListener('click', () => {
+                if (!currentFilePath) { showPreviewToast('No file selected', true); return; }
+                navigator.clipboard.writeText(currentFilePath)
+                    .then(() => showPreviewToast('Path copied to clipboard!'))
+                    .catch(() => showPreviewToast('Copy failed — check browser permissions', true));
+            });
+        }
+
+        if (fiActionOpen) {
+            fiActionOpen.addEventListener('click', () => {
+                if (!currentFilePath) { showPreviewToast('No file selected', true); return; }
+                // Convert UNC/Windows paths to file:// URI
+                let uri = currentFilePath;
+                if (uri.startsWith('\\\\')) {
+                    uri = 'file:' + uri.replace(/\\/g, '/');
+                } else if (/^[A-Za-z]:\\/.test(uri)) {
+                    uri = 'file:///' + uri.replace(/\\/g, '/');
+                }
+                window.open(uri, '_blank', 'noopener');
+            });
+        }
+
         listItems.forEach((item) => {
             item.addEventListener('click', () => {
-                listItems.forEach((entry) => {
-                    entry.classList.remove('active');
-                });
+                listItems.forEach((entry) => entry.classList.remove('active'));
                 item.classList.add('active');
-
-                if (selectedFileName) {
-                    selectedFileName.textContent = item.getAttribute('data-file-name') || 'Unknown';
-                }
-
-                if (selectedFilePath) {
-                    selectedFilePath.textContent = item.getAttribute('data-file-path') || 'Unknown';
-                }
-
-                if (selectedFileStatus) {
-                    selectedFileStatus.textContent = item.getAttribute('data-file-status') || 'Unknown';
-                }
+                openPreviewPanel(item);
             });
         });
 

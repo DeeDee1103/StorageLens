@@ -16,11 +16,12 @@ public class WorkflowOrchestratorService(
     private static readonly IReadOnlyDictionary<WorkflowStatus, HashSet<WorkflowStatus>> AllowedTransitions =
         new Dictionary<WorkflowStatus, HashSet<WorkflowStatus>>
         {
-            [WorkflowStatus.Pending] = [WorkflowStatus.Running, WorkflowStatus.RetryQueued, WorkflowStatus.Failed],
-            [WorkflowStatus.Running] = [WorkflowStatus.Completed, WorkflowStatus.Failed, WorkflowStatus.RetryQueued],
+            [WorkflowStatus.Pending] = [WorkflowStatus.Running, WorkflowStatus.RetryQueued, WorkflowStatus.Failed, WorkflowStatus.Cancelled],
+            [WorkflowStatus.Running] = [WorkflowStatus.Completed, WorkflowStatus.Failed, WorkflowStatus.RetryQueued, WorkflowStatus.Cancelled],
             [WorkflowStatus.Completed] = [WorkflowStatus.RetryQueued],
             [WorkflowStatus.Failed] = [WorkflowStatus.RetryQueued],
-            [WorkflowStatus.RetryQueued] = [WorkflowStatus.Running, WorkflowStatus.Failed, WorkflowStatus.RetryQueued]
+            [WorkflowStatus.RetryQueued] = [WorkflowStatus.Running, WorkflowStatus.Failed, WorkflowStatus.RetryQueued, WorkflowStatus.Cancelled],
+            [WorkflowStatus.Cancelled] = [WorkflowStatus.RetryQueued]
         };
 
     public async Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, CancellationToken cancellationToken)
@@ -102,6 +103,47 @@ public class WorkflowOrchestratorService(
         return new WorkflowStartResultDto(workflow.Id, workflow.ScanJobId, workflow.CorrelationId, workflow.Status);
     }
 
+    public async Task<bool> CancelByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken)
+    {
+        var workflow = await dbContext.WorkflowInstances
+            .FirstOrDefaultAsync(x => x.ScanJobId == scanJobId, cancellationToken);
+        if (workflow is null)
+        {
+            return false;
+        }
+
+        SetWorkflowStatus(workflow, WorkflowStatus.Cancelled);
+        workflow.LastError = "Cancelled by user.";
+        workflow.CompletedAtUtc = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var scanJobsClient = httpClientFactory.CreateClient("scanjobs");
+        await scanJobsClient.PutAsJsonAsync(
+            $"api/scanjobs/{scanJobId}/status",
+            new UpdateScanJobStatusRequest(ScanJobStatus.Cancelled, "Cancelled", "Cancelled by user.", IsTerminal: true),
+            cancellationToken);
+
+        logger.LogInformation("Workflow for scan job {ScanJobId} cancelled by user.", scanJobId);
+        return true;
+    }
+
+    public async Task<WorkflowStartResultDto?> ResumeByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken)
+    {
+        var workflow = await dbContext.WorkflowInstances
+            .FirstOrDefaultAsync(x => x.ScanJobId == scanJobId, cancellationToken);
+        if (workflow is null)
+        {
+            return null;
+        }
+
+        SetWorkflowStatus(workflow, WorkflowStatus.RetryQueued);
+        workflow.LastError = string.Empty;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await EnqueueAsync(workflow.Id, cancellationToken);
+        return new WorkflowStartResultDto(workflow.Id, workflow.ScanJobId, workflow.CorrelationId, workflow.Status);
+    }
+
     public ValueTask EnqueueAsync(Guid workflowId, CancellationToken cancellationToken) =>
         workflowQueue.EnqueueAsync(workflowId, cancellationToken);
 
@@ -158,7 +200,29 @@ public class WorkflowOrchestratorService(
                     workflow.RootPath);
 
                 var response = await scannerClient.PostAsJsonAsync("api/scanner/execute", executeRequest, cancellationToken);
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    string errorMessage;
+                    try
+                    {
+                        var failedExecution = System.Text.Json.JsonSerializer.Deserialize<ScannerExecutionDto>(
+                            rawBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        errorMessage = !string.IsNullOrWhiteSpace(failedExecution?.Notes)
+                            ? failedExecution.Notes
+                            : string.IsNullOrWhiteSpace(rawBody)
+                                ? $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})"
+                                : rawBody.Length > 500 ? rawBody[..500] : rawBody;
+                    }
+                    catch
+                    {
+                        errorMessage = string.IsNullOrWhiteSpace(rawBody)
+                            ? $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})"
+                            : rawBody.Length > 500 ? rawBody[..500] : rawBody;
+                    }
+
+                    throw new InvalidOperationException(errorMessage);
+                }
             }, cancellationToken);
 
             await RunStepAsync(workflow, "Hashing", async () =>
@@ -174,7 +238,7 @@ public class WorkflowOrchestratorService(
                     $"api/hashing/run/{workflow.ScanJobId}?correlationId={workflow.CorrelationId}",
                     null,
                     cancellationToken);
-                response.EnsureSuccessStatusCode();
+                await EnsureSuccessOrThrowAsync(response, cancellationToken);
             }, cancellationToken);
 
             DuplicateRecalculationResultDto? duplicateResult = null;
@@ -191,7 +255,7 @@ public class WorkflowOrchestratorService(
                     $"api/duplicates/recalculate/{workflow.ScanJobId}?correlationId={workflow.CorrelationId}",
                     null,
                     cancellationToken);
-                response.EnsureSuccessStatusCode();
+                await EnsureSuccessOrThrowAsync(response, cancellationToken);
                 duplicateResult = await response.Content.ReadFromJsonAsync<DuplicateRecalculationResultDto>(cancellationToken);
             }, cancellationToken);
 
@@ -205,7 +269,7 @@ public class WorkflowOrchestratorService(
                     cancellationToken);
 
                 using var response = await analyticsClient.GetAsync("api/analytics/dashboard", cancellationToken);
-                response.EnsureSuccessStatusCode();
+                await EnsureSuccessOrThrowAsync(response, cancellationToken);
             }, cancellationToken);
 
             SetWorkflowStatus(workflow, WorkflowStatus.Completed);
@@ -261,6 +325,29 @@ public class WorkflowOrchestratorService(
 
             await dbContext.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(await ReadFailureMessageAsync(response, cancellationToken));
+    }
+
+    private static async Task<string> ReadFailureMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var trimmedBody = body.Trim();
+
+        if (!string.IsNullOrWhiteSpace(trimmedBody))
+        {
+            return trimmedBody.Length > 500 ? trimmedBody[..500] : trimmedBody;
+        }
+
+        return $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}).";
     }
 
     private static void SetWorkflowStatus(WorkflowInstance workflow, WorkflowStatus nextStatus)

@@ -57,7 +57,7 @@ public class StorageLocationsModel(
         }
 
         await orchestratorApiClient.StartScanAsync(locationId, cancellationToken);
-        return RedirectToPage();
+        return RedirectToPage("/ScanJobs");
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid locationId, CancellationToken cancellationToken)

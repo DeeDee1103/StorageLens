@@ -1,11 +1,11 @@
   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
                                  Dload  Upload  Total   Spent   Left   Speed
-  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0           00:01              0HTTP/1.1 200 OK
+  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0           00:04              0  0      0   0      0   0      0      0      0           00:05              0  0      0   0      0   0      0      0      0           00:07              0  0      0   0      0   0      0      0      0           00:09              0  0      0   0      0   0      0      0      0           00:11              0HTTP/1.1 200 OK
 Content-Type: text/html; charset=utf-8
-Date: Sun, 22 Mar 2026 23:47:40 GMT
+Date: Mon, 23 Mar 2026 14:21:44 GMT
 Server: Kestrel
 Transfer-Encoding: chunked
-X-Correlation-ID: fa53be5445b0476596b787c24ee422a8
+X-Correlation-ID: 9637a409855648f0bfb911db83d5a9f3
 
 <!DOCTYPE html>
 <html lang="en">
@@ -20,7 +20,7 @@ X-Correlation-ID: fa53be5445b0476596b787c24ee422a8
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="icon" type="image/png" href="/images/storagelens-logo-small.png?v=4oAfBlSTzhnuT4xm_0A9pcumjJfRSqYlBA5LFtU4Lao" />
     <link rel="shortcut icon" type="image/png" href="/images/storagelens-logo-small.png?v=4oAfBlSTzhnuT4xm_0A9pcumjJfRSqYlBA5LFtU4Lao" />
-    <link rel="stylesheet" href="/css/site.css?v=g7OaJQ2Zny-OQ-gtRAUrtW7hbYDSYGG4_XI0rPQvRM4" />
+    <link rel="stylesheet" href="/css/site.css?v=ifqHZmmiUt9sisjkwAVZ7E9NH01aOz8-NQutCRsJKaM" />
     <link rel="stylesheet" href="/StorageLens.Web.styles.css?v=EiiGWaXW1JHl-BtobReu9Th1Bw5suip_g7iojBesYHw" />
 </head>
 <body class="marketing-body">
@@ -480,7 +480,7 @@ X-Correlation-ID: fa53be5445b0476596b787c24ee422a8
         <div class="marketing-cta card-premium reveal-item">
             <div>
                 <span class="marketing-section-eyebrow">Ready to explore the product</span>
-                <h2 class="marketing-section-title m100  30131   0  30131   0      0  12464      0           00:02          12461100  30131   0  30131   0      0   9853      0           00:03          12461100  30131   0  30131   0      0   8432      0           00:03           8430
+                <h2 class="marketing-section-title m100  30131   0  30131   0      0   2361      0           00:12           3625100  30131   0  30131   0      0   2151      0           00:14           3750100  30131   0  30131   0      0   1983      0           00:15           4045100  30131   0  30131   0      0   1837      0           00:16           4500
 b-2">Open the dashboard and see how StorageLens presents storage pressure, duplicate waste, and operational flow.</h2>
                 <p class="marketing-section-text mb-0">The landing page stays lightweight and product-focused. The dashboard is where the live operational picture takes over.</p>
             </div>
@@ -513,7 +513,7 @@ b-2">Open the dashboard and see how StorageLens presents storage pressure, dupli
     </footer>
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/site.js?v=Gy5wmI_FClIk2J-3-hfH3GneYN6M6UUxan_INV3pLoM"></script>
+    <script src="/js/site.js?v=1L3IHHb_BGoeHXpOMTmRv49d4S1LY2OIVwwrQrvHDtQ"></script>
 
     
 </body>

@@ -26,6 +26,34 @@ public class OrchestratorApiClient(HttpClient httpClient, ILogger<OrchestratorAp
         }
     }
 
+    public async Task<bool> CancelJobAsync(Guid scanJobId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsync($"api/orchestrator/scans/{scanJobId}/cancel", null, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (IsServiceUnavailable(ex, cancellationToken))
+        {
+            logger.LogWarning(ex, "Orchestrator service unavailable when cancelling job {ScanJobId}.", scanJobId);
+            return false;
+        }
+    }
+
+    public async Task<bool> ResumeJobAsync(Guid scanJobId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsync($"api/orchestrator/scans/{scanJobId}/resume", null, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (IsServiceUnavailable(ex, cancellationToken))
+        {
+            logger.LogWarning(ex, "Orchestrator service unavailable when resuming job {ScanJobId}.", scanJobId);
+            return false;
+        }
+    }
+
     private static bool IsServiceUnavailable(Exception ex, CancellationToken cancellationToken) =>
         ex is HttpRequestException or BrokenCircuitException ||
         ex is TaskCanceledException && !cancellationToken.IsCancellationRequested;

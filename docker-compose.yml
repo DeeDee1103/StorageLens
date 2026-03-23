@@ -148,13 +148,13 @@ services:
       Observability__OtlpEndpoint: "http://jaeger:4317"
     volumes:
       - ./sample-scan:/scan-root
-      # The following Windows-specific mounts enable Scanner's built-in
-      # C:\ and UNC path auto-mapping (e.g., C:\ -> /host/drives/c).
-      # Uncomment these lines if you are running Docker Compose on Windows
-      # and want to scan local/UNC paths using the /host/drives and /host/unc
-      # conventions inside the container.
-      # - /host/drives:/host/drives
-      # - /host/unc:/host/unc
+      # Windows host path access for scanner auto-mapping:
+      # C:\... -> /host/drives/c/... and \\server\share -> /host/unc/server/share/...
+      # On Windows Docker Desktop (WSL2 or Hyper-V): each drive must be mounted explicitly.
+      # Docker Desktop file sharing must be enabled for these drives in Settings > Resources > File Sharing.
+      - C:/:/host/drives/c
+      # Add more drives as needed, e.g.: - D:/:/host/drives/d
+      # On a Linux Docker host: replace the lines above with: - /host/drives:/host/drives
     depends_on:
       - sqlserver
       - fileinventory
@@ -182,6 +182,11 @@ services:
       Observability__OtlpEndpoint: "http://jaeger:4317"
     volumes:
       - ./sample-scan:/scan-root
+      # Keep hashing path access aligned with scanner-resolved file paths.
+      # On Windows Docker Desktop: mount each drive explicitly (matches scanner resolver output).
+      - C:/:/host/drives/c
+      # Add more drives as needed, e.g.: - D:/:/host/drives/d
+      # On a Linux Docker host: replace the lines above with: - /host/drives:/host/drives
     depends_on:
       - sqlserver
       - fileinventory

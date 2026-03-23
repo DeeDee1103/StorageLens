@@ -179,7 +179,7 @@
         </div>
 
         <div class="col-md-4">
-            <label class="form-label" for="scanRefreshInterval">Scan Jobs Auto-Refresh</label>
+            <label class="form-label" for="scanRefreshInterval">Live Page Auto-Refresh</label>
             <select class="form-select" id="scanRefreshInterval" onchange="savePref('sl-scan-refresh', this.value)">
                 @foreach (var (val, lbl) in AppearanceSettingsModel.RefreshIntervals)
                 {

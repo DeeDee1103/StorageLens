@@ -23,6 +23,31 @@
     </div>
 </section>
 
+<section class="card-premium p-3 mb-3 reveal-item scan-jobs-live-strip" id="scanJobsLiveStrip">
+    <div class="scan-jobs-live-strip-copy">
+        <div class="scan-jobs-live-strip-title-row">
+            <span class="scan-jobs-live-pill @(Model.HasActiveJobs ? "is-live" : string.Empty)" id="scanJobsLivePill">
+                <i class="bi bi-broadcast-pin" aria-hidden="true"></i>
+                <span id="scanJobsLivePillText">@(Model.HasActiveJobs ? "Live updates active" : "Live updates standing by")</span>
+            </span>
+            <span class="scan-jobs-live-strip-status" id="scanJobsLastUpdated">Loaded just now</span>
+        </div>
+        <div class="scan-jobs-live-strip-subtitle" id="scanJobsLiveSummary">
+            Updates happen in place, so the page keeps its current scroll position and view mode.
+        </div>
+    </div>
+    <div class="scan-jobs-live-strip-actions">
+        <button type="button" class="btn btn-outline-soft scan-jobs-live-btn" id="scanJobsRefreshNow">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+            Refresh now
+        </button>
+        <button type="button" class="btn btn-outline-soft scan-jobs-live-btn" id="scanJobsQuietModeToggle" aria-pressed="false">
+            <i class="bi bi-volume-mute" aria-hidden="true"></i>
+            Quiet mode off
+        </button>
+    </div>
+</section>
+
 @if (Model.ServiceUnavailable)
 {
     <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
@@ -30,6 +55,37 @@
         <span>One or more services are currently unavailable. Please check your service configuration and try again.</span>
     </div>
 }
+
+<section class="card-premium p-3 mb-3 reveal-item border border-danger-subtle" id="scanJobsFailuresSection" @(!Model.Jobs.Any(job => string.Equals(job.Status, "Failed", StringComparison.OrdinalIgnoreCase) || job.ErrorCount > 0) ? "hidden" : null)>
+        <div class="d-flex align-items-center gap-2 mb-2 text-danger-emphasis">
+            <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+            <div class="section-title mb-0">Recent Failures Requiring Attention</div>
+        </div>
+        <div class="small text-secondary mb-3">Latest failed or degraded scan runs with the exact message currently stored on the job record.</div>
+        <div class="row g-3" id="scanJobsFailuresGrid">
+            @foreach (var failedJob in Model.Jobs
+                .Where(job => string.Equals(job.Status, "Failed", StringComparison.OrdinalIgnoreCase) || job.ErrorCount > 0)
+                .OrderByDescending(job => job.EndTime ?? job.StartTime)
+                .Take(3))
+            {
+                <div class="col-12 col-xl-4" data-failure-job-id="@failedJob.Id" data-live-signature="@System.Text.Json.JsonSerializer.Serialize(failedJob)">
+                    <article class="h-100 rounded-4 border border-danger-subtle bg-danger-subtle bg-opacity-25 p-3">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                                <div class="fw-semibold">@failedJob.LocationName</div>
+                                <div class="small text-secondary"><code>@failedJob.Id.ToString("N")[..8]</code></div>
+                            </div>
+                            <span class="badge-soft status-badge status-@failedJob.Status.ToLowerInvariant()">@failedJob.Status</span>
+                        </div>
+                        <div class="small mb-2"><strong>Stage:</strong> @failedJob.CurrentStage</div>
+                        <div class="small mb-2"><strong>Message:</strong> @(string.IsNullOrWhiteSpace(failedJob.Notes) ? "No failure details recorded." : failedJob.Notes)</div>
+                        <div class="small mb-1"><strong>Errors:</strong> @failedJob.ErrorCount</div>
+                        <div class="small text-break"><strong>Correlation:</strong> <code>@failedJob.CorrelationId</code></div>
+                    </article>
+                </div>
+            }
+        </div>
+</section>
 
 <div class="scan-jobs-mode" data-scan-jobs-mode-panel="classic">
     <section class="card-premium p-3 mb-3 reveal-item">
@@ -57,12 +113,9 @@
     <section class="card-premium p-3 reveal-item">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <div class="section-title mb-0">Recent Jobs</div>
-            @if (Model.HasActiveJobs)
-            {
-                <span class="auto-refresh-badge" title="Page will refresh automatically while scans are active">
-                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Auto-refreshing
-                </span>
-            }
+            <span class="auto-refresh-badge" id="scanJobsClassicLiveBadge" title="Jobs update in place without reloading the full page" @(!Model.HasActiveJobs ? "hidden" : null)>
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Updating in place
+            </span>
         </div>
         <div class="table-responsive">
             <table class="table align-middle">
@@ -71,29 +124,32 @@
                         <th>Job ID</th>
                         <th>Location</th>
                         <th>Status</th>
+                        <th>Stage</th>
                         <th>Files Scanned</th>
                         <th>Progress</th>
                         <th>Start</th>
                         <th>End</th>
-                        <th>Notes</th>
+                        <th>Details</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="scanJobsClassicTableBody">
                 @if (!Model.Jobs.Any())
                 {
                     <tr class="empty-state-row">
-                        <td colspan="8"><i class="bi bi-activity empty-state-icon"></i>No scan jobs yet — start one above</td>
+                        <td colspan="10"><i class="bi bi-activity empty-state-icon"></i>No scan jobs yet — start one above</td>
                     </tr>
                 }
                 @foreach (var job in Model.Jobs)
                 {
                     var shortJobId = job.Id.ToString("N")[..8];
-                    <tr>
+                    <tr data-job-id="@job.Id" data-live-signature="@System.Text.Json.JsonSerializer.Serialize(job)">
                         <td><code title="@job.Id">@shortJobId</code></td>
                         <td>@job.LocationName</td>
                         <td>
                             <span class="badge-soft status-badge status-@job.Status.ToLowerInvariant()">@job.Status</span>
                         </td>
+                        <td>@job.CurrentStage</td>
                         <td>@job.FilesScanned.ToString("N0")</td>
                         <td>
                             <div class="progress-with-label">
@@ -103,7 +159,42 @@
                         </td>
                         <td>@job.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@(job.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
-                        <td>@job.Notes</td>
+                        <td>
+                            <div class="small">@(string.IsNullOrWhiteSpace(job.Notes) ? "No details recorded." : job.Notes)</div>
+                            @if (string.Equals(job.Status, "Failed", StringComparison.OrdinalIgnoreCase) || job.ErrorCount > 0 || job.WarningCount > 0)
+                            {
+                                <div class="small mt-2 text-secondary"><strong>Errors:</strong> @job.ErrorCount | <strong>Warnings:</strong> @job.WarningCount</div>
+                                <div class="small text-break text-secondary"><strong>Correlation:</strong> <code>@job.CorrelationId</code></div>
+                            }
+                        </td>
+                        <td class="text-nowrap">
+                            @{
+                                var isActive = activeStatuses.Contains(job.Status);
+                                var isCancellable = isActive;
+                                var isResumable = string.Equals(job.Status, "Failed", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(job.Status, "Cancelled", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(job.Status, "Queued", StringComparison.OrdinalIgnoreCase);
+                            }
+                            @if (isCancellable)
+                            {
+                                <form method="post" asp-page-handler="Cancel" class="d-inline">
+                                    <input type="hidden" name="jobId" value="@job.Id" />
+                                    <button type="submit" class="btn btn-job-action btn-job-cancel" title="Cancel this job"
+                                            onclick="return confirm('Cancel this scan job?')">Cancel</button>
+                                </form>
+                            }
+                            @if (isResumable)
+                            {
+                                <form method="post" asp-page-handler="Resume" class="d-inline">
+                                    <input type="hidden" name="jobId" value="@job.Id" />
+                                    <button type="submit" class="btn btn-job-action btn-job-resume" title="Resume this job">Resume</button>
+                                </form>
+                            }
+                            @if (!isCancellable && !isResumable)
+                            {
+                                <span class="text-secondary small">—</span>
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>
@@ -116,11 +207,11 @@
     <section class="scan-jobs-interactive-shell reveal-item">
         <div class="scan-jobs-interactive-headbar">
             <div class="scan-jobs-brand-pill"><i class="bi bi-cpu-fill" aria-hidden="true"></i> Job Control Matrix</div>
-            <div class="scan-jobs-live-status">
+            <div class="scan-jobs-live-status" id="scanJobsInteractiveLiveStatus">
                 <i class="bi bi-activity" aria-hidden="true"></i>
-                <span>@activeJobCount active</span>
+                <span id="scanJobsInteractiveActiveCount">@activeJobCount active</span>
                 <span class="dot-sep">•</span>
-                <span>@Model.Jobs.Count total</span>
+                <span id="scanJobsInteractiveTotalCount">@Model.Jobs.Count total</span>
             </div>
             <div class="scan-jobs-filter-group" role="group" aria-label="Filter scan jobs">
                 <button type="button" class="btn scan-jobs-filter-btn active" data-scan-jobs-filter="all" aria-pressed="true">All</button>
@@ -133,19 +224,19 @@
         <div class="scan-jobs-interactive-kpis">
             <article class="scan-jobs-kpi-card scan-jobs-kpi-cyan">
                 <div class="scan-jobs-kpi-label">Active Pipelines</div>
-                <div class="scan-jobs-kpi-value">@activeJobCount</div>
+                <div class="scan-jobs-kpi-value" id="scanJobsKpiActive">@activeJobCount</div>
             </article>
             <article class="scan-jobs-kpi-card scan-jobs-kpi-teal">
                 <div class="scan-jobs-kpi-label">Files Scanned</div>
-                <div class="scan-jobs-kpi-value">@totalFilesScanned.ToString("N0")</div>
+                <div class="scan-jobs-kpi-value" id="scanJobsKpiFiles">@totalFilesScanned.ToString("N0")</div>
             </article>
             <article class="scan-jobs-kpi-card scan-jobs-kpi-lime">
                 <div class="scan-jobs-kpi-label">Avg Progress</div>
-                <div class="scan-jobs-kpi-value">@averageProgress%</div>
+                <div class="scan-jobs-kpi-value" id="scanJobsKpiProgress">@averageProgress%</div>
             </article>
             <article class="scan-jobs-kpi-card scan-jobs-kpi-rose">
                 <div class="scan-jobs-kpi-label">Failures</div>
-                <div class="scan-jobs-kpi-value">@failedJobCount</div>
+                <div class="scan-jobs-kpi-value" id="scanJobsKpiFailures">@failedJobCount</div>
             </article>
         </div>
 
@@ -189,7 +280,7 @@
                 var isActive = activeStatuses.Contains(job.Status);
                 var elapsedSeconds = (int)Math.Max(0, ((job.EndTime ?? DateTime.UtcNow) - job.StartTime).TotalSeconds);
 
-                <article class="scan-jobs-card" data-job-status="@normalizedStatus" data-job-active="@isActive.ToString().ToLowerInvariant()">
+                <article class="scan-jobs-card" data-job-id="@job.Id" data-live-signature="@System.Text.Json.JsonSerializer.Serialize(job)" data-job-status="@normalizedStatus" data-job-active="@isActive.ToString().ToLowerInvariant()">
                     <div class="scan-jobs-card-head">
                         <div>
                             <h3 class="scan-jobs-card-title">@job.LocationName</h3>
@@ -224,7 +315,42 @@
                         <span><i class="bi bi-stop-fill" aria-hidden="true"></i> @(job.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "Running")</span>
                     </div>
 
-                    <p class="scan-jobs-card-notes mb-0">@(string.IsNullOrWhiteSpace(job.Notes) ? "No notes provided." : job.Notes)</p>
+                    <div class="scan-jobs-card-notes mb-0">
+                        <div class="mb-1">@(string.IsNullOrWhiteSpace(job.Notes) ? "No notes provided." : job.Notes)</div>
+                        <div class="small text-secondary"><strong>Stage:</strong> @job.CurrentStage</div>
+                        @if (string.Equals(job.Status, "Failed", StringComparison.OrdinalIgnoreCase) || job.ErrorCount > 0 || job.WarningCount > 0)
+                        {
+                            <div class="small text-secondary"><strong>Errors:</strong> @job.ErrorCount | <strong>Warnings:</strong> @job.WarningCount</div>
+                            <div class="small text-break text-secondary"><strong>Correlation:</strong> <code>@job.CorrelationId</code></div>
+                        }
+                    </div>
+                    @{
+                        var isJobActive = activeStatuses.Contains(job.Status);
+                        var isJobCancellable = isJobActive;
+                        var isJobResumable = string.Equals(job.Status, "Failed", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(job.Status, "Cancelled", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(job.Status, "Queued", StringComparison.OrdinalIgnoreCase);
+                    }
+                    @if (isJobCancellable || isJobResumable)
+                    {
+                        <div class="scan-jobs-card-actions">
+                            @if (isJobCancellable)
+                            {
+                                <form method="post" asp-page-handler="Cancel">
+                                    <input type="hidden" name="jobId" value="@job.Id" />
+                                    <button type="submit" class="btn btn-job-action btn-job-cancel w-100"
+                                            onclick="return confirm('Cancel this scan job?')">Cancel Job</button>
+                                </form>
+                            }
+                            @if (isJobResumable)
+                            {
+                                <form method="post" asp-page-handler="Resume">
+                                    <input type="hidden" name="jobId" value="@job.Id" />
+                                    <button type="submit" class="btn btn-job-action btn-job-resume w-100">Resume Job</button>
+                                </form>
+                            }
+                        </div>
+                    }
                 </article>
             }
         </div>
@@ -233,12 +359,117 @@
 
 @section Scripts {
     <script>
-        const AUTO_REFRESH_INTERVAL_MS = 10000;
-        const hasActiveJobs = @Model.HasActiveJobs.ToString().ToLowerInvariant();
+        const DEFAULT_AUTO_REFRESH_SECONDS = @Model.ScanAutoRefreshSeconds;
+        let hasActiveJobs = @Model.HasActiveJobs.ToString().ToLowerInvariant();
 
         const scanJobsModeStorageKey = 'storagelens-scan-jobs-mode';
+        const scanJobsFilterStorageKey = 'storagelens-scan-jobs-filter';
+        const scanJobsQuietModeStorageKey = 'storagelens-scan-jobs-quiet-mode';
+        const scanJobsRefreshStorageKey = 'sl-scan-refresh';
         const modePanels = document.querySelectorAll('[data-scan-jobs-mode-panel]');
         const modeButtons = document.querySelectorAll('[data-scan-jobs-mode-btn]');
+        const filterButtons = document.querySelectorAll('[data-scan-jobs-filter]');
+        const failuresSection = document.getElementById('scanJobsFailuresSection');
+        const failuresGrid = document.getElementById('scanJobsFailuresGrid');
+        const classicTableBody = document.getElementById('scanJobsClassicTableBody');
+        const classicLiveBadge = document.getElementById('scanJobsClassicLiveBadge');
+        const cardsGrid = document.getElementById('scanJobsCardsGrid');
+        const interactiveLiveStatus = document.getElementById('scanJobsInteractiveLiveStatus');
+        const interactiveActiveCount = document.getElementById('scanJobsInteractiveActiveCount');
+        const interactiveTotalCount = document.getElementById('scanJobsInteractiveTotalCount');
+        const kpiActive = document.getElementById('scanJobsKpiActive');
+        const kpiFiles = document.getElementById('scanJobsKpiFiles');
+        const kpiProgress = document.getElementById('scanJobsKpiProgress');
+        const kpiFailures = document.getElementById('scanJobsKpiFailures');
+        const livePill = document.getElementById('scanJobsLivePill');
+        const livePillText = document.getElementById('scanJobsLivePillText');
+        const liveSummary = document.getElementById('scanJobsLiveSummary');
+        const lastUpdated = document.getElementById('scanJobsLastUpdated');
+        const refreshNowButton = document.getElementById('scanJobsRefreshNow');
+        const quietModeToggleButton = document.getElementById('scanJobsQuietModeToggle');
+
+        const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        const activeStatuses = new Set(['running', 'scanning', 'hashing', 'detectingduplicates', 'refreshinganalytics', 'inprogress', 'queued']);
+        const snapshotUrl = `${window.location.pathname}?handler=Snapshot`;
+        const initialSnapshot = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            new
+            {
+                jobs = Model.Jobs,
+                hasActiveJobs = Model.HasActiveJobs,
+                activeJobCount,
+                failedJobCount,
+                averageProgress,
+                totalFilesScanned
+            },
+            new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+
+        let currentFilter = localStorage.getItem(scanJobsFilterStorageKey) || 'all';
+    let quietModeEnabled = localStorage.getItem(scanJobsQuietModeStorageKey) === 'true';
+        let refreshIntervalSeconds = Number.parseInt(localStorage.getItem(scanJobsRefreshStorageKey) || `${DEFAULT_AUTO_REFRESH_SECONDS}`, 10);
+        if (!Number.isFinite(refreshIntervalSeconds) || refreshIntervalSeconds < 0) {
+            refreshIntervalSeconds = DEFAULT_AUTO_REFRESH_SECONDS;
+        }
+
+        let liveRefreshTimer = null;
+        let isFetchingSnapshot = false;
+        let lastSnapshotSignature = '';
+        let currentSnapshot = initialSnapshot;
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+
+        const escapeAttr = (value) => escapeHtml(value).replaceAll('`', '&#96;');
+        const createNodeFromHtml = (html) => {
+            const template = document.createElement('template');
+            template.innerHTML = html.trim();
+            return template.content.firstElementChild;
+        };
+
+        const markLiveChanged = (element) => {
+            if (!element) {
+                return;
+            }
+
+            element.classList.remove('live-update-changed');
+            void element.offsetWidth;
+            element.classList.add('live-update-changed');
+        };
+
+        const getJobSignature = (job) => JSON.stringify(job);
+
+        const formatNumber = (value) => Number(value || 0).toLocaleString();
+
+        const formatLocalDate = (value) => {
+            if (!value) {
+                return '-';
+            }
+
+            const date = new Date(value);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        };
+
+        const describeLastUpdated = (updatedAt) => {
+            const deltaSeconds = Math.max(0, Math.floor((Date.now() - updatedAt.getTime()) / 1000));
+            if (deltaSeconds < 5) {
+                return 'Updated just now';
+            }
+
+            if (deltaSeconds < 60) {
+                return `Updated ${deltaSeconds}s ago`;
+            }
+
+            const minutes = Math.floor(deltaSeconds / 60);
+            return `Updated ${minutes}m ago`;
+        };
 
         const applyScanJobsMode = (mode) => {
             const selectedMode = mode === 'interactive' ? 'interactive' : 'classic';
@@ -270,11 +501,13 @@
             });
         });
 
-        const filterButtons = document.querySelectorAll('[data-scan-jobs-filter]');
-        const jobCards = document.querySelectorAll('[data-job-status]');
         const isCompletedStatus = (status) => status === 'completed' || status === 'partiallycompleted';
 
         const applyFilter = (filter) => {
+            currentFilter = filter;
+            localStorage.setItem(scanJobsFilterStorageKey, filter);
+
+            const jobCards = document.querySelectorAll('[data-job-status]');
             jobCards.forEach((card) => {
                 const status = card.getAttribute('data-job-status') || '';
                 const isActive = card.getAttribute('data-job-active') === 'true';
@@ -303,6 +536,8 @@
                 applyFilter(button.getAttribute('data-scan-jobs-filter') || 'all');
             });
         });
+
+        applyFilter(currentFilter);
 
         const formatDuration = (seconds) => {
             const safeSeconds = Math.max(0, seconds);
@@ -338,11 +573,462 @@
             });
         };
 
+        const buildActionForms = (job) => {
+            const normalizedStatus = String(job.status || '').toLowerCase();
+            const isActive = activeStatuses.has(normalizedStatus);
+            const isResumable = normalizedStatus === 'failed'
+                || normalizedStatus === 'cancelled'
+                || normalizedStatus === 'queued';
+
+            if (!isActive && !isResumable) {
+                return '<span class="text-secondary small">&mdash;</span>';
+            }
+
+            const forms = [];
+            if (isActive) {
+                forms.push(`
+                    <form method="post" action="${escapeAttr(window.location.pathname)}?handler=Cancel" class="d-inline">
+                        <input type="hidden" name="__RequestVerificationToken" value="${escapeAttr(antiForgeryToken)}" />
+                        <input type="hidden" name="jobId" value="${escapeAttr(job.id)}" />
+                        <button type="submit" class="btn btn-job-action btn-job-cancel" title="Cancel this job" onclick="return confirm('Cancel this scan job?')">Cancel</button>
+                    </form>`);
+            }
+
+            if (isResumable) {
+                forms.push(`
+                    <form method="post" action="${escapeAttr(window.location.pathname)}?handler=Resume" class="d-inline">
+                        <input type="hidden" name="__RequestVerificationToken" value="${escapeAttr(antiForgeryToken)}" />
+                        <input type="hidden" name="jobId" value="${escapeAttr(job.id)}" />
+                        <button type="submit" class="btn btn-job-action btn-job-resume" title="Resume this job">Resume</button>
+                    </form>`);
+            }
+
+            return forms.join('');
+        };
+
+        const buildCardActionForms = (job) => {
+            const normalizedStatus = String(job.status || '').toLowerCase();
+            const isActive = activeStatuses.has(normalizedStatus);
+            const isResumable = normalizedStatus === 'failed'
+                || normalizedStatus === 'cancelled'
+                || normalizedStatus === 'queued';
+
+            if (!isActive && !isResumable) {
+                return '';
+            }
+
+            return `
+                <div class="scan-jobs-card-actions">
+                    ${isActive ? `
+                        <form method="post" action="${escapeAttr(window.location.pathname)}?handler=Cancel">
+                            <input type="hidden" name="__RequestVerificationToken" value="${escapeAttr(antiForgeryToken)}" />
+                            <input type="hidden" name="jobId" value="${escapeAttr(job.id)}" />
+                            <button type="submit" class="btn btn-job-action btn-job-cancel w-100" onclick="return confirm('Cancel this scan job?')">Cancel Job</button>
+                        </form>` : ''}
+                    ${isResumable ? `
+                        <form method="post" action="${escapeAttr(window.location.pathname)}?handler=Resume">
+                            <input type="hidden" name="__RequestVerificationToken" value="${escapeAttr(antiForgeryToken)}" />
+                            <input type="hidden" name="jobId" value="${escapeAttr(job.id)}" />
+                            <button type="submit" class="btn btn-job-action btn-job-resume w-100">Resume Job</button>
+                        </form>` : ''}
+                </div>`;
+        };
+
+        const renderFailureItem = (job, signature) => `
+            <div class="col-12 col-xl-4" data-failure-job-id="${escapeAttr(job.id)}" data-live-signature="${escapeAttr(signature)}">
+                <article class="h-100 rounded-4 border border-danger-subtle bg-danger-subtle bg-opacity-25 p-3">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <div class="fw-semibold">${escapeHtml(job.locationName)}</div>
+                            <div class="small text-secondary"><code>${escapeHtml(String(job.id).replaceAll('-', '').slice(0, 8))}</code></div>
+                        </div>
+                        <span class="badge-soft status-badge status-${escapeAttr(String(job.status || '').toLowerCase())}">${escapeHtml(job.status)}</span>
+                    </div>
+                    <div class="small mb-2"><strong>Stage:</strong> ${escapeHtml(job.currentStage || '')}</div>
+                    <div class="small mb-2"><strong>Message:</strong> ${escapeHtml(job.notes || 'No failure details recorded.')}</div>
+                    <div class="small mb-1"><strong>Errors:</strong> ${escapeHtml(job.errorCount ?? 0)}</div>
+                    <div class="small text-break"><strong>Correlation:</strong> <code>${escapeHtml(job.correlationId || '')}</code></div>
+                </article>
+            </div>`;
+
+        const renderFailures = (jobs) => {
+            const failedJobs = jobs
+                .filter((job) => String(job.status || '').toLowerCase() === 'failed' || Number(job.errorCount || 0) > 0)
+                .sort((left, right) => new Date(right.endTime || right.startTime) - new Date(left.endTime || left.startTime))
+                .slice(0, 3);
+
+            if (!failedJobs.length) {
+                failuresSection.hidden = true;
+                failuresGrid.querySelectorAll('[data-failure-job-id]').forEach((element) => element.remove());
+                return;
+            }
+
+            failuresSection.hidden = false;
+            const existing = new Map([...failuresGrid.querySelectorAll('[data-failure-job-id]')].map((element) => [element.getAttribute('data-failure-job-id'), element]));
+            let previous = null;
+
+            failedJobs.forEach((job) => {
+                const key = String(job.id);
+                const signature = getJobSignature(job);
+                let element = existing.get(key);
+
+                if (!element) {
+                    element = createNodeFromHtml(renderFailureItem(job, signature));
+                    if (previous) {
+                        previous.insertAdjacentElement('afterend', element);
+                    } else {
+                        failuresGrid.prepend(element);
+                    }
+                    markLiveChanged(element);
+                } else if (element.getAttribute('data-live-signature') !== signature) {
+                    const updatedElement = createNodeFromHtml(renderFailureItem(job, signature));
+                    element.replaceWith(updatedElement);
+                    element = updatedElement;
+                    markLiveChanged(element);
+                }
+
+                if (previous && previous.nextElementSibling !== element) {
+                    failuresGrid.insertBefore(element, previous.nextElementSibling);
+                } else if (!previous && failuresGrid.firstElementChild !== element) {
+                    failuresGrid.prepend(element);
+                }
+
+                previous = element;
+                existing.delete(key);
+            });
+
+            existing.forEach((element) => element.remove());
+        };
+
+        const renderClassicRow = (job, signature) => {
+            const normalizedStatus = String(job.status || '').toLowerCase();
+            const detailsHtml = `
+                <div class="small">${escapeHtml(job.notes || 'No details recorded.')}</div>
+                ${(normalizedStatus === 'failed' || Number(job.errorCount || 0) > 0 || Number(job.warningCount || 0) > 0)
+                    ? `<div class="small mt-2 text-secondary"><strong>Errors:</strong> ${escapeHtml(job.errorCount ?? 0)} | <strong>Warnings:</strong> ${escapeHtml(job.warningCount ?? 0)}</div>
+                       <div class="small text-break text-secondary"><strong>Correlation:</strong> <code>${escapeHtml(job.correlationId || '')}</code></div>`
+                    : ''}`;
+
+            return `
+                <tr data-job-id="${escapeAttr(job.id)}" data-live-signature="${escapeAttr(signature)}">
+                    <td><code title="${escapeAttr(job.id)}">${escapeHtml(String(job.id).replaceAll('-', '').slice(0, 8))}</code></td>
+                    <td>${escapeHtml(job.locationName)}</td>
+                    <td><span class="badge-soft status-badge status-${escapeAttr(normalizedStatus)}">${escapeHtml(job.status)}</span></td>
+                    <td>${escapeHtml(job.currentStage || '')}</td>
+                    <td>${escapeHtml(formatNumber(job.filesScanned))}</td>
+                    <td>
+                        <div class="progress-with-label">
+                            <div class="progress"><div class="progress-bar" style="width:${escapeAttr(job.progressPercent)}%"></div></div>
+                            <span class="progress-pct">${escapeHtml(job.progressPercent)}%</span>
+                        </div>
+                    </td>
+                    <td>${escapeHtml(formatLocalDate(job.startTime))}</td>
+                    <td>${escapeHtml(formatLocalDate(job.endTime))}</td>
+                    <td>${detailsHtml}</td>
+                    <td class="text-nowrap">${buildActionForms(job)}</td>
+                </tr>`;
+        };
+
+        const renderClassicTable = (jobs) => {
+            classicTableBody.querySelector('.empty-state-row')?.remove();
+
+            if (!jobs.length) {
+                classicTableBody.innerHTML = `
+                    <tr class="empty-state-row">
+                        <td colspan="10"><i class="bi bi-activity empty-state-icon"></i>No scan jobs yet — start one above</td>
+                    </tr>`;
+                return;
+            }
+
+            const existing = new Map([...classicTableBody.querySelectorAll('tr[data-job-id]')].map((element) => [element.getAttribute('data-job-id'), element]));
+            let previous = null;
+
+            jobs.forEach((job) => {
+                const key = String(job.id);
+                const signature = getJobSignature(job);
+                let row = existing.get(key);
+
+                if (!row) {
+                    row = createNodeFromHtml(renderClassicRow(job, signature));
+                    if (previous) {
+                        previous.insertAdjacentElement('afterend', row);
+                    } else {
+                        classicTableBody.prepend(row);
+                    }
+                    markLiveChanged(row);
+                } else if (row.getAttribute('data-live-signature') !== signature) {
+                    const updatedRow = createNodeFromHtml(renderClassicRow(job, signature));
+                    row.replaceWith(updatedRow);
+                    row = updatedRow;
+                    markLiveChanged(row);
+                }
+
+                if (previous && previous.nextElementSibling !== row) {
+                    classicTableBody.insertBefore(row, previous.nextElementSibling);
+                } else if (!previous && classicTableBody.firstElementChild !== row) {
+                    classicTableBody.prepend(row);
+                }
+
+                previous = row;
+                existing.delete(key);
+            });
+
+            existing.forEach((row) => row.remove());
+        };
+
+        const renderInteractiveCard = (job, signature) => {
+            const normalizedStatus = String(job.status || '').toLowerCase();
+            const isActive = activeStatuses.has(normalizedStatus);
+            const endTime = job.endTime ? new Date(job.endTime) : new Date();
+            const elapsedSeconds = Math.max(0, Math.floor((endTime.getTime() - new Date(job.startTime).getTime()) / 1000));
+            return `
+                <article class="scan-jobs-card scan-jobs-card--live" data-job-id="${escapeAttr(job.id)}" data-live-signature="${escapeAttr(signature)}" data-job-status="${escapeAttr(normalizedStatus)}" data-job-active="${isActive}">
+                    <div class="scan-jobs-card-head">
+                        <div>
+                            <h3 class="scan-jobs-card-title">${escapeHtml(job.locationName)}</h3>
+                            <div class="scan-jobs-card-id"><code title="${escapeAttr(job.id)}">${escapeHtml(String(job.id).replaceAll('-', '').slice(0, 8))}</code></div>
+                        </div>
+                        <span class="badge-soft status-badge status-${escapeAttr(normalizedStatus)}">${escapeHtml(job.status)}</span>
+                    </div>
+                    <div class="scan-jobs-card-metrics">
+                        <div>
+                            <div class="scan-jobs-metric-label">Files</div>
+                            <div class="scan-jobs-metric-value">${escapeHtml(formatNumber(job.filesScanned))}</div>
+                        </div>
+                        <div>
+                            <div class="scan-jobs-metric-label">Progress</div>
+                            <div class="scan-jobs-metric-value">${escapeHtml(job.progressPercent)}%</div>
+                        </div>
+                        <div>
+                            <div class="scan-jobs-metric-label">Elapsed</div>
+                            <div class="scan-jobs-metric-value" data-elapsed-start="${escapeAttr(job.startTime)}" data-job-active="${isActive}">${escapeHtml(formatDuration(elapsedSeconds))}</div>
+                        </div>
+                    </div>
+                    <div class="scan-jobs-progress-wrap">
+                        <div class="progress scan-jobs-progress-track">
+                            <div class="progress-bar scan-jobs-progress-bar ${isActive ? 'is-animated' : ''}" style="width:${escapeAttr(job.progressPercent)}%" role="progressbar" aria-valuenow="${escapeAttr(job.progressPercent)}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="scan-jobs-card-foot">
+                        <span><i class="bi bi-play-fill" aria-hidden="true"></i> ${escapeHtml(formatLocalDate(job.startTime))}</span>
+                        <span><i class="bi bi-stop-fill" aria-hidden="true"></i> ${escapeHtml(job.endTime ? formatLocalDate(job.endTime) : 'Running')}</span>
+                    </div>
+                    <div class="scan-jobs-card-notes mb-0">
+                        <div class="mb-1">${escapeHtml(job.notes || 'No notes provided.')}</div>
+                        <div class="small text-secondary"><strong>Stage:</strong> ${escapeHtml(job.currentStage || '')}</div>
+                        ${(normalizedStatus === 'failed' || Number(job.errorCount || 0) > 0 || Number(job.warningCount || 0) > 0)
+                            ? `<div class="small text-secondary"><strong>Errors:</strong> ${escapeHtml(job.errorCount ?? 0)} | <strong>Warnings:</strong> ${escapeHtml(job.warningCount ?? 0)}</div>
+                               <div class="small text-break text-secondary"><strong>Correlation:</strong> <code>${escapeHtml(job.correlationId || '')}</code></div>`
+                            : ''}
+                    </div>
+                    ${buildCardActionForms(job)}
+                </article>`;
+        };
+
+        const renderInteractiveCards = (jobs) => {
+            cardsGrid.querySelector('.scan-jobs-empty-state')?.remove();
+
+            if (!jobs.length) {
+                cardsGrid.innerHTML = `
+                    <div class="scan-jobs-empty-state">
+                        <i class="bi bi-inbox" aria-hidden="true"></i>
+                        <p class="mb-0">No jobs in the timeline yet. Start your first scan from the panel above.</p>
+                    </div>`;
+                return;
+            }
+
+            const existing = new Map([...cardsGrid.querySelectorAll('article[data-job-id]')].map((element) => [element.getAttribute('data-job-id'), element]));
+            let previous = null;
+
+            jobs.forEach((job) => {
+                const key = String(job.id);
+                const signature = getJobSignature(job);
+                let card = existing.get(key);
+
+                if (!card) {
+                    card = createNodeFromHtml(renderInteractiveCard(job, signature));
+                    if (previous) {
+                        previous.insertAdjacentElement('afterend', card);
+                    } else {
+                        cardsGrid.prepend(card);
+                    }
+                    markLiveChanged(card);
+                } else if (card.getAttribute('data-live-signature') !== signature) {
+                    const updatedCard = createNodeFromHtml(renderInteractiveCard(job, signature));
+                    card.replaceWith(updatedCard);
+                    card = updatedCard;
+                    markLiveChanged(card);
+                }
+
+                if (previous && previous.nextElementSibling !== card) {
+                    cardsGrid.insertBefore(card, previous.nextElementSibling);
+                } else if (!previous && cardsGrid.firstElementChild !== card) {
+                    cardsGrid.prepend(card);
+                }
+
+                previous = card;
+                existing.delete(key);
+            });
+
+            existing.forEach((card) => card.remove());
+        };
+
+        const updateLiveChrome = (snapshot, wasChanged, hadError = false) => {
+            hasActiveJobs = Boolean(snapshot?.hasActiveJobs);
+            const liveEnabled = refreshIntervalSeconds > 0;
+            const liveRunning = liveEnabled && hasActiveJobs && !quietModeEnabled && !hadError;
+
+            classicLiveBadge.hidden = !liveRunning;
+            interactiveActiveCount.textContent = `${snapshot?.activeJobCount ?? 0} active`;
+            interactiveTotalCount.textContent = `${snapshot?.jobs?.length ?? 0} total`;
+            kpiActive.textContent = String(snapshot?.activeJobCount ?? 0);
+            kpiFiles.textContent = formatNumber(snapshot?.totalFilesScanned ?? 0);
+            kpiProgress.textContent = `${snapshot?.averageProgress ?? 0}%`;
+            kpiFailures.textContent = String(snapshot?.failedJobCount ?? 0);
+
+            if (hadError) {
+                livePill.classList.remove('is-live');
+                livePill.classList.add('is-warning');
+                livePillText.textContent = 'Live updates interrupted';
+                liveSummary.textContent = 'The page is still usable. Use Refresh now to retry without reloading the whole screen.';
+                return;
+            }
+
+            livePill.classList.remove('is-warning');
+            livePill.classList.toggle('is-live', liveRunning);
+            livePillText.textContent = quietModeEnabled
+                ? 'Quiet mode enabled'
+                : liveRunning
+                    ? 'Live updates active'
+                    : hasActiveJobs && liveEnabled
+                        ? 'Waiting for next refresh'
+                        : 'Live updates standing by';
+
+            if (quietModeEnabled) {
+                liveSummary.textContent = 'Quiet mode keeps this page in manual-refresh mode by default. Use Refresh now whenever you want a fresh snapshot.';
+            } else if (!liveEnabled) {
+                liveSummary.textContent = 'Auto-refresh is disabled in Appearance Settings. Use Refresh now when you need a fresh view.';
+            } else if (hasActiveJobs) {
+                liveSummary.textContent = `Updates run every ${refreshIntervalSeconds}s in place, so the page keeps its current scroll position and filter.`;
+            } else {
+                liveSummary.textContent = wasChanged
+                    ? 'The last active job finished. Live polling has quieted down until another active run appears.'
+                    : 'No active jobs right now. The page stays stable and only refreshes on demand.';
+            }
+
+            interactiveLiveStatus.classList.toggle('is-live', liveRunning);
+        };
+
+        const renderSnapshot = (snapshot) => {
+            renderFailures(snapshot.jobs || []);
+            renderClassicTable(snapshot.jobs || []);
+            renderInteractiveCards(snapshot.jobs || []);
+            applyFilter(currentFilter);
+            updateElapsedTimes();
+        };
+
+        const scheduleLiveRefresh = () => {
+            if (liveRefreshTimer) {
+                clearInterval(liveRefreshTimer);
+                liveRefreshTimer = null;
+            }
+
+            if (refreshIntervalSeconds <= 0) {
+                updateLiveChrome(currentSnapshot, false);
+                return;
+            }
+
+            liveRefreshTimer = window.setInterval(() => {
+                if (document.hidden || quietModeEnabled) {
+                    return;
+                }
+
+                void fetchSnapshot();
+            }, refreshIntervalSeconds * 1000);
+        };
+
+        const fetchSnapshot = async ({ manual = false } = {}) => {
+            if (isFetchingSnapshot) {
+                return;
+            }
+
+            if (!manual && (document.hidden || quietModeEnabled || refreshIntervalSeconds <= 0)) {
+                return;
+            }
+
+            isFetchingSnapshot = true;
+            refreshNowButton.disabled = true;
+
+            try {
+                const response = await fetch(snapshotUrl, {
+                    headers: {
+                        'X-Requested-With': 'fetch'
+                    },
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Snapshot request failed with ${response.status}`);
+                }
+
+                const snapshot = await response.json();
+                currentSnapshot = snapshot;
+                const signature = JSON.stringify(snapshot.jobs || []);
+                const wasChanged = signature !== lastSnapshotSignature;
+                lastSnapshotSignature = signature;
+
+                if (wasChanged) {
+                    renderSnapshot(snapshot);
+                }
+
+                const updatedAt = snapshot.generatedAtUtc ? new Date(snapshot.generatedAtUtc) : new Date();
+                lastUpdated.textContent = describeLastUpdated(updatedAt);
+                updateLiveChrome(snapshot, wasChanged);
+                scheduleLiveRefresh();
+            } catch (error) {
+                console.error(error);
+                lastUpdated.textContent = 'Update failed';
+                updateLiveChrome({ hasActiveJobs, jobs: [] }, false, true);
+            } finally {
+                isFetchingSnapshot = false;
+                refreshNowButton.disabled = false;
+            }
+        };
+
+        refreshNowButton.addEventListener('click', () => {
+            void fetchSnapshot({ manual: true });
+        });
+
+        quietModeToggleButton.addEventListener('click', () => {
+            quietModeEnabled = !quietModeEnabled;
+            localStorage.setItem(scanJobsQuietModeStorageKey, String(quietModeEnabled));
+            quietModeToggleButton.setAttribute('aria-pressed', String(quietModeEnabled));
+            quietModeToggleButton.innerHTML = quietModeEnabled
+                ? '<i class="bi bi-volume-mute" aria-hidden="true"></i> Quiet mode on'
+                : '<i class="bi bi-volume-up" aria-hidden="true"></i> Quiet mode off';
+            updateLiveChrome(currentSnapshot, false);
+            scheduleLiveRefresh();
+            if (!quietModeEnabled) {
+                void fetchSnapshot({ manual: true });
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !quietModeEnabled) {
+                void fetchSnapshot({ manual: true });
+            }
+        });
+
         updateElapsedTimes();
         setInterval(updateElapsedTimes, 1000);
 
-        if (hasActiveJobs) {
-            setTimeout(() => location.reload(), AUTO_REFRESH_INTERVAL_MS);
-        }
+        quietModeToggleButton.setAttribute('aria-pressed', String(quietModeEnabled));
+        quietModeToggleButton.innerHTML = quietModeEnabled
+            ? '<i class="bi bi-volume-mute" aria-hidden="true"></i> Quiet mode on'
+            : '<i class="bi bi-volume-up" aria-hidden="true"></i> Quiet mode off';
+
+        lastSnapshotSignature = JSON.stringify(initialSnapshot.jobs || []);
+        updateLiveChrome(initialSnapshot, false);
+        scheduleLiveRefresh();
     </script>
 }
