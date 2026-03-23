@@ -13,6 +13,11 @@ public class OrchestratorController(IWorkflowOrchestratorService workflowService
     [HttpPost("scans/start/{locationId:guid}")]
     public async Task<ActionResult<WorkflowStartResultDto>> Start(Guid locationId, CancellationToken cancellationToken)
     {
+        if (locationId == Guid.Empty)
+        {
+            return BadRequest("Location id cannot be empty.");
+        }
+
         var result = await workflowService.StartScanAsync(locationId, cancellationToken);
         return Accepted(result);
     }

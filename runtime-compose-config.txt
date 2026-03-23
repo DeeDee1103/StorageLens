@@ -6,22 +6,22 @@ services:
       dockerfile: src/StorageLens.Services.Analytics/Dockerfile
     depends_on:
       duplicates:
-        condition: service_started
+        condition: service_healthy
         required: true
       fileinventory:
-        condition: service_started
+        condition: service_healthy
         required: true
       jaeger:
         condition: service_started
         required: true
       locations:
-        condition: service_started
+        condition: service_healthy
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       scanjobs:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -32,6 +32,16 @@ services:
       UpstreamServices__FileInventory: http://fileinventory:8080/
       UpstreamServices__Locations: http://locations:8080/
       UpstreamServices__ScanJobs: http://scanjobs:8080/
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 8
+      start_period: 20s
     networks:
       default: null
     ports:
@@ -45,16 +55,16 @@ services:
       dockerfile: src/StorageLens.Services.Duplicates/Dockerfile
     depends_on:
       fileinventory:
-        condition: service_started
+        condition: service_healthy
         required: true
       jaeger:
         condition: service_started
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       sqlserver:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -64,6 +74,16 @@ services:
       RateLimit__Redis: redis:6379
       ServiceApiKey: storagelens-dev-key
       UpstreamServices__FileInventory: http://fileinventory:8080/
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 6
+      start_period: 15s
     networks:
       default: null
     ports:
@@ -80,10 +100,10 @@ services:
         condition: service_started
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       sqlserver:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -92,6 +112,16 @@ services:
       Observability__OtlpEndpoint: http://jaeger:4317
       RateLimit__Redis: redis:6379
       ServiceApiKey: storagelens-dev-key
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 6
+      start_period: 15s
     networks:
       default: null
     ports:
@@ -105,19 +135,19 @@ services:
       dockerfile: src/StorageLens.Services.Hashing/Dockerfile
     depends_on:
       fileinventory:
-        condition: service_started
+        condition: service_healthy
         required: true
       jaeger:
         condition: service_started
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       scanjobs:
-        condition: service_started
+        condition: service_healthy
         required: true
       sqlserver:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -131,6 +161,16 @@ services:
       ServiceApiKey: storagelens-dev-key
       UpstreamServices__FileInventory: http://fileinventory:8080/
       UpstreamServices__ScanJobs: http://scanjobs:8080/
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 8
+      start_period: 20s
     networks:
       default: null
     ports:
@@ -143,10 +183,24 @@ services:
         source: A:\source\_VSCode\StorageLens\sample-scan
         target: /scan-root
         bind: {}
+      - type: bind
+        source: C:/
+        target: /host/drives/c
+        bind: {}
   jaeger:
     container_name: storagelens-jaeger
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:16686/
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 10s
     image: jaegertracing/all-in-one:latest
     networks:
       default: null
@@ -172,10 +226,10 @@ services:
         condition: service_started
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       sqlserver:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -184,6 +238,16 @@ services:
       Observability__OtlpEndpoint: http://jaeger:4317
       RateLimit__Redis: redis:6379
       ServiceApiKey: storagelens-dev-key
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 6
+      start_period: 15s
     networks:
       default: null
     ports:
@@ -197,31 +261,31 @@ services:
       dockerfile: src/StorageLens.Services.Orchestrator/Dockerfile
     depends_on:
       analytics:
-        condition: service_started
+        condition: service_healthy
         required: true
       duplicates:
-        condition: service_started
+        condition: service_healthy
         required: true
       hashing:
-        condition: service_started
+        condition: service_healthy
         required: true
       jaeger:
         condition: service_started
         required: true
       locations:
-        condition: service_started
+        condition: service_healthy
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       scanjobs:
-        condition: service_started
+        condition: service_healthy
         required: true
       scanner:
-        condition: service_started
+        condition: service_healthy
         required: true
       sqlserver:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -236,6 +300,16 @@ services:
       UpstreamServices__Locations: http://locations:8080/
       UpstreamServices__ScanJobs: http://scanjobs:8080/
       UpstreamServices__Scanner: http://scanner:8080/
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 10
+      start_period: 25s
     networks:
       default: null
     ports:
@@ -245,6 +319,16 @@ services:
         protocol: tcp
   rabbitmq:
     container_name: storagelens-rabbitmq
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmq-diagnostics
+        - -q
+        - ping
+      timeout: 5s
+      interval: 10s
+      retries: 6
+      start_period: 10s
     image: rabbitmq:3-management
     networks:
       default: null
@@ -265,6 +349,15 @@ services:
       - --loglevel
       - warning
     container_name: storagelens-redis
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 5s
     image: redis:7-alpine
     networks:
       default: null
@@ -282,10 +375,10 @@ services:
         condition: service_started
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       sqlserver:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -294,6 +387,16 @@ services:
       Observability__OtlpEndpoint: http://jaeger:4317
       RateLimit__Redis: redis:6379
       ServiceApiKey: storagelens-dev-key
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 6
+      start_period: 15s
     networks:
       default: null
     ports:
@@ -307,19 +410,19 @@ services:
       dockerfile: src/StorageLens.Services.Scanner/Dockerfile
     depends_on:
       fileinventory:
-        condition: service_started
+        condition: service_healthy
         required: true
       jaeger:
         condition: service_started
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       scanjobs:
-        condition: service_started
+        condition: service_healthy
         required: true
       sqlserver:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -330,6 +433,16 @@ services:
       ServiceApiKey: storagelens-dev-key
       UpstreamServices__FileInventory: http://fileinventory:8080/
       UpstreamServices__ScanJobs: http://scanjobs:8080/
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 8
+      start_period: 20s
     networks:
       default: null
     ports:
@@ -342,11 +455,32 @@ services:
         source: A:\source\_VSCode\StorageLens\sample-scan
         target: /scan-root
         bind: {}
+      - type: bind
+        source: C:/
+        target: /host/drives/c
+        bind: {}
   sqlserver:
     container_name: storagelens-sql
     environment:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: ReplaceWithStrongPassword123!
+    healthcheck:
+      test:
+        - CMD
+        - /opt/mssql-tools18/bin/sqlcmd
+        - -C
+        - -S
+        - localhost
+        - -U
+        - sa
+        - -P
+        - ReplaceWithStrongPassword123!
+        - -Q
+        - SELECT 1
+      timeout: 5s
+      interval: 15s
+      retries: 8
+      start_period: 35s
     image: mcr.microsoft.com/mssql/server:2022-latest
     networks:
       default: null
@@ -366,28 +500,28 @@ services:
       dockerfile: src/StorageLens.Web/Dockerfile
     depends_on:
       analytics:
-        condition: service_started
+        condition: service_healthy
         required: true
       duplicates:
-        condition: service_started
+        condition: service_healthy
         required: true
       fileinventory:
-        condition: service_started
+        condition: service_healthy
         required: true
       jaeger:
         condition: service_started
         required: true
       locations:
-        condition: service_started
+        condition: service_healthy
         required: true
       orchestrator:
-        condition: service_started
+        condition: service_healthy
         required: true
       redis:
-        condition: service_started
+        condition: service_healthy
         required: true
       scanjobs:
-        condition: service_started
+        condition: service_healthy
         required: true
     environment:
       ASPNETCORE_URLS: http://+:8080
@@ -401,6 +535,16 @@ services:
       ServiceEndpoints__Locations: http://locations:8080/
       ServiceEndpoints__Orchestrator: http://orchestrator:8080/
       ServiceEndpoints__ScanJobs: http://scanjobs:8080/
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health/ready
+      timeout: 4s
+      interval: 10s
+      retries: 10
+      start_period: 25s
     networks:
       default: null
     ports:

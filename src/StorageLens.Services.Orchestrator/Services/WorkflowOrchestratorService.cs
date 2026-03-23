@@ -112,6 +112,27 @@ public class WorkflowOrchestratorService(
             return false;
         }
 
+        if (!Enum.TryParse<WorkflowStatus>(workflow.Status, true, out var currentStatus))
+        {
+            logger.LogWarning(
+                "Cannot cancel scan job {ScanJobId} because workflow {WorkflowId} has unknown status '{Status}'.",
+                scanJobId,
+                workflow.Id,
+                workflow.Status);
+            return false;
+        }
+
+        // Treat terminal states as already-cancelled semantics to keep cancel idempotent.
+        if (currentStatus is WorkflowStatus.Cancelled or WorkflowStatus.Completed or WorkflowStatus.Failed)
+        {
+            logger.LogInformation(
+                "Ignoring cancel for scan job {ScanJobId} because workflow {WorkflowId} is already in terminal status '{Status}'.",
+                scanJobId,
+                workflow.Id,
+                workflow.Status);
+            return true;
+        }
+
         SetWorkflowStatus(workflow, WorkflowStatus.Cancelled);
         workflow.LastError = "Cancelled by user.";
         workflow.CompletedAtUtc = DateTimeOffset.UtcNow;

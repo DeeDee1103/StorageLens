@@ -15,11 +15,35 @@ public class AnalyticsService(
         var filesClient = new UpstreamApiClient(httpClientFactory.CreateClient("fileinventory"));
         var duplicatesClient = new UpstreamApiClient(httpClientFactory.CreateClient("duplicates"));
 
-        var locationsTask = locationsClient.GetLocationsAsync(cancellationToken);
-        var jobsTask = scanJobsClient.GetRecentScanJobsAsync(cancellationToken);
-        var filesTask = filesClient.GetFilesAsync(cancellationToken);
-        var duplicateGroupsTask = duplicatesClient.GetDuplicateGroupsAsync(cancellationToken);
-        var duplicateSummaryTask = duplicatesClient.GetDuplicateSummaryAsync(cancellationToken);
+        var locationsTask = SafeFetchAsync(
+            "locations",
+            locationsClient.GetLocationsAsync,
+            Array.Empty<StorageLocationDto>(),
+            cancellationToken);
+
+        var jobsTask = SafeFetchAsync(
+            "scanjobs",
+            scanJobsClient.GetRecentScanJobsAsync,
+            Array.Empty<ScanJobDto>(),
+            cancellationToken);
+
+        var filesTask = SafeFetchAsync(
+            "fileinventory",
+            filesClient.GetFilesAsync,
+            Array.Empty<FileRecordDto>(),
+            cancellationToken);
+
+        var duplicateGroupsTask = SafeFetchAsync(
+            "duplicates-groups",
+            duplicatesClient.GetDuplicateGroupsAsync,
+            Array.Empty<DuplicateGroupDto>(),
+            cancellationToken);
+
+        var duplicateSummaryTask = SafeFetchAsync(
+            "duplicates-summary",
+            duplicatesClient.GetDuplicateSummaryAsync,
+            new DuplicateSummaryDto(0, 0, 0, 0),
+            cancellationToken);
 
         await Task.WhenAll(locationsTask, jobsTask, filesTask, duplicateGroupsTask, duplicateSummaryTask);
 
@@ -94,8 +118,22 @@ public class AnalyticsService(
         var filesClient = new UpstreamApiClient(httpClientFactory.CreateClient("fileinventory"));
         var duplicatesClient = new UpstreamApiClient(httpClientFactory.CreateClient("duplicates"));
 
-        var files = await filesClient.GetFilesAsync(cancellationToken);
-        var duplicates = await duplicatesClient.GetDuplicateGroupsAsync(cancellationToken);
+        var filesTask = SafeFetchAsync(
+            "fileinventory",
+            filesClient.GetFilesAsync,
+            Array.Empty<FileRecordDto>(),
+            cancellationToken);
+
+        var duplicatesTask = SafeFetchAsync(
+            "duplicates-groups",
+            duplicatesClient.GetDuplicateGroupsAsync,
+            Array.Empty<DuplicateGroupDto>(),
+            cancellationToken);
+
+        await Task.WhenAll(filesTask, duplicatesTask);
+
+        var files = await filesTask;
+        var duplicates = await duplicatesTask;
 
         var oldest = files.OrderBy(x => x.LastModifiedDate).Take(10).ToList();
         var largest = files.OrderByDescending(x => x.SizeBytes).Take(10).ToList();
@@ -127,5 +165,27 @@ public class AnalyticsService(
     {
         var dashboard = await GetDashboardAsync(cancellationToken);
         return dashboard.StorageGrowth;
+    }
+
+    private async Task<T> SafeFetchAsync<T>(
+        string upstream,
+        Func<CancellationToken, Task<T>> fetch,
+        T fallback,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await fetch(cancellationToken);
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(ex, "Analytics upstream {Upstream} timed out. Using fallback payload.", upstream);
+            return fallback;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Analytics upstream {Upstream} failed. Using fallback payload.", upstream);
+            return fallback;
+        }
     }
 }

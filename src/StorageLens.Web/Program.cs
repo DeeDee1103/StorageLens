@@ -92,6 +92,17 @@ builder.Services.AddConfiguredUpstreamClient<DuplicatesApiClient>("duplicates", 
 builder.Services.AddConfiguredUpstreamClient<AnalyticsApiClient>("analytics", endpoints.Analytics, serviceApiKey, upstreamResilience);
 builder.Services.AddConfiguredUpstreamClient<OrchestratorApiClient>("orchestrator", endpoints.Orchestrator, serviceApiKey, upstreamResilience);
 
+builder.AddStorageLensHealthChecks(
+    upstreamHealthUris:
+    [
+        new Uri($"{endpoints.Locations.TrimEnd('/')}/health/live"),
+        new Uri($"{endpoints.ScanJobs.TrimEnd('/')}/health/live"),
+        new Uri($"{endpoints.FileInventory.TrimEnd('/')}/health/live"),
+        new Uri($"{endpoints.Duplicates.TrimEnd('/')}/health/live"),
+        new Uri($"{endpoints.Analytics.TrimEnd('/')}/health/live"),
+        new Uri($"{endpoints.Orchestrator.TrimEnd('/')}/health/live")
+    ]);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -111,6 +122,7 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapRazorPages();
+app.MapStorageLensHealthChecks();
 
 using (var scope = app.Services.CreateScope())
 {
@@ -119,4 +131,66 @@ using (var scope = app.Services.CreateScope())
     await StartupDatabaseInitializer.EnsureCreatedWithRetryAsync(clientsDb, logger);
 }
 
+await WarmUpUpstreamDependenciesAsync(app.Services, endpoints);
+
 app.Run();
+
+static async Task WarmUpUpstreamDependenciesAsync(IServiceProvider services, ServiceEndpointsOptions endpoints)
+{
+    using var scope = services.CreateScope();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.UpstreamWarmup");
+
+    var dependencies = new Dictionary<string, string>
+    {
+        ["locations"] = endpoints.Locations,
+        ["scanjobs"] = endpoints.ScanJobs,
+        ["fileinventory"] = endpoints.FileInventory,
+        ["duplicates"] = endpoints.Duplicates,
+        ["analytics"] = endpoints.Analytics,
+        ["orchestrator"] = endpoints.Orchestrator,
+    };
+
+    var warmupTasks = dependencies
+        .Where(x => !string.IsNullOrWhiteSpace(x.Value))
+        .Select(x => WaitForReadyAsync(x.Key, x.Value, logger, TimeSpan.FromSeconds(45)));
+
+    await Task.WhenAll(warmupTasks);
+}
+
+static async Task WaitForReadyAsync(
+    string dependencyName,
+    string baseAddress,
+    ILogger logger,
+    TimeSpan maxWait)
+{
+    var healthUri = new Uri(new Uri(baseAddress), "health/ready");
+    var deadline = DateTimeOffset.UtcNow + maxWait;
+    var attempt = 0;
+
+    using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+
+    while (DateTimeOffset.UtcNow < deadline)
+    {
+        attempt++;
+        try
+        {
+            using var response = await client.GetAsync(healthUri);
+            if (response.IsSuccessStatusCode)
+            {
+                logger.LogInformation("Upstream {Dependency} is ready at {HealthUri} after {Attempt} attempt(s).", dependencyName, healthUri, attempt);
+                return;
+            }
+
+            logger.LogWarning("Upstream {Dependency} readiness check returned status {StatusCode}.", dependencyName, (int)response.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Upstream {Dependency} readiness check failed.", dependencyName);
+        }
+
+        var backoff = TimeSpan.FromMilliseconds(Math.Min(5000, 500 * attempt));
+        await Task.Delay(backoff);
+    }
+
+    logger.LogWarning("Upstream {Dependency} did not become ready within {MaxWaitSeconds} seconds.", dependencyName, maxWait.TotalSeconds);
+}
