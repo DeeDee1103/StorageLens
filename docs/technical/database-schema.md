@@ -4,6 +4,8 @@
 
 StorageLens follows service-owned data boundaries. Each service has independent schema/database ownership and is the sole writer for its domain entities.
 
+> Detailed reference: For entity-level fields, keys, and relationships, see [Data Dictionary](../data-dictionary.md).
+
 ## Domain Schemas
 
 - `locations`

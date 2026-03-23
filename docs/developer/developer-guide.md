@@ -27,6 +27,12 @@ See [`docs/developer/copilot-agents-guide.md`](copilot-agents-guide.md) for comp
 - `src/StorageLens.Shared.Infrastructure`
 - `tests/`
 
+## Data Model Reference
+
+Use [Data Dictionary](../data-dictionary.md) as the source of truth for persisted schemas, key fields, and cross-service identifiers.
+
+For implementation terminology and architecture language, use [Glossary of Terms - Technical](../glossary-terms-technical.md).
+
 ## Development Workflow
 
 1. Pull latest `develop`

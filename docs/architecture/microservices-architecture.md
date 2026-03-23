@@ -3,6 +3,7 @@
 ## Service Boundaries
 
 StorageLens separates UI, orchestration, domain persistence, and compute-heavy stages into focused services.
+It comprises 8 backend microservices plus a web frontend (9 deployable components total).
 
 ## Service Responsibilities
 
@@ -38,10 +39,11 @@ Each service owns its schema and persistence model:
 - `scanjobs`
 - `fileinventory`
 - `duplicates`
-- `analytics`
 - `scanner`
 - `hashing`
 - `orchestration`
+
+`analytics` is stateless and reads from upstream services rather than owning a schema.
 
 No service writes directly to another service database.
 
@@ -84,7 +86,6 @@ graph TD
     JOBS --> SQL
     FILES --> SQL
     DUP --> SQL
-    ANA --> SQL
     SCANNER --> SQL
     HASH --> SQL
     ORCH --> SQL

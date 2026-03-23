@@ -2,8 +2,10 @@
 
 ## Contract Source
 
-All cross-service DTOs are defined in:
-- `src/StorageLens.Shared.Contracts/Class1.cs`
+Cross-service DTOs are defined in domain-specific files under:
+- `src/StorageLens.Shared.Contracts/`
+
+> Note: For persisted entity mappings, table/column context, and cross-service data keys, see [Data Dictionary](../data-dictionary.md).
 
 ## Primary Contract Families
 

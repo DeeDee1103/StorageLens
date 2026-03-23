@@ -9,6 +9,8 @@ Track service health via `/health` endpoints.
 - Structured logs for startup, workflow transitions, and external API failures
 - Correlation ID in workflow-related logs
 - Capture warnings for partial failures (for example hash update failures)
+- Audit logging for critical workflow and security-relevant actions under the `StorageLens.Audit` category
+- Preserve audit fields such as actor/service, action, target entity, outcome, and timestamp
 
 ## Recommended Metrics
 

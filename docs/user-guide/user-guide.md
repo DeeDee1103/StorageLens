@@ -18,3 +18,8 @@ StorageLens helps operations and governance teams discover storage usage pattern
 - Scan Jobs
 - Dashboard and Reports
 - Duplicate Analysis
+
+## Terminology Help
+
+- Business terms: [Glossary of Terms - Business Users](../glossary-terms-business-users.md)
+- Technical reference: [Glossary of Terms - Technical](../glossary-terms-technical.md)

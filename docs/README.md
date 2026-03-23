@@ -67,10 +67,17 @@ StorageLens provides a production-ready architecture for:
 - [Technical Specification](technical/technical-specification.md)
 - [Technology Stack](technical/technology-stack.md)
 - [Database Schema](technical/database-schema.md)
+- [Data Dictionary](data-dictionary.md)
+- [Glossary of Terms - Technical](glossary-terms-technical.md)
+- [Terminology Consistency Matrix](technical/terminology-consistency-matrix.md)
 - [API Specification](technical/api-specification.md)
 - [API Versioning Strategy](technical/api-versioning-strategy.md)
 - [Service Contracts](technical/service-contracts.md)
 - [Configuration Guide](technical/configuration-guide.md)
+
+## Glossaries
+- [Glossary of Terms - Business Users](glossary-terms-business-users.md)
+- [Glossary of Terms - Technical](glossary-terms-technical.md)
 
 ## Release History
 - [Changelog](CHANGELOG.md)

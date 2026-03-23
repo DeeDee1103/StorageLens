@@ -132,7 +132,7 @@ Example:
   - Database and infrastructure configuration
   - Shared infrastructure (contracts, DI, logging)
   - Web frontend setup (Razor Pages, scripts, assets)
-  - Service development (all 8 services with specific requirements)
+  - Service development (8 backend services plus Web with specific requirements)
   - Testing setup and verification
   - Local development environment (Docker Compose)
   - Build and compilation
@@ -214,8 +214,8 @@ Example:
 
 ### Added
 - **`StorageLens.Shared.Infrastructure.Tests` project** — new xUnit test project covering the HTTP client policy pipeline behaviour:
-  - `HttpClientPolicyPipelineIntegrationTests` with three integration tests verifying that `CorrelationIdDelegatingHandler` is correctly resolved from DI and properly adds the `X-Correlation-Id` header to outgoing requests, does not overwrite an already-present header, and generates a unique ID per request.
-- **`CorrelationIdDelegatingHandler`** class added to `StorageLens.Shared.Infrastructure` — a `DelegatingHandler` that automatically attaches a `X-Correlation-Id` header to every outgoing HTTP request when the header is not already present, enabling end-to-end correlation tracing across services.
+  - `HttpClientPolicyPipelineIntegrationTests` with three integration tests verifying that `CorrelationIdDelegatingHandler` is correctly resolved from DI and properly adds the `X-Correlation-ID` header to outgoing requests, does not overwrite an already-present header, and generates a unique ID per request.
+- **`CorrelationIdDelegatingHandler`** class added to `StorageLens.Shared.Infrastructure` — a `DelegatingHandler` that automatically attaches a `X-Correlation-ID` header to every outgoing HTTP request when the header is not already present, enabling end-to-end correlation tracing across services.
 - **Chart details modal patterns** on Dashboard and Reports pages for chart click-drill interactions.
 - **Interaction hints** on chart headers (e.g., "Click bars for details", "Click points for details") to make interactivity discoverable.
 - **Alerts page** (`/Alerts`) with adjustable min/max threshold sliders, test recipient support, and automatic threshold-check email dispatch when usage reaches the max threshold.

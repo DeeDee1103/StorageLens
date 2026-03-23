@@ -1,0 +1,236 @@
+@page
+@model LoggingModel
+
+@{
+    var total = Model.Entries.Count;
+    var errorCount = Model.Entries.Count(e => e.Severity.Equals("Error", StringComparison.OrdinalIgnoreCase));
+    var warningCount = Model.Entries.Count(e => e.Severity.Equals("Warning", StringComparison.OrdinalIgnoreCase));
+    var infoCount = Model.Entries.Count(e => e.Severity.Equals("Information", StringComparison.OrdinalIgnoreCase));
+    var exceptionCount = Model.Entries.Count(e => !string.IsNullOrWhiteSpace(e.Exception));
+    var services = Model.Entries.Select(e => e.Service).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+}
+
+<section class="mb-3 reveal-item">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <h1 class="dashboard-title mb-0">Logging</h1>
+        <span class="badge bg-primary-subtle text-primary-emphasis">Interactive investigation</span>
+    </div>
+    <p class="text-secondary mb-0">
+        Review structured logs, exception details, user-friendly explanations, and resolution steps.
+        Simple issues can often be resolved directly here; advanced issues should be escalated to IT.
+    </p>
+</section>
+
+<section class="row g-3 mb-3 reveal-item">
+    <div class="col-sm-6 col-xl-3">
+        <article class="card-premium p-3 logging-kpi logging-kpi--total">
+            <div class="small text-secondary">Total Entries</div>
+            <div class="fs-4 fw-bold">@total</div>
+        </article>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <article class="card-premium p-3 logging-kpi logging-kpi--error">
+            <div class="small text-secondary">Errors</div>
+            <div class="fs-4 fw-bold">@errorCount</div>
+        </article>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <article class="card-premium p-3 logging-kpi logging-kpi--warning">
+            <div class="small text-secondary">Warnings</div>
+            <div class="fs-4 fw-bold">@warningCount</div>
+        </article>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <article class="card-premium p-3 logging-kpi logging-kpi--info">
+            <div class="small text-secondary">Entries With Exceptions</div>
+            <div class="fs-4 fw-bold">@exceptionCount</div>
+        </article>
+    </div>
+</section>
+
+<section class="card-premium p-3 mb-3 reveal-item">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label for="logSearch" class="form-label small text-secondary">Search</label>
+            <input id="logSearch" class="form-control" type="search" placeholder="message, event id, correlation id, request path" />
+        </div>
+        <div class="col-md-3">
+            <label for="severityFilter" class="form-label small text-secondary">Severity</label>
+            <select id="severityFilter" class="form-select">
+                <option value="all">All severities</option>
+                <option value="error">Error</option>
+                <option value="warning">Warning</option>
+                <option value="information">Information</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="serviceFilter" class="form-label small text-secondary">Service</label>
+            <select id="serviceFilter" class="form-select">
+                <option value="all">All services</option>
+                @foreach (var service in services)
+                {
+                    <option value="@service.ToLowerInvariant()">@service</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <div class="form-check form-switch mt-4">
+                <input class="form-check-input" type="checkbox" id="exceptionsOnly" />
+                <label class="form-check-label small" for="exceptionsOnly">Exceptions only</label>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card-premium p-0 overflow-hidden reveal-item">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 logging-table" id="loggingTable">
+            <thead>
+                <tr>
+                    <th style="min-width: 160px;">Timestamp (UTC)</th>
+                    <th>Level</th>
+                    <th style="min-width: 230px;">Service</th>
+                    <th style="min-width: 140px;">Event ID</th>
+                    <th style="min-width: 280px;">Message</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < Model.Entries.Count; i++)
+                {
+                    var e = Model.Entries[i];
+                    var rowId = $"log-details-{i}";
+                    var hasException = !string.IsNullOrWhiteSpace(e.Exception);
+                    var sevClass = e.Severity.ToLowerInvariant() switch
+                    {
+                        "error" => "text-danger",
+                        "warning" => "text-warning-emphasis",
+                        _ => "text-primary"
+                    };
+                    <tr class="log-row"
+                        data-severity="@e.Severity.ToLowerInvariant()"
+                        data-service="@e.Service.ToLowerInvariant()"
+                        data-has-exception="@hasException.ToString().ToLowerInvariant()"
+                        data-search="@($"{e.EventId} {e.CorrelationId} {e.RequestPath} {e.Message} {e.UserFriendlyException}".ToLowerInvariant())">
+                        <td class="small">@e.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        <td><span class="fw-semibold @sevClass">@e.Severity</span></td>
+                        <td class="small">@e.Service</td>
+                        <td><code>@e.EventId</code></td>
+                        <td class="small">@e.Message</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-log-toggle="@rowId" aria-expanded="false">
+                                Details
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="@rowId" class="log-details-row" hidden>
+                        <td colspan="6" class="bg-body-tertiary">
+                            <div class="row g-3 p-2">
+                                <div class="col-lg-4">
+                                    <h6 class="mb-2">Standard Fields</h6>
+                                    <ul class="list-unstyled small mb-0">
+                                        <li><strong>Correlation ID:</strong> <code>@e.CorrelationId</code></li>
+                                        <li><strong>Request Path:</strong> <code>@e.RequestPath</code></li>
+                                        <li><strong>User:</strong> @e.User</li>
+                                    </ul>
+                                </div>
+                                <div class="col-lg-4">
+                                    <h6 class="mb-2">Exception</h6>
+                                    @if (hasException)
+                                    {
+                                        <div class="small mb-1"><strong>Type:</strong> @e.ExceptionType</div>
+                                        <div class="small text-break"><strong>Message:</strong> @e.Exception</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="small text-secondary">No exception captured for this entry.</div>
+                                    }
+                                </div>
+                                <div class="col-lg-4">
+                                    <h6 class="mb-2">User-Friendly Guidance</h6>
+                                    <div class="small mb-2">@e.UserFriendlyException</div>
+                                    <div class="small"><strong>Resolution Steps:</strong> @e.ResolutionSteps</div>
+                                    @if (e.EscalateToIt)
+                                    {
+                                        <div class="mt-2 badge bg-danger-subtle text-danger-emphasis">Escalate to IT for advanced resolution</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="mt-2 badge bg-success-subtle text-success-emphasis">Self-service resolution likely</div>
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div id="logNoResults" class="card-premium p-3 mt-3 text-secondary" hidden>
+    <i class="bi bi-search me-1"></i>No log entries match the selected filters.
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const searchInput = document.getElementById('logSearch');
+    const severityFilter = document.getElementById('severityFilter');
+    const serviceFilter = document.getElementById('serviceFilter');
+    const exceptionsOnly = document.getElementById('exceptionsOnly');
+    const rows = Array.from(document.querySelectorAll('.log-row'));
+    const noResults = document.getElementById('logNoResults');
+
+    function applyFilters() {
+        const query = (searchInput.value || '').trim().toLowerCase();
+        const sev = severityFilter.value;
+        const svc = serviceFilter.value;
+        const exOnly = exceptionsOnly.checked;
+        let visible = 0;
+
+        rows.forEach(row => {
+            const matchQuery = !query || row.dataset.search.includes(query);
+            const matchSev = sev === 'all' || row.dataset.severity === sev;
+            const matchSvc = svc === 'all' || row.dataset.service === svc;
+            const matchEx = !exOnly || row.dataset.hasException === 'true';
+            const show = matchQuery && matchSev && matchSvc && matchEx;
+
+            row.hidden = !show;
+            const detailsRow = document.getElementById(row.querySelector('[data-log-toggle]').dataset.logToggle);
+            if (!show && detailsRow) {
+                detailsRow.hidden = true;
+                row.querySelector('[data-log-toggle]').setAttribute('aria-expanded', 'false');
+            }
+
+            if (show) {
+                visible++;
+            }
+        });
+
+        noResults.hidden = visible !== 0;
+    }
+
+    document.querySelectorAll('[data-log-toggle]').forEach(button => {
+        button.addEventListener('click', function () {
+            const targetId = this.dataset.logToggle;
+            const target = document.getElementById(targetId);
+            if (!target) {
+                return;
+            }
+
+            const expanded = this.getAttribute('aria-expanded') === 'true';
+            target.hidden = expanded;
+            this.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        });
+    });
+
+    [searchInput, severityFilter, serviceFilter, exceptionsOnly].forEach(el => {
+        el.addEventListener('input', applyFilters);
+        el.addEventListener('change', applyFilters);
+    });
+
+    applyFilters();
+}());
+</script>
+}

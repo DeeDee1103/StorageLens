@@ -6,7 +6,15 @@
 - JSON request/response payloads
 - Shared DTO contracts from `StorageLens.Shared.Contracts`
 
+## Authentication and Headers
+
+- Service endpoints require `X-API-Key` for authorized access.
+- `X-Correlation-ID` is propagated across service calls for traceability.
+- `Content-Type: application/json` is used for JSON payloads.
+
 ## Core Endpoint Catalog
+
+> Related: See [Service Contracts](service-contracts.md) for DTO definitions and [Data Dictionary](../data-dictionary.md) for persisted entity reference.
 
 ## Orchestrator
 - `POST /api/orchestrator/scans/start/{locationId}`
