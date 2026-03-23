@@ -192,15 +192,26 @@
 <div class="dashboard-mode dashboard-mode-interactive" data-dashboard-mode-panel="interactive" hidden>
     <section class="interactive-dashboard-shell reveal-item">
         <div class="interactive-headbar">
-            <div class="interactive-brand-pill">StorageLens</div>
+            <div class="interactive-brand-pill">
+                <span class="sl-logo sl-logo--headbar" role="img" aria-label="StorageLens logo">
+                    <span class="sl-logo__line sl-logo__line--left"></span>
+                    <span class="sl-logo__core">
+                        <span class="sl-logo__frame"></span>
+                        <span class="sl-logo__bar sl-logo__bar--top"></span>
+                        <span class="sl-logo__text">ST<span class="sl-logo__o"></span>RAGELENS</span>
+                        <span class="sl-logo__bar sl-logo__bar--bottom"></span>
+                    </span>
+                    <span class="sl-logo__line sl-logo__line--right"></span>
+                </span>
+            </div>
             <div class="interactive-search-strip">
                 <i class="bi bi-search" aria-hidden="true"></i>
                 <span>Scan history</span>
             </div>
             <div class="interactive-actions">
-                <span class="interactive-action-dot"></span>
-                <span class="interactive-action-dot"></span>
-                <span class="interactive-action-dot"></span>
+                <button class="interactive-action-btn interactive-action-btn--red" id="idbClose" title="Switch to Classic view" aria-label="Switch to Classic view"></button>
+                <button class="interactive-action-btn interactive-action-btn--yellow" id="idbMinimize" title="Toggle compact mode" aria-label="Toggle compact mode"></button>
+                <button class="interactive-action-btn interactive-action-btn--green" id="idbExpand" title="Toggle fullscreen" aria-label="Toggle fullscreen"></button>
             </div>
         </div>
 
@@ -877,6 +888,9 @@
                         duration: 1100,
                         easing: 'easeOutCubic'
                     },
+                    layout: {
+                        padding: { top: 24, bottom: 4 }
+                    },
                     plugins: {
                         legend: { display: false }
                     },
@@ -928,5 +942,39 @@
                 applyDashboardMode(button.getAttribute('data-dashboard-mode-btn') || 'classic');
             });
         });
+
+        // Action buttons in the interactive headbar
+        const idbClose = document.getElementById('idbClose');
+        const idbMinimize = document.getElementById('idbMinimize');
+        const idbExpand = document.getElementById('idbExpand');
+
+        if (idbClose) {
+            idbClose.addEventListener('click', () => applyDashboardMode('classic'));
+        }
+
+        if (idbMinimize) {
+            let compactActive = false;
+            idbMinimize.addEventListener('click', () => {
+                compactActive = !compactActive;
+                const shell = idbMinimize.closest('.interactive-dashboard-shell');
+                if (shell) { shell.classList.toggle('interactive-compact', compactActive); }
+                idbMinimize.title = compactActive ? 'Restore panels' : 'Toggle compact mode';
+                idbMinimize.setAttribute('aria-label', idbMinimize.title);
+            });
+        }
+
+        if (idbExpand) {
+            idbExpand.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                    document.exitFullscreen().catch(() => {});
+                }
+            });
+            document.addEventListener('fullscreenchange', () => {
+                idbExpand.classList.toggle('interactive-action-btn--active', !!document.fullscreenElement);
+                idbExpand.title = document.fullscreenElement ? 'Exit fullscreen' : 'Toggle fullscreen';
+            });
+        }
     </script>
 }

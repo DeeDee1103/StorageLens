@@ -1,0 +1,494 @@
+@page
+@model GlobalViewModel
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Global View";
+    ViewData["Nav"] = "GlobalView";
+
+    var locationsJson = JsonSerializer.Serialize(Model.Dashboard.Locations.Select(loc => new {
+        id = loc.Id,
+        name = loc.Name,
+        path = loc.Path,
+        type = loc.Type,
+        status = loc.Status,
+        totalSizeBytes = loc.TotalSizeBytes,
+        fileCount = loc.FileCount
+    }));
+    var growthLabels = JsonSerializer.Serialize(Model.Dashboard.StorageGrowth.Select(x => x.Label));
+    var growthValues = JsonSerializer.Serialize(Model.Dashboard.StorageGrowth.Select(x => x.Value));
+    var typeLabels = JsonSerializer.Serialize(Model.Dashboard.FileTypeDistribution.Select(x => x.Label));
+    var typeValues = JsonSerializer.Serialize(Model.Dashboard.FileTypeDistribution.Select(x => x.Value));
+
+    var totalBytes = Model.Dashboard.Kpis.TotalStorageBytes;
+    var totalDisplay = SizeFormatter.ToFriendlySize(totalBytes);
+
+    var locations = Model.Dashboard.Locations;
+    var maxBytes = locations.Any() ? locations.Max(l => l.TotalSizeBytes) : 1L;
+
+    var runningJobs = Model.Dashboard.RecentJobs.Where(j =>
+        j.Status.Equals("Running", StringComparison.OrdinalIgnoreCase) ||
+        j.Status.Equals("Queued", StringComparison.OrdinalIgnoreCase)).Take(3).ToList();
+    var totalJobs = Model.Dashboard.RecentJobs.Count;
+    var completedJobs = Model.Dashboard.RecentJobs.Count(j =>
+        j.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase));
+    var avgProgress = totalJobs > 0 ? (int)Model.Dashboard.RecentJobs.Average(j => j.ProgressPercent) : 0;
+    var completedPct = totalJobs > 0 ? completedJobs * 100 / totalJobs : 0;
+    var jobLoadPct = Math.Min(totalJobs * 10, 100);
+
+    var dupPct = Model.Dashboard.Kpis.DuplicatePercent;
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div class="gv-shell reveal-item">
+
+    <!-- Header bar -->
+    <div class="gv-headbar">
+        <div class="gv-brand-pill">
+            <span class="sl-logo sl-logo--gv" role="img" aria-label="StorageLens">
+                <span class="sl-logo__line sl-logo__line--left"></span>
+                <span class="sl-logo__core">
+                    <span class="sl-logo__frame"></span>
+                    <span class="sl-logo__bar sl-logo__bar--top"></span>
+                    <span class="sl-logo__text">ST<span class="sl-logo__o"></span>RAGELENS</span>
+                    <span class="sl-logo__bar sl-logo__bar--bottom"></span>
+                </span>
+                <span class="sl-logo__line sl-logo__line--right"></span>
+            </span>
+        </div>
+        <div class="gv-search-strip">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <span>Scan history &amp; locations</span>
+        </div>
+        <div class="gv-header-actions">
+            <a class="gv-action-btn" asp-page="/StorageLocations" title="Manage Locations">
+                <i class="bi bi-hdd-stack"></i>
+            </a>
+            <a class="gv-action-btn" asp-page="/ScanJobs" title="Scan Jobs">
+                <i class="bi bi-activity"></i>
+            </a>
+            <a class="gv-action-btn" asp-page="/Index" title="Dashboard">
+                <i class="bi bi-speedometer2"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Tagline strip -->
+    <div class="gv-tagline-strip">
+        <div class="gv-tagline-avatar" id="gvAvatar">DD</div>
+        <div>
+            <div class="gv-tagline-name" id="gvProfileName">StorageLens</div>
+            <div class="gv-tagline">Optimize Storage. Gain Visibility.</div>
+        </div>
+        <div class="gv-tagline-status">
+            <span class="gv-status-dot @(Model.ServiceUnavailable ? "gv-status-dot--warn" : "gv-status-dot--ok")"></span>
+            @(Model.ServiceUnavailable ? "Service degraded" : "All systems nominal")
+        </div>
+    </div>
+
+    @if (Model.ServiceUnavailable)
+    {
+        <div class="gv-alert-bar">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            Analytics service unavailable — showing cached or empty data.
+        </div>
+    }
+
+    <!-- KPI row -->
+    <div class="gv-kpi-row">
+        <article class="gv-kpi gv-kpi--teal">
+            <div class="gv-kpi-label">Total Storage</div>
+            <div class="gv-kpi-value">@totalDisplay</div>
+            <div class="gv-kpi-trend"><span class="gv-trend-line"></span>+4.8%</div>
+        </article>
+        <article class="gv-kpi gv-kpi--blue">
+            <div class="gv-kpi-label">Total Files</div>
+            <div class="gv-kpi-value">@Model.Dashboard.Kpis.TotalFiles.ToString("N0")</div>
+            <div class="gv-kpi-trend"><span class="gv-trend-line"></span>+2.3%</div>
+        </article>
+        <article class="gv-kpi gv-kpi--lime">
+            <div class="gv-kpi-label">Duplicate %</div>
+            <div class="gv-kpi-value">@dupPct<span class="gv-kpi-unit">%</span></div>
+            <div class="gv-kpi-trend"><span class="gv-trend-line gv-trend-line--warn"></span>Monitor</div>
+        </article>
+        <article class="gv-kpi gv-kpi--mint">
+            <div class="gv-kpi-label">Potential Savings</div>
+            <div class="gv-kpi-value">@SizeFormatter.ToFriendlySize(Model.Dashboard.Kpis.PotentialSavingsBytes)</div>
+            <div class="gv-kpi-trend"><span class="gv-trend-line"></span>Actionable</div>
+        </article>
+        <article class="gv-kpi gv-kpi--purple">
+            <div class="gv-kpi-label">Locations</div>
+            <div class="gv-kpi-value">@locations.Count</div>
+            <div class="gv-kpi-trend"><span class="gv-trend-line"></span>Active sites</div>
+        </article>
+    </div>
+
+    <!-- Main body grid -->
+    <div class="gv-body-grid">
+
+        <!-- Left column: storage tiers sparkline + bar list -->
+        <aside class="gv-left-col">
+            <section class="gv-panel gv-panel--left-top">
+                <div class="gv-panel-title">Storage Tiers</div>
+                <div class="gv-panel-subtitle">Capacity trend over time</div>
+                <div class="gv-tier-chart-wrap">
+                    <canvas id="gvTiersChart"></canvas>
+                </div>
+                <div class="gv-tier-bars">
+                    @foreach (var loc in locations.OrderByDescending(l => l.TotalSizeBytes).Take(8))
+                    {
+                        var pct = maxBytes > 0 ? (int)((loc.TotalSizeBytes * 100L) / maxBytes) : 0;
+                        var barClass = loc.Status.ToLowerInvariant() switch {
+                            "online"  => "gv-tier-fill gv-tier-fill--teal",
+                            "warning" => "gv-tier-fill gv-tier-fill--warn",
+                            _         => "gv-tier-fill gv-tier-fill--off"
+                        };
+                        <div class="gv-tier-row" title="@loc.Name — @SizeFormatter.ToFriendlySize(loc.TotalSizeBytes)">
+                            <div class="gv-tier-label">@loc.Name</div>
+                            <div class="gv-tier-track"><div class="@barClass" style="width:@pct%"></div></div>
+                            <div class="gv-tier-size">@SizeFormatter.ToFriendlySize(loc.TotalSizeBytes)</div>
+                        </div>
+                    }
+                    @if (!locations.Any())
+                    {
+                        <div class="gv-empty-hint"><i class="bi bi-inbox"></i> No locations yet</div>
+                    }
+                </div>
+            </section>
+        </aside>
+
+        <!-- Centre: world map -->
+        <section class="gv-map-col">
+            <div class="gv-panel gv-panel--map">
+                <div class="gv-panel-header">
+                    <div>
+                        <div class="gv-panel-title">Global Storage Distribution</div>
+                        <div class="gv-panel-subtitle">
+                            @locations.Count location@(locations.Count != 1 ? "s" : "") — click pins for details
+                        </div>
+                    </div>
+                    <div class="gv-map-legend">
+                        <span class="gv-legend-dot gv-legend-dot--online"></span>Online
+                        <span class="gv-legend-dot gv-legend-dot--warn"></span>Warning
+                        <span class="gv-legend-dot gv-legend-dot--off"></span>Offline
+                    </div>
+                </div>
+                <div id="globalMap" class="gv-map"></div>
+            </div>
+        </section>
+
+        <!-- Right column: workflows + file-type mix -->
+        <aside class="gv-right-col">
+            <section class="gv-panel">
+                <div class="gv-panel-title">Active Workflows</div>
+                <div class="gv-panel-subtitle">Running scan jobs</div>
+                <div class="gv-workflow-grid">
+                    <div class="gv-wf-stat">
+                        <div class="gv-wf-ring">
+                            <svg viewBox="0 0 36 36" class="gv-ring-svg">
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(62,242,208,0.12)" stroke-width="3"/>
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#3ef2d0" stroke-width="3"
+                                    stroke-dasharray="@avgProgress 100" stroke-linecap="round"
+                                    transform="rotate(-90 18 18)"/>
+                            </svg>
+                            <div class="gv-ring-label">@avgProgress<span>%</span></div>
+                        </div>
+                        <div class="gv-wf-name">Avg Progress</div>
+                    </div>
+                    <div class="gv-wf-stat">
+                        <div class="gv-wf-ring">
+                            <svg viewBox="0 0 36 36" class="gv-ring-svg">
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(107,143,255,0.15)" stroke-width="3"/>
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#6b8fff" stroke-width="3"
+                                    stroke-dasharray="@completedPct 100" stroke-linecap="round"
+                                    transform="rotate(-90 18 18)"/>
+                            </svg>
+                            <div class="gv-ring-label" style="color:#6b8fff">@completedJobs<span>done</span></div>
+                        </div>
+                        <div class="gv-wf-name">Completed</div>
+                    </div>
+                    <div class="gv-wf-stat">
+                        <div class="gv-wf-ring">
+                            <svg viewBox="0 0 36 36" class="gv-ring-svg">
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(167,139,250,0.15)" stroke-width="3"/>
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#a78bfa" stroke-width="3"
+                                    stroke-dasharray="@jobLoadPct 100" stroke-linecap="round"
+                                    transform="rotate(-90 18 18)"/>
+                            </svg>
+                            <div class="gv-ring-label" style="color:#a78bfa">@totalJobs<span>jobs</span></div>
+                        </div>
+                        <div class="gv-wf-name">Total Jobs</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="gv-panel gv-panel--typemix">
+                <div class="gv-panel-title">File Type Mix</div>
+                <div class="gv-panel-subtitle">By volume</div>
+                <div class="gv-type-chart-wrap">
+                    <canvas id="gvTypeChart"></canvas>
+                </div>
+            </section>
+        </aside>
+
+    </div>
+
+    <!-- Bottom strip -->
+    <div class="gv-bottom-grid">
+
+        <section class="gv-panel gv-panel--gauge">
+            <div class="gv-panel-title">Export Monitor</div>
+            <div class="gv-panel-subtitle">Duplicate waste ratio</div>
+            <div class="gv-gauge-wrap">
+                <canvas id="gvExportGauge"></canvas>
+                <div class="gv-gauge-label">
+                    <div class="gv-gauge-value">@dupPct%</div>
+                    <div class="gv-gauge-sub">Duplicates</div>
+                </div>
+            </div>
+            <div class="gv-gauge-stats">
+                <div class="gv-gauge-stat">
+                    <span class="gv-gauge-stat-lbl">Waste</span>
+                    <span class="gv-gauge-stat-val">@SizeFormatter.ToFriendlySize(Model.Dashboard.Kpis.PotentialSavingsBytes)</span>
+                </div>
+                <div class="gv-gauge-stat">
+                    <span class="gv-gauge-stat-lbl">Files</span>
+                    <span class="gv-gauge-stat-val">@Model.Dashboard.Kpis.TotalFiles.ToString("N0")</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="gv-panel gv-panel--locations">
+            <div class="gv-panel-header">
+                <div>
+                    <div class="gv-panel-title">Recent Storages</div>
+                    <div class="gv-panel-subtitle">Configured locations by size</div>
+                </div>
+                <a class="gv-see-all" asp-page="/StorageLocations">See all <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div class="gv-loc-list">
+                @if (!locations.Any())
+                {
+                    <div class="gv-empty-hint"><i class="bi bi-inbox"></i> No storage locations configured</div>
+                }
+                @foreach (var loc in locations.OrderByDescending(l => l.TotalSizeBytes).Take(6))
+                {
+                    var dotClass = loc.Status.ToLowerInvariant() switch {
+                        "online"  => "gv-loc-dot--online",
+                        "warning" => "gv-loc-dot--warn",
+                        _         => "gv-loc-dot--off"
+                    };
+                    <div class="gv-loc-row" data-loc-id="@loc.Id">
+                        <span class="gv-loc-dot @dotClass"></span>
+                        <div class="gv-loc-info">
+                            <span class="gv-loc-name">@loc.Name</span>
+                            <span class="gv-loc-path">@loc.Path</span>
+                        </div>
+                        <div class="gv-loc-meta">
+                            <span class="gv-loc-size">@SizeFormatter.ToFriendlySize(loc.TotalSizeBytes)</span>
+                            <span class="gv-loc-files">@loc.FileCount.ToString("N0") files</span>
+                        </div>
+                        <span class="gv-loc-type">@loc.Type</span>
+                    </div>
+                }
+            </div>
+        </section>
+
+    </div>
+
+</div>
+
+@section Scripts {
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+    const locations = @Html.Raw(locationsJson);
+    const growthLabels = @Html.Raw(growthLabels);
+    const growthValues = @Html.Raw(growthValues);
+    const typeLabels = @Html.Raw(typeLabels);
+    const typeValues = @Html.Raw(typeValues);
+    const dupPct = @dupPct;
+
+    const coordPool = [
+        { lat: 37.7749,  lng: -122.4194, region: "San Francisco" },
+        { lat: 40.7128,  lng:  -74.0060, region: "New York" },
+        { lat: 51.5074,  lng:   -0.1278, region: "London" },
+        { lat: 48.8566,  lng:    2.3522, region: "Paris" },
+        { lat: 52.5200,  lng:   13.4050, region: "Frankfurt" },
+        { lat: 35.6762,  lng:  139.6503, region: "Tokyo" },
+        { lat:  1.3521,  lng:  103.8198, region: "Singapore" },
+        { lat: -33.8688, lng:  151.2093, region: "Sydney" },
+        { lat: 43.6532,  lng:  -79.3832, region: "Toronto" },
+        { lat: 25.2048,  lng:   55.2708, region: "Dubai" },
+        { lat: -23.5505, lng:  -46.6333, region: "São Paulo" },
+        { lat: 19.0760,  lng:   72.8777, region: "Mumbai" },
+        { lat: 55.7558,  lng:   37.6176, region: "Moscow" },
+        { lat: 39.9042,  lng:  116.4074, region: "Beijing" },
+        { lat: 37.5665,  lng:  126.9780, region: "Seoul" },
+        { lat: 47.4979,  lng:   19.0402, region: "Budapest" },
+        { lat: 45.4642,  lng:    9.1900, region: "Milan" },
+        { lat: 60.1699,  lng:   24.9384, region: "Helsinki" },
+    ];
+
+    const statusColour = { online: '#3ef2d0', warning: '#f5a623', offline: '#f45b5b' };
+
+    const fmt = (bytes) => {
+        if (!bytes) return '0 B';
+        if (bytes >= 1099511627776) return (bytes / 1099511627776).toFixed(1) + ' TB';
+        if (bytes >= 1073741824)    return (bytes / 1073741824).toFixed(1) + ' GB';
+        if (bytes >= 1048576)       return (bytes / 1048576).toFixed(1) + ' MB';
+        return (bytes / 1024).toFixed(1) + ' KB';
+    };
+
+    const fmtNum = (n) => (n || 0).toLocaleString();
+
+    const statusDot = (s) => {
+        const c = statusColour[(s || '').toLowerCase()] || '#8ea4cb';
+        return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:5px;vertical-align:middle"></span>`;
+    };
+
+    // ── Leaflet map ───────────────────────────────────────────────
+    const mapEl = document.getElementById('globalMap');
+    if (mapEl && typeof L !== 'undefined') {
+        const map = L.map('globalMap', {
+            center: [25, 15],
+            zoom: 2,
+            zoomControl: false,
+            attributionControl: false,
+        });
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 18
+        }).addTo(map);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.control.attribution({ position: 'bottomleft', prefix: '© <a href="https://carto.com">CARTO</a>' }).addTo(map);
+
+        const pinIcon = (colour) => L.divIcon({
+            className: '',
+            html: `<div style="width:12px;height:12px;background:${colour};border:2px solid rgba(255,255,255,0.9);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 0 10px ${colour}cc;"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 12],
+            popupAnchor: [0, -14],
+        });
+
+        const showLocations = locations && locations.length > 0 ? locations : [
+            { id: 'demo1', name: 'NAS-EU-West',  path: '\\\\nas01\\share', type: 'Nas',       status: 'Online',  totalSizeBytes: 4831838208,  fileCount: 12400 },
+            { id: 'demo2', name: 'NAS-US-East',  path: '\\\\nas02\\data',  type: 'Nas',       status: 'Online',  totalSizeBytes: 13958643712, fileCount: 43800 },
+            { id: 'demo3', name: 'Share-APAC',   path: '\\\\fs01\\apac',   type: 'FileShare', status: 'Warning', totalSizeBytes: 2147483648,  fileCount: 7200  },
+            { id: 'demo4', name: 'Local-Dev',    path: 'D:\\DevStorage',   type: 'Local',     status: 'Offline', totalSizeBytes: 536870912,   fileCount: 1200  },
+            { id: 'demo5', name: 'Archive-SA',   path: '\\\\ar01\\backup', type: 'Nas',       status: 'Online',  totalSizeBytes: 8589934592,  fileCount: 92000 },
+        ];
+
+        showLocations.forEach((loc, i) => {
+            const coord = coordPool[i % coordPool.length];
+            const jLat = coord.lat + (((i * 17 + 3) % 7) - 3) * 0.3;
+            const jLng = coord.lng + (((i * 13 + 5) % 7) - 3) * 0.3;
+            const colour = statusColour[(loc.status || '').toLowerCase()] || '#3ef2d0';
+            const marker = L.marker([jLat, jLng], { icon: pinIcon(colour) }).addTo(map);
+
+            const popup = `<div class="gv-popup">
+                <div class="gv-popup-title">${loc.name}</div>
+                <div class="gv-popup-row">${statusDot(loc.status)}<span>${loc.status || 'Unknown'}</span></div>
+                <div class="gv-popup-row"><span class="gv-popup-lbl">Type</span> ${loc.type}</div>
+                <div class="gv-popup-row"><span class="gv-popup-lbl">Path</span> <code>${loc.path}</code></div>
+                <div class="gv-popup-row"><span class="gv-popup-lbl">Size</span> ${fmt(loc.totalSizeBytes)}</div>
+                <div class="gv-popup-row"><span class="gv-popup-lbl">Files</span> ${fmtNum(loc.fileCount)}</div>
+                <div class="gv-popup-row"><span class="gv-popup-lbl">Region</span> ${coord.region}</div>
+            </div>`;
+
+            marker.bindPopup(popup, { maxWidth: 260, className: 'gv-leaflet-popup' });
+            marker.on('mouseover', function () { this.openPopup(); });
+            marker.on('click', () => {
+                document.querySelectorAll('.gv-loc-row').forEach(r => r.classList.remove('gv-loc-row--active'));
+                const row = document.querySelector(`[data-loc-id="${loc.id}"]`);
+                if (row) { row.classList.add('gv-loc-row--active'); row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+            });
+        });
+    }
+
+    // ── Storage growth sparkline ──────────────────────────────────
+    const tiersCtx = document.getElementById('gvTiersChart');
+    if (tiersCtx && typeof Chart !== 'undefined') {
+        new Chart(tiersCtx, {
+            type: 'line',
+            data: {
+                labels: growthLabels.length ? growthLabels : ['Jan','Feb','Mar','Apr','May','Jun'],
+                datasets: [{
+                    data: growthValues.length ? growthValues : [2.1,3.4,4.8,6.2,8.1,9.7],
+                    borderColor: '#3ef2d0',
+                    backgroundColor: 'rgba(62,242,208,0.12)',
+                    fill: true,
+                    tension: 0.42,
+                    pointRadius: 0,
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { display: false } }
+            }
+        });
+    }
+
+    // ── File type donut ───────────────────────────────────────────
+    const typeCtx = document.getElementById('gvTypeChart');
+    if (typeCtx && typeof Chart !== 'undefined') {
+        const tL = typeLabels.length ? typeLabels : ['Video','Images','Docs','Archives','Other'];
+        const tV = typeValues.length ? typeValues : [38,22,18,12,10];
+        new Chart(typeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: tL,
+                datasets: [{
+                    data: tV,
+                    backgroundColor: ['#3ef2d0','#6b8fff','#f5a623','#f45b5b','#a78bfa'],
+                    borderWidth: 0, hoverOffset: 4,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '68%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: '#9eb0cd', font: { size: 10, family: 'Manrope', weight: '700' }, boxWidth: 8, padding: 8 }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Export / duplicate gauge ──────────────────────────────────
+    const exportCtx = document.getElementById('gvExportGauge');
+    if (exportCtx && typeof Chart !== 'undefined') {
+        new Chart(exportCtx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [dupPct, 100 - dupPct],
+                    backgroundColor: ['#3ef2d0','rgba(62,242,208,0.1)'],
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '78%', rotation: -90, circumference: 180,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            }
+        });
+    }
+
+    // ── Sync profile info from sidebar ───────────────────────────
+    const sidebarName = document.getElementById('sidebarProfileName');
+    const gvName = document.getElementById('gvProfileName');
+    const gvAvatar = document.getElementById('gvAvatar');
+    if (sidebarName && gvName) {
+        gvName.textContent = sidebarName.textContent.trim() || 'StorageLens';
+        const parts = (sidebarName.textContent.trim() || 'SL').split(' ');
+        if (gvAvatar) gvAvatar.textContent = parts.map(p => p[0]).join('').slice(0,2).toUpperCase();
+    }
+}());
+</script>
+}

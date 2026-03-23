@@ -223,3 +223,15 @@
 #25 ...
 
 #28 [hashing build 5/5] RUN dotnet publish src/StorageLens.Services.Hashing/StorageLens.Services.Hashing.csproj -c Release -o /app/publish /p:UseAppHost=false
+#28 ...
+
+#23 [duplicates build 4/5] RUN dotnet restore src/StorageLens.Services.Duplicates/StorageLens.Services.Duplicates.csproj
+#23 475.1 /src/src/StorageLens.Services.Duplicates/StorageLens.Services.Duplicates.csproj : warning NU1603: StorageLens.Shared.Infrastructure depends on AspNetCore.HealthChecks.Uris (>= 8.0.2) but AspNetCore.HealthChecks.Uris 8.0.2 was not found. An approximate best match of AspNetCore.HealthChecks.Uris 9.0.0 was resolved.
+#23 475.1 /src/src/StorageLens.Shared.Infrastructure/StorageLens.Shared.Infrastructure.csproj : warning NU1603: StorageLens.Shared.Infrastructure depends on AspNetCore.HealthChecks.Uris (>= 8.0.2) but AspNetCore.HealthChecks.Uris 8.0.2 was not found. An approximate best match of AspNetCore.HealthChecks.Uris 9.0.0 was resolved. [/src/src/StorageLens.Services.Duplicates/StorageLens.Services.Duplicates.csproj]
+#23 478.0 /src/src/StorageLens.Shared.Infrastructure/StorageLens.Shared.Infrastructure.csproj : warning NU1900: Error occurred while getting package vulnerability data: Resource temporarily unavailable (api.nuget.org:443) [/src/src/StorageLens.Services.Duplicates/StorageLens.Services.Duplicates.csproj]
+#23 478.0 /src/src/StorageLens.Services.Duplicates/StorageLens.Services.Duplicates.csproj : warning NU1900: Error occurred while getting package vulnerability data: Resource temporarily unavailable (api.nuget.org:443)
+#23 ...
+
+#28 [hashing build 5/5] RUN dotnet publish src/StorageLens.Services.Hashing/StorageLens.Services.Hashing.csproj -c Release -o /app/publish /p:UseAppHost=false
+#28 128.8   Determining projects to restore...
+

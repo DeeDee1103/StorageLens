@@ -1,0 +1,1126 @@
+@page
+@model FlowManagerModel
+@using System.Text.Json
+
+@{
+    var locationsJson = JsonSerializer.Serialize(Model.Dashboard.Locations.Select(l => new {
+        id = l.Id, name = l.Name, path = l.Path, type = l.Type,
+        status = l.Status, totalSizeBytes = l.TotalSizeBytes,
+        fileCount = l.FileCount, lastScanDate = l.LastScanDate
+    }));
+    var recentJobsJson = JsonSerializer.Serialize(Model.Dashboard.RecentJobs.Select(j => new {
+        id = j.Id, locationName = j.LocationName, status = j.Status,
+        filesScanned = j.FilesScanned, progressPercent = j.ProgressPercent
+    }));
+    var kpisJson = JsonSerializer.Serialize(new {
+        totalStorageBytes = Model.Dashboard.Kpis.TotalStorageBytes,
+        totalFiles = Model.Dashboard.Kpis.TotalFiles,
+        duplicatePercent = Model.Dashboard.Kpis.DuplicatePercent,
+        potentialSavingsBytes = Model.Dashboard.Kpis.PotentialSavingsBytes
+    });
+    var typeDistJson = JsonSerializer.Serialize(Model.Dashboard.FileTypeDistribution.Select(x => new { label = x.Label, value = x.Value }));
+}
+
+<div class="fm-shell reveal-item">
+
+    <!-- Step indicator bar -->
+    <div class="fm-step-bar">
+        <div class="fm-step fm-step--active" data-fm-step-indicator="1">
+            <div class="fm-step-circle"><i class="bi bi-folder2-open"></i></div>
+            <span class="fm-step-label">Select Source</span>
+        </div>
+        <div class="fm-step-connector"></div>
+        <div class="fm-step" data-fm-step-indicator="2">
+            <div class="fm-step-circle"><i class="bi bi-cursor"></i></div>
+            <span class="fm-step-label">Navigate &amp; Select</span>
+        </div>
+        <div class="fm-step-connector"></div>
+        <div class="fm-step" data-fm-step-indicator="3">
+            <div class="fm-step-circle"><i class="bi bi-lightning-charge"></i></div>
+            <span class="fm-step-label">Choose Operation</span>
+        </div>
+        <div class="fm-step-connector"></div>
+        <div class="fm-step" data-fm-step-indicator="4">
+            <div class="fm-step-circle"><i class="bi bi-diagram-3"></i></div>
+            <span class="fm-step-label">Execute &amp; Monitor</span>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 1 — Select Source (file tree + details)
+         ═══════════════════════════════════════════════════════ -->
+    <div class="fm-panel" data-fm-panel="1">
+        <div class="fm-panel-inner fm-step1-layout">
+
+            <!-- Left: file tree -->
+            <div class="fm-tree-col">
+                <div class="fm-tree-header">
+                    <i class="bi bi-search"></i>
+                    <input class="fm-tree-search" id="fmTreeSearch" type="text" placeholder="Filter folders…" autocomplete="off" />
+                </div>
+                <div class="fm-tree" id="fmTree">
+                    @if (!Model.Dashboard.Locations.Any())
+                    {
+                        <!-- Demo tree when no real locations -->
+                        <div class="fm-tree-group" data-loc-id="demo-1" data-loc-name="NAS-Primary" data-loc-size="13958643712" data-loc-files="43800" data-loc-type="Nas" data-loc-status="Online" data-loc-path="\\nas01\primary">
+                            <div class="fm-tree-drive" data-expand-loc="demo-1">
+                                <i class="bi bi-hdd-network fm-tree-icon--drive"></i>
+                                <span>NAS-Primary</span>
+                                <span class="fm-tree-type-badge">Nas</span>
+                                <i class="bi bi-chevron-down fm-chevron"></i>
+                            </div>
+                            <div class="fm-tree-children" id="fm-children-demo-1">
+                                <div class="fm-tree-item" data-folder="Documents" data-frac="0.18"><i class="bi bi-file-earmark-text fm-tree-icon--doc"></i><span>Documents</span></div>
+                                <div class="fm-tree-item" data-folder="Images" data-frac="0.22"><i class="bi bi-image fm-tree-icon--img"></i><span>Images</span></div>
+                                <div class="fm-tree-item" data-folder="Videos" data-frac="0.38"><i class="bi bi-camera-video fm-tree-icon--vid"></i><span>Videos</span></div>
+                                <div class="fm-tree-item" data-folder="Archives" data-frac="0.12"><i class="bi bi-archive fm-tree-icon--arc"></i><span>Archives</span></div>
+                                <div class="fm-tree-item" data-folder="System" data-frac="0.10"><i class="bi bi-gear fm-tree-icon--sys"></i><span>System</span></div>
+                            </div>
+                        </div>
+                        <div class="fm-tree-group" data-loc-id="demo-2" data-loc-name="FileShare-EU" data-loc-size="4831838208" data-loc-files="12400" data-loc-type="FileShare" data-loc-status="Online" data-loc-path="\\fs01\eu-share">
+                            <div class="fm-tree-drive" data-expand-loc="demo-2">
+                                <i class="bi bi-hdd-stack fm-tree-icon--share"></i>
+                                <span>FileShare-EU</span>
+                                <span class="fm-tree-type-badge">Share</span>
+                                <i class="bi bi-chevron-down fm-chevron"></i>
+                            </div>
+                            <div class="fm-tree-children" id="fm-children-demo-2" hidden>
+                                <div class="fm-tree-item" data-folder="Projects" data-frac="0.45"><i class="bi bi-folder2 fm-tree-icon--doc"></i><span>Projects</span></div>
+                                <div class="fm-tree-item" data-folder="Backups" data-frac="0.30"><i class="bi bi-archive fm-tree-icon--arc"></i><span>Backups</span></div>
+                                <div class="fm-tree-item" data-folder="Media" data-frac="0.25"><i class="bi bi-collection-play fm-tree-icon--vid"></i><span>Media</span></div>
+                            </div>
+                        </div>
+                        <div class="fm-tree-group" data-loc-id="demo-3" data-loc-name="Local-Dev" data-loc-size="536870912" data-loc-files="1200" data-loc-type="Local" data-loc-status="Online" data-loc-path="D:\DevStorage">
+                            <div class="fm-tree-drive" data-expand-loc="demo-3">
+                                <i class="bi bi-laptop fm-tree-icon--local"></i>
+                                <span>Local-Dev</span>
+                                <span class="fm-tree-type-badge">Local</span>
+                                <i class="bi bi-chevron-down fm-chevron"></i>
+                            </div>
+                            <div class="fm-tree-children" id="fm-children-demo-3" hidden>
+                                <div class="fm-tree-item" data-folder="Source" data-frac="0.55"><i class="bi bi-code-slash fm-tree-icon--doc"></i><span>Source Code</span></div>
+                                <div class="fm-tree-item" data-folder="Builds" data-frac="0.30"><i class="bi bi-boxes fm-tree-icon--arc"></i><span>Builds</span></div>
+                                <div class="fm-tree-item" data-folder="Logs" data-frac="0.15"><i class="bi bi-file-text fm-tree-icon--sys"></i><span>Logs</span></div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var loc in Model.Dashboard.Locations)
+                        {
+                            var locTypeIcon = loc.Type.ToLowerInvariant() switch {
+                                "nas" => "bi-hdd-network",
+                                "fileshare" => "bi-hdd-stack",
+                                _ => "bi-laptop"
+                            };
+                            var locTypeClass = loc.Type.ToLowerInvariant() switch {
+                                "nas" => "fm-tree-icon--drive",
+                                "fileshare" => "fm-tree-icon--share",
+                                _ => "fm-tree-icon--local"
+                            };
+                            <div class="fm-tree-group"
+                                 data-loc-id="@loc.Id"
+                                 data-loc-name="@loc.Name"
+                                 data-loc-size="@loc.TotalSizeBytes"
+                                 data-loc-files="@loc.FileCount"
+                                 data-loc-type="@loc.Type"
+                                 data-loc-status="@loc.Status"
+                                 data-loc-path="@loc.Path">
+                                <div class="fm-tree-drive" data-expand-loc="@loc.Id">
+                                    <i class="bi @locTypeIcon @locTypeClass"></i>
+                                    <span>@loc.Name</span>
+                                    <span class="fm-tree-type-badge">@loc.Type</span>
+                                    <i class="bi bi-chevron-down fm-chevron"></i>
+                                </div>
+                                <div class="fm-tree-children" id="fm-children-@loc.Id" hidden>
+                                    <div class="fm-tree-item" data-folder="Documents" data-frac="0.18"><i class="bi bi-file-earmark-text fm-tree-icon--doc"></i><span>Documents</span></div>
+                                    <div class="fm-tree-item" data-folder="Images" data-frac="0.22"><i class="bi bi-image fm-tree-icon--img"></i><span>Images</span></div>
+                                    <div class="fm-tree-item" data-folder="Videos" data-frac="0.38"><i class="bi bi-camera-video fm-tree-icon--vid"></i><span>Videos</span></div>
+                                    <div class="fm-tree-item" data-folder="Archives" data-frac="0.12"><i class="bi bi-archive fm-tree-icon--arc"></i><span>Archives</span></div>
+                                    <div class="fm-tree-item" data-folder="System" data-frac="0.10"><i class="bi bi-gear fm-tree-icon--sys"></i><span>System</span></div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- Right: details panel -->
+            <div class="fm-details-col" id="fmDetailsCol">
+                <div class="fm-details-placeholder">
+                    <i class="bi bi-folder2-open fm-details-big-icon"></i>
+                    <div>Select a location or folder</div>
+                </div>
+                <div class="fm-details-content" id="fmDetailsContent" hidden>
+                    <div class="fm-details-section">
+                        <div class="fm-details-heading">Size</div>
+                        <div class="fm-details-value" id="fmDetailSize">—</div>
+                        <div class="fm-details-row"><span class="fm-details-lbl">Files</span><span id="fmDetailFiles">—</span></div>
+                        <div class="fm-details-row"><span class="fm-details-lbl">Last modified</span><span id="fmDetailDate">—</span></div>
+                        <div class="fm-details-row"><span class="fm-details-lbl">Path</span><span id="fmDetailPath" class="fm-details-path">—</span></div>
+                    </div>
+                    <div class="fm-details-bar-wrap">
+                        <div class="fm-details-bar-track"><div class="fm-details-bar-fill" id="fmDetailBar" style="width:0%"></div></div>
+                        <div class="fm-details-bar-label" id="fmDetailBarLabel">0% used</div>
+                    </div>
+                    <div class="fm-details-section">
+                        <div class="fm-details-heading">Active Users</div>
+                        <div class="fm-active-users" id="fmActiveUsers">
+                            <div class="fm-user-row"><span class="fm-user-dot fm-user-dot--a"></span><span class="fm-user-name">08 Polestar</span><span class="fm-user-time">just now</span></div>
+                            <div class="fm-user-row"><span class="fm-user-dot fm-user-dot--b"></span><span class="fm-user-name">08 LepB Amerelo</span><span class="fm-user-time">2m ago</span></div>
+                            <div class="fm-user-row"><span class="fm-user-dot fm-user-dot--c"></span><span class="fm-user-name">53 Polygon</span><span class="fm-user-time">5m ago</span></div>
+                            <div class="fm-user-row"><span class="fm-user-dot fm-user-dot--d"></span><span class="fm-user-name">4H Media</span><span class="fm-user-time">12m ago</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fm-footer">
+            <div class="fm-selection-hint" id="fmStep1Hint">Select a location or folder to continue</div>
+            <button class="fm-btn fm-btn--ghost" onclick="fmReset()"><i class="bi bi-x-circle"></i> Cancel</button>
+            <button class="fm-btn fm-btn--primary" id="fmStep1Next" disabled onclick="fmGoStep(2)">Continue <i class="bi bi-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 2 — Navigate & Select Files
+         ═══════════════════════════════════════════════════════ -->
+    <div class="fm-panel" data-fm-panel="2" hidden>
+        <div class="fm-panel-inner">
+
+            <!-- Breadcrumb -->
+            <div class="fm-breadcrumb" id="fmBreadcrumb">
+                <span class="fm-bc-item fm-bc-item--root" onclick="fmGoStep(1)"><i class="bi bi-house-door"></i> Home</span>
+                <i class="bi bi-chevron-right fm-bc-sep"></i>
+                <span class="fm-bc-item" id="fmBcLocation">Location</span>
+                <i class="bi bi-chevron-right fm-bc-sep"></i>
+                <span class="fm-bc-item fm-bc-item--active" id="fmBcFolder">Folder</span>
+            </div>
+
+            <!-- Selection toolbar -->
+            <div class="fm-select-toolbar">
+                <label class="fm-check-all">
+                    <input type="checkbox" id="fmSelectAll" onchange="fmToggleAll(this.checked)" />
+                    <span>Select all</span>
+                </label>
+                <div class="fm-select-summary" id="fmSelectSummary">0 items selected</div>
+                <div class="fm-select-filters">
+                    <button class="fm-filter-btn fm-filter-btn--active" data-ext="all" onclick="fmFilterFiles('all', this)">All</button>
+                    <button class="fm-filter-btn" data-ext="video" onclick="fmFilterFiles('video', this)"><i class="bi bi-camera-video"></i> Video</button>
+                    <button class="fm-filter-btn" data-ext="image" onclick="fmFilterFiles('image', this)"><i class="bi bi-image"></i> Image</button>
+                    <button class="fm-filter-btn" data-ext="archive" onclick="fmFilterFiles('archive', this)"><i class="bi bi-archive"></i> Archive</button>
+                    <button class="fm-filter-btn" data-ext="doc" onclick="fmFilterFiles('doc', this)"><i class="bi bi-file-text"></i> Doc</button>
+                </div>
+            </div>
+
+            <!-- File grid -->
+            <div class="fm-file-grid" id="fmFileGrid"></div>
+
+        </div>
+
+        <div class="fm-footer">
+            <div class="fm-selection-pill" id="fmSelectionPill">
+                <i class="bi bi-check2-square"></i>
+                <span id="fmSelPillText">0 files selected</span>
+            </div>
+            <button class="fm-btn fm-btn--ghost" onclick="fmGoStep(1)"><i class="bi bi-arrow-left"></i> Back</button>
+            <button class="fm-btn fm-btn--primary" id="fmStep2Next" disabled onclick="fmGoStep(3)">Choose Operation <i class="bi bi-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 3 — Choose Operation & Preview Savings
+         ═══════════════════════════════════════════════════════ -->
+    <div class="fm-panel" data-fm-panel="3" hidden>
+        <div class="fm-panel-inner fm-step3-layout">
+
+            <!-- Main: duplicate/file grid + operation cards -->
+            <div class="fm-op-main">
+                <div class="fm-step3-tabs">
+                    <button class="fm-tab fm-tab--active" onclick="fmSetTab('optimize', this)">Optimizing</button>
+                    <button class="fm-tab" onclick="fmSetTab('dedup', this)">Deduplicate Folders</button>
+                </div>
+
+                <!-- File icon grid (shows selected files as document cards) -->
+                <div class="fm-file-icon-grid" id="fmFileIconGrid"></div>
+
+                <!-- Before vs After gauges -->
+                <div class="fm-savings-strip">
+                    <div class="fm-savings-panel">
+                        <div class="fm-savings-label">Before vs Savings</div>
+                        <div class="fm-savings-gauges">
+                            <div class="fm-gauge-wrap">
+                                <canvas id="fmGaugeBefore" width="110" height="110"></canvas>
+                                <div class="fm-gauge-center">
+                                    <div class="fm-gauge-val" id="fmGaugeBeforeVal">—</div>
+                                    <div class="fm-gauge-sub">Used</div>
+                                </div>
+                            </div>
+                            <div class="fm-savings-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="fm-gauge-wrap">
+                                <canvas id="fmGaugeAfter" width="110" height="110"></canvas>
+                                <div class="fm-gauge-center">
+                                    <div class="fm-gauge-val" id="fmGaugeAfterVal">—</div>
+                                    <div class="fm-gauge-sub">After</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="fm-savings-delta" id="fmSavingsDelta">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: operation action list -->
+            <div class="fm-op-sidebar">
+                <div class="fm-op-sidebar-title">Operations</div>
+                <div class="fm-op-list" id="fmOpList">
+                    <div class="fm-op-item fm-op-item--active" data-op="copy" onclick="fmSelectOp('copy', this)">
+                        <i class="bi bi-files fm-op-icon fm-op-icon--teal"></i>
+                        <div class="fm-op-text">
+                            <span class="fm-op-name">Copy Files</span>
+                            <span class="fm-op-desc">Duplicate to another location</span>
+                        </div>
+                    </div>
+                    <div class="fm-op-item" data-op="move" onclick="fmSelectOp('move', this)">
+                        <i class="bi bi-arrow-left-right fm-op-icon fm-op-icon--blue"></i>
+                        <div class="fm-op-text">
+                            <span class="fm-op-name">Move Files</span>
+                            <span class="fm-op-desc">Relocate to another path</span>
+                        </div>
+                    </div>
+                    <div class="fm-op-item" data-op="archive" onclick="fmSelectOp('archive', this)">
+                        <i class="bi bi-snow fm-op-icon fm-op-icon--cyan"></i>
+                        <div class="fm-op-text">
+                            <span class="fm-op-name">Cold Archive</span>
+                            <span class="fm-op-desc">Move to cold storage tier</span>
+                        </div>
+                    </div>
+                    <div class="fm-op-item" data-op="hash" onclick="fmSelectOp('hash', this)">
+                        <i class="bi bi-shield-lock fm-op-icon fm-op-icon--purple"></i>
+                        <div class="fm-op-text">
+                            <span class="fm-op-name">Verify Hash</span>
+                            <span class="fm-op-desc">SHA-256 integrity check</span>
+                        </div>
+                    </div>
+                    <div class="fm-op-item" data-op="dedup" onclick="fmSelectOp('dedup', this)">
+                        <i class="bi bi-intersect fm-op-icon fm-op-icon--lime"></i>
+                        <div class="fm-op-text">
+                            <span class="fm-op-name">Deduplicate</span>
+                            <span class="fm-op-desc">Remove duplicate copies</span>
+                        </div>
+                    </div>
+                    <div class="fm-op-item" data-op="delete" onclick="fmSelectOp('delete', this)">
+                        <i class="bi bi-trash fm-op-icon fm-op-icon--red"></i>
+                        <div class="fm-op-text">
+                            <span class="fm-op-name">Delete Files</span>
+                            <span class="fm-op-desc">Permanently remove files</span>
+                        </div>
+                    </div>
+                    <div class="fm-op-item" data-op="scan" onclick="fmSelectOp('scan', this)">
+                        <i class="bi bi-activity fm-op-icon fm-op-icon--orange"></i>
+                        <div class="fm-op-text">
+                            <span class="fm-op-name">Run Scan Job</span>
+                            <span class="fm-op-desc">Full scan &amp; index update</span>
+                        </div>
+                    </div>
+                    <div class="fm-op-item" data-op="report" onclick="fmSelectOp('report', this)">
+                        <i class="bi bi-graph-up-arrow fm-op-icon fm-op-icon--teal"></i>
+                        <div class="fm-op-text">
+                            <span class="fm-op-name">Generate Report</span>
+                            <span class="fm-op-desc">Export analytics summary</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="fm-footer">
+            <div class="fm-op-selected-label" id="fmOpSelectedLabel"><i class="bi bi-lightning-charge"></i> Copy Files selected</div>
+            <button class="fm-btn fm-btn--ghost" onclick="fmGoStep(2)"><i class="bi bi-arrow-left"></i> Back</button>
+            <button class="fm-btn fm-btn--primary fm-btn--execute" onclick="fmGoStep(4)">Execute <i class="bi bi-play-fill"></i></button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 4 — Processing Pipeline Flow Diagram
+         ═══════════════════════════════════════════════════════ -->
+    <div class="fm-panel" data-fm-panel="4" hidden>
+        <div class="fm-panel-inner fm-step4-layout">
+
+            <!-- Pipeline header -->
+            <div class="fm-pipeline-header">
+                <div>
+                    <div class="fm-pipeline-title">Processing Pipeline</div>
+                    <div class="fm-pipeline-subtitle" id="fmPipelineSubtitle">Initializing…</div>
+                </div>
+                <div class="fm-pipeline-controls">
+                    <button class="fm-pipe-ctrl-btn" id="fmPipePlayBtn" onclick="fmTogglePipeline()">
+                        <i class="bi bi-pause-fill"></i> Pause
+                    </button>
+                    <button class="fm-pipe-ctrl-btn" onclick="fmRestartPipeline()">
+                        <i class="bi bi-arrow-counterclockwise"></i> Restart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Node canvas -->
+            <div class="fm-flow-canvas" id="fmFlowCanvas">
+                <svg class="fm-flow-svg" id="fmFlowSvg" width="100%" height="100%"></svg>
+                <!-- Nodes injected by JS -->
+            </div>
+
+            <!-- Log feed -->
+            <div class="fm-log-strip">
+                <div class="fm-log-header"><i class="bi bi-terminal"></i> Live Log</div>
+                <div class="fm-log-feed" id="fmLogFeed"></div>
+            </div>
+
+            <!-- ── Cinematic pipeline visualization (frame_005 style) ── -->
+            <div class="fm-cinematic-wrap" id="fmCinematicWrap">
+                <div class="fm-cinematic-bar">
+                    <i class="bi bi-diagram-3"></i>
+                    <span>Pipeline Visualization</span>
+                    <span class="fm-cin-stage-label" id="fmCinStageLabel">—</span>
+                </div>
+                <div class="fm-cin-canvas" id="fmCinCanvas">
+                    <svg class="fm-cin-svg" id="fmCinSvg" width="100%" height="100%"></svg>
+                    <!-- nodes injected by JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <div class="fm-footer">
+            <div class="fm-pipe-status" id="fmPipeStatus">
+                <span class="fm-pipe-dot fm-pipe-dot--running"></span>
+                <span id="fmPipeStatusText">Running</span>
+            </div>
+            <button class="fm-btn fm-btn--ghost" onclick="fmGoStep(3)"><i class="bi bi-arrow-left"></i> Back</button>
+            <button class="fm-btn fm-btn--primary" onclick="fmReset()"><i class="bi bi-arrow-repeat"></i> New Flow</button>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+(function () {
+'use strict';
+
+// ── Server data ───────────────────────────────────────────────────
+const serverLocations = @Html.Raw(locationsJson);
+const serverJobs      = @Html.Raw(recentJobsJson);
+const serverKpis      = @Html.Raw(kpisJson);
+const serverTypeDist  = @Html.Raw(typeDistJson);
+
+// ── Wizard state ─────────────────────────────────────────────────
+let currentStep = 1;
+let selectedLoc  = null;   // { id, name, size, files, path, type, status }
+let selectedFolder = null; // string (folder name)
+let selectedFiles  = [];   // array of file objects
+let selectedOp     = 'copy';
+let pipelineTimer  = null;
+let pipelinePaused = false;
+let pipelineNodeIdx = 0;
+let pipelineNodes   = [];
+
+// ── Formatters ────────────────────────────────────────────────────
+const fmt = (bytes) => {
+    if (!bytes) return '0 B';
+    if (bytes >= 1099511627776) return (bytes / 1099511627776).toFixed(1) + ' TB';
+    if (bytes >= 1073741824)    return (bytes / 1073741824).toFixed(1) + ' GB';
+    if (bytes >= 1048576)       return (bytes / 1048576).toFixed(1) + ' MB';
+    return (bytes / 1024).toFixed(1) + ' KB';
+};
+const fmtN = (n) => (n || 0).toLocaleString();
+const randBetween = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+
+// ── Step navigation ───────────────────────────────────────────────
+window.fmGoStep = (step) => {
+    if (step === 2 && !selectedLoc) return;
+    if (step === 4) fmStartPipeline();
+
+    document.querySelectorAll('[data-fm-panel]').forEach(p => { p.hidden = true; });
+    document.querySelector(`[data-fm-panel="${step}"]`).hidden = false;
+
+    document.querySelectorAll('[data-fm-step-indicator]').forEach(el => {
+        const n = parseInt(el.dataset.fmStepIndicator);
+        el.classList.toggle('fm-step--active', n === step);
+        el.classList.toggle('fm-step--done', n < step);
+    });
+
+    currentStep = step;
+    if (step === 2) fmBuildFileGrid();
+    if (step === 3) fmBuildOpPanel();
+};
+
+window.fmReset = () => {
+    selectedLoc = null; selectedFolder = null;
+    selectedFiles = []; selectedOp = 'copy';
+    if (pipelineTimer) clearInterval(pipelineTimer);
+    fmGoStep(1);
+    document.querySelectorAll('.fm-tree-item, .fm-tree-drive').forEach(el => el.classList.remove('fm-tree--selected', 'fm-tree--active'));
+    document.getElementById('fmDetailsContent').hidden = true;
+    document.getElementById('fmDetailsPlaceholder')?.classList.remove('hidden');
+    document.getElementById('fmStep1Next').disabled = true;
+    document.getElementById('fmStep1Hint').textContent = 'Select a location or folder to continue';
+};
+
+// ── Step 1: Tree ──────────────────────────────────────────────────
+document.querySelectorAll('[data-expand-loc]').forEach(driveEl => {
+    driveEl.addEventListener('click', () => {
+        const locId = driveEl.dataset.expandLoc;
+        const children = document.getElementById(`fm-children-${locId}`);
+        const chevron = driveEl.querySelector('.fm-chevron');
+        const group = driveEl.closest('.fm-tree-group');
+        const expanded = !children.hidden;
+
+        children.hidden = expanded;
+        if (chevron) chevron.style.transform = expanded ? '' : 'rotate(180deg)';
+
+        // Select the drive itself
+        if (!expanded) {
+            fmSelectLocation(group);
+        }
+    });
+});
+
+document.querySelectorAll('.fm-tree-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const group = item.closest('.fm-tree-group');
+        fmSelectLocation(group, item);
+    });
+});
+
+function fmSelectLocation(group, folderItem) {
+    document.querySelectorAll('.fm-tree-item, .fm-tree-drive').forEach(el => el.classList.remove('fm-tree--selected'));
+
+    const ds = group.dataset;
+    selectedLoc = {
+        id: ds.locId, name: ds.locName,
+        size: parseInt(ds.locSize) || 0,
+        files: parseInt(ds.locFiles) || 0,
+        path: ds.locPath, type: ds.locType, status: ds.locStatus
+    };
+
+    if (folderItem) {
+        folderItem.classList.add('fm-tree--selected');
+        selectedFolder = folderItem.dataset.folder;
+        const frac = parseFloat(folderItem.dataset.frac) || 0.3;
+        selectedLoc._folderSize = Math.floor(selectedLoc.size * frac);
+        selectedLoc._folderFiles = Math.floor(selectedLoc.files * frac);
+    } else {
+        group.querySelector('.fm-tree-drive').classList.add('fm-tree--selected');
+        selectedFolder = null;
+        selectedLoc._folderSize = selectedLoc.size;
+        selectedLoc._folderFiles = selectedLoc.files;
+    }
+
+    fmShowDetails();
+    document.getElementById('fmStep1Next').disabled = false;
+    document.getElementById('fmStep1Hint').textContent = `Selected: ${selectedLoc.name}${selectedFolder ? ' / ' + selectedFolder : ''}`;
+}
+
+function fmShowDetails() {
+    const placeholder = document.querySelector('.fm-details-placeholder');
+    const content = document.getElementById('fmDetailsContent');
+    if (placeholder) placeholder.style.display = 'none';
+    content.hidden = false;
+
+    document.getElementById('fmDetailSize').textContent = fmt(selectedLoc._folderSize);
+    document.getElementById('fmDetailFiles').textContent = fmtN(selectedLoc._folderFiles);
+    document.getElementById('fmDetailPath').textContent = selectedFolder
+        ? `${selectedLoc.path}\\${selectedFolder}`
+        : selectedLoc.path;
+
+    const now = new Date();
+    now.setDate(now.getDate() - randBetween(0, 14));
+    document.getElementById('fmDetailDate').textContent = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+
+    const maxBytes = 20 * 1024 * 1024 * 1024 * 1024; // 20 TB ref
+    const pct = Math.min(99, Math.floor((selectedLoc._folderSize / maxBytes) * 100));
+    document.getElementById('fmDetailBar').style.width = pct + '%';
+    document.getElementById('fmDetailBarLabel').textContent = `${pct}% capacity used`;
+}
+
+// Filter search
+document.getElementById('fmTreeSearch').addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.fm-tree-group').forEach(g => {
+        const name = g.dataset.locName.toLowerCase();
+        g.style.display = (!q || name.includes(q)) ? '' : 'none';
+    });
+});
+
+// ── Step 2: File Grid ─────────────────────────────────────────────
+const mockFileTemplates = {
+    Videos:    [ ['project_final.mp4','mp4','video',1.2e9], ['promo_cut.mov','mov','video',2.4e9], ['raw_capture.mp4','mp4','video',3.8e9], ['b_roll_01.mp4','mp4','video',980e6], ['interview_src.mkv','mkv','video',4.6e9], ['event_reel.mp4','mp4','video',1.7e9], ['timelapse_4k.mp4','mp4','video',6.1e9], ['behind_scenes.mov','mov','video',2.1e9] ],
+    Images:    [ ['photo_set_01.tif','tif','image',420e6], ['renders_hires.zip','zip','archive',1.8e9], ['headshots_2025.jpg','jpg','image',340e6], ['branding_kit.psd','psd','image',2.2e9], ['icons_export.png','png','image',88e6], ['wallpaper_4k.png','png','image',210e6] ],
+    Documents: [ ['annual_report.pdf','pdf','doc',18e6], ['contracts_2025.docx','docx','doc',4e6], ['specs_v3.pdf','pdf','doc',12e6], ['invoice_batch.xlsx','xlsx','doc',2e6], ['notes_archive.zip','zip','archive',88e6] ],
+    Archives:  [ ['backup_2024.tar.gz','tar.gz','archive',12e9], ['archive_q3.zip','zip','archive',4.4e9], ['media_bundle.tar','tar','archive',8.7e9], ['old_projects.7z','7z','archive',3.2e9] ],
+    default:   [ ['data_export.csv','csv','doc',45e6], ['config_backup.json','json','doc',1e6], ['logs_2025.tar.gz','tar.gz','archive',220e6], ['sync_state.db','db','doc',8e6] ]
+};
+
+const fileTypeIcons = { video: 'bi-camera-video', image: 'bi-image', archive: 'bi-archive', doc: 'bi-file-text' };
+const fileTypeColors = { video: '#a78bfa', image: '#3ef2d0', archive: '#f5a623', doc: '#6b8fff' };
+
+window.fmFilterFiles = (ext, btn) => {
+    document.querySelectorAll('.fm-filter-btn').forEach(b => b.classList.remove('fm-filter-btn--active'));
+    btn.classList.add('fm-filter-btn--active');
+    document.querySelectorAll('.fm-file-card').forEach(c => {
+        c.style.display = (ext === 'all' || c.dataset.fileType === ext) ? '' : 'none';
+    });
+};
+
+window.fmToggleAll = (checked) => {
+    document.querySelectorAll('.fm-file-card:not([style*="none"])').forEach(c => {
+        c.classList.toggle('fm-file-card--selected', checked);
+        c.querySelector('input[type=checkbox]').checked = checked;
+    });
+    fmUpdateSelection();
+};
+
+function fmBuildFileGrid() {
+    const grid = document.getElementById('fmFileGrid');
+    grid.innerHTML = '';
+    document.getElementById('fmSelectAll').checked = false;
+
+    const key = selectedFolder || 'default';
+    const templates = mockFileTemplates[key] || mockFileTemplates.default;
+    const files = templates.map(([name, ext, type, size], i) => ({
+        id: i, name, ext, type,
+        size: Math.floor(size * (0.7 + Math.random() * 0.6)),
+        modified: new Date(Date.now() - randBetween(1, 60) * 86400000)
+    }));
+
+    files.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'fm-file-card';
+        card.dataset.fileType = f.type;
+        card.dataset.fileId = f.id;
+        card.innerHTML = `
+            <input class="fm-file-check" type="checkbox" onchange="fmUpdateSelection()" />
+            <i class="bi ${fileTypeIcons[f.type] || 'bi-file'}" style="color:${fileTypeColors[f.type]};font-size:1.4rem;margin-bottom:0.3rem;"></i>
+            <div class="fm-file-name">${f.name}</div>
+            <div class="fm-file-size">${fmt(f.size)}</div>
+            <div class="fm-file-date">${f.modified.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</div>`;
+        card.addEventListener('click', (e) => {
+            if (e.target.type === 'checkbox') return;
+            card.classList.toggle('fm-file-card--selected');
+            card.querySelector('input').checked = card.classList.contains('fm-file-card--selected');
+            fmUpdateSelection();
+        });
+        grid.appendChild(card);
+    });
+
+    // Update breadcrumb
+    document.getElementById('fmBcLocation').textContent = selectedLoc?.name || 'Location';
+    document.getElementById('fmBcFolder').textContent = selectedFolder || 'Root';
+
+    fmUpdateSelection();
+}
+
+window.fmUpdateSelection = () => {
+    selectedFiles = [];
+    document.querySelectorAll('.fm-file-card--selected').forEach(c => {
+        const name = c.querySelector('.fm-file-name').textContent;
+        const sizeText = c.querySelector('.fm-file-size').textContent;
+        selectedFiles.push({ name, type: c.dataset.fileType });
+    });
+    const count = selectedFiles.length;
+    document.getElementById('fmSelectSummary').textContent = count === 0 ? '0 items selected' : `${count} item${count !== 1 ? 's' : ''} selected`;
+    document.getElementById('fmSelPillText').textContent = `${count} file${count !== 1 ? 's' : ''} selected`;
+    document.getElementById('fmStep2Next').disabled = count === 0;
+    document.querySelector('#fmSelectionPill').classList.toggle('fm-selection-pill--active', count > 0);
+};
+
+// ── Step 3: Operation panel ───────────────────────────────────────
+const opFlows = {
+    copy:   { label: 'Copy Files',        color: '#3ef2d0', nodes: ['Validate Source','Enumerate Files','Hash Files','Transfer Files','Verify Integrity','Update Inventory','Refresh Analytics','Complete'] },
+    move:   { label: 'Move Files',        color: '#6b8fff', nodes: ['Validate Source','Enumerate Files','Hash Files','Transfer Files','Remove Source','Update Inventory','Refresh Analytics','Complete'] },
+    archive:{ label: 'Cold Archive',      color: '#67e8f9', nodes: ['Validate Source','Enumerate Files','Compress Files','Transfer to Cold','Update Metadata','Update Inventory','Refresh Analytics','Complete'] },
+    hash:   { label: 'Verify Hash',       color: '#a78bfa', nodes: ['Load File List','Read File Blocks','Compute SHA-256','Compare Checksums','Flag Mismatches','Generate Report','Refresh Analytics','Complete'] },
+    dedup:  { label: 'Deduplicate',       color: '#84f57a', nodes: ['Scan Location','Enumerate Files','Hash Files','Group Duplicates','Analyze Savings','Remove Copies','Update Inventory','Refresh Analytics'] },
+    delete: { label: 'Delete Files',      color: '#f45b5b', nodes: ['Validate Selection','Check Dependencies','Archive to Trash','Remove Files','Verify Deletion','Update Inventory','Refresh Analytics','Complete'] },
+    scan:   { label: 'Run Scan Job',      color: '#f5a623', nodes: ['Queue Scan Job','Scan Location','Enumerate Files','Hash Files','Detect Duplicates','Refresh Analytics','Notify Users','Complete'] },
+    report: { label: 'Generate Report',   color: '#3ef2d0', nodes: ['Gather Locations','Aggregate Metrics','Compute Trends','Detect Anomalies','Compile Report','Export PDF/JSON','Notify Users','Complete'] },
+};
+
+window.fmSelectOp = (op, el) => {
+    selectedOp = op;
+    document.querySelectorAll('.fm-op-item').forEach(i => i.classList.remove('fm-op-item--active'));
+    el.classList.add('fm-op-item--active');
+    const flow = opFlows[op];
+    document.getElementById('fmOpSelectedLabel').innerHTML = `<i class="bi bi-lightning-charge"></i> ${flow.label} selected`;
+};
+
+window.fmSetTab = (tab, btn) => {
+    document.querySelectorAll('.fm-tab').forEach(b => b.classList.remove('fm-tab--active'));
+    btn.classList.add('fm-tab--active');
+};
+
+function fmBuildOpPanel() {
+    // File icon grid (show selected files as document cards)
+    const grid = document.getElementById('fmFileIconGrid');
+    grid.innerHTML = '';
+    const show = selectedFiles.length > 0 ? selectedFiles.slice(0, 9) : [
+        {name:'video_main.mp4', type:'video'},{name:'raw_export.mp4', type:'video'},
+        {name:'b_roll.mp4', type:'video'},{name:'photo_set.tif', type:'image'},
+        {name:'archive.zip', type:'archive'},{name:'report.pdf', type:'doc'},
+    ];
+    show.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'fm-icon-card';
+        const dupMarker = Math.random() > 0.5 ? '<div class="fm-icon-dup-badge">dup</div>' : '';
+        const sizeLabel = fmt(Math.floor(Math.random() * 5e9 + 1e8));
+        card.innerHTML = `
+            <div class="fm-icon-doc">
+                <i class="bi ${fileTypeIcons[f.type] || 'bi-file-earmark'}" style="color:${fileTypeColors[f.type]};font-size:1.6rem;"></i>
+                ${dupMarker}
+            </div>
+            <div class="fm-icon-label">${f.name.length > 14 ? f.name.slice(0,12) + '…' : f.name}</div>
+            <div class="fm-icon-size">${sizeLabel}</div>`;
+        card.addEventListener('click', () => card.classList.toggle('fm-icon-card--selected'));
+        grid.appendChild(card);
+    });
+
+    // Gauges
+    const kpiBytes = serverKpis.totalStorageBytes || 140737488355328;
+    const savingsBytes = serverKpis.potentialSavingsBytes || 5368709120;
+
+    fmDrawGauge('fmGaugeBefore', kpiBytes, '#6b8fff', '#a78bfa');
+    document.getElementById('fmGaugeBeforeVal').textContent = fmt(kpiBytes);
+
+    const afterBytes = Math.max(0, kpiBytes - savingsBytes);
+    fmDrawGauge('fmGaugeAfter', afterBytes, '#3ef2d0', '#84f57a');
+    document.getElementById('fmGaugeAfterVal').textContent = fmt(afterBytes);
+
+    const delta = fmt(savingsBytes);
+    document.getElementById('fmSavingsDelta').innerHTML = `<span style="color:#84f57a">-${delta}</span> potential savings`;
+}
+
+function fmDrawGauge(canvasId, val, colA, colB) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined') return;
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+
+    const maxRef = Math.max(val, serverKpis.totalStorageBytes || val) * 1.1;
+    const pct = Math.min(100, (val / maxRef) * 100);
+
+    new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [pct, 100 - pct],
+                backgroundColor: [colA, 'rgba(255,255,255,0.06)'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: false,
+            cutout: '74%',
+            rotation: -90,
+            circumference: 180,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+    });
+}
+
+// ── Step 4: Pipeline ──────────────────────────────────────────────
+const nodeLayouts = [
+    // [id, label, icon, col, row]   col/row in a 3×3 grid (0-indexed)
+    ['n0', null, null, 0, 0],   // placeholder for layout
+    ['n1', null, null, 1, 0],
+    ['n2', null, null, 2, 0],
+    ['n3', null, null, 2, 1],
+    ['n4', null, null, 1, 1],
+    ['n5', null, null, 0, 1],
+    ['n6', null, null, 0, 2],
+    ['n7', null, null, 1, 2],
+];
+
+const nodeIcons = [
+    'bi-play-circle','bi-list-ul','bi-hash',
+    'bi-files','bi-bar-chart','bi-check2-all',
+    'bi-database','bi-graph-up'
+];
+
+// Edges: sequence 0→1→2→3→4→5→6→7 (serpentine path)
+const EDGES = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7]];
+
+function fmStartPipeline() {
+    const flow = opFlows[selectedOp] || opFlows.copy;
+    const canvas = document.getElementById('fmFlowCanvas');
+    canvas.innerHTML = '<svg class="fm-flow-svg" id="fmFlowSvg" width="100%" height="100%"></svg>';
+
+    // Build node data
+    pipelineNodes = flow.nodes.slice(0, 8).map((label, i) => ({
+        id: `fn-${i}`, label, icon: nodeIcons[i] || 'bi-circle',
+        col: nodeLayouts[i][3], row: nodeLayouts[i][4],
+        status: 'pending', progress: 0
+    }));
+
+    renderNodes(canvas, flow.color);
+    renderEdges();
+    initCinematicDiagram(flow.color);
+
+    pipelineNodeIdx = 0;
+    pipelinePaused = false;
+    document.getElementById('fmPipePlayBtn').innerHTML = '<i class="bi bi-pause-fill"></i> Pause';
+
+    document.getElementById('fmLogFeed').innerHTML = '';
+    fmAddLog('info', `Pipeline started: ${flow.label}`);
+    fmAddLog('info', `Processing ${selectedFiles.length || randBetween(8, 64)} files from ${selectedLoc?.name || 'selected source'}`);
+
+    if (pipelineTimer) clearInterval(pipelineTimer);
+    fmAdvanceNode();
+    pipelineTimer = setInterval(fmAdvanceNode, 2200);
+}
+
+function renderNodes(canvas, accentColor) {
+    const cols = 3, rows = 3;
+    const colW = 100 / cols, rowH = 100 / rows;
+
+    pipelineNodes.forEach((node, i) => {
+        const div = document.createElement('div');
+        div.className = 'fm-node fm-node--pending';
+        div.id = node.id;
+
+        const left = (node.col * colW + colW * 0.05).toFixed(1);
+        const top = (node.row * rowH + rowH * 0.08).toFixed(1);
+        div.style.left = left + '%';
+        div.style.top = top + '%';
+        div.style.setProperty('--accent', accentColor);
+
+        div.innerHTML = `
+            <div class="fm-node-head">
+                <i class="bi ${node.icon} fm-node-icon"></i>
+                <span class="fm-node-title">${node.label}</span>
+                <span class="fm-node-badge fm-node-badge--pending">Pending</span>
+            </div>
+            <div class="fm-node-body">
+                <div class="fm-node-progress-track">
+                    <div class="fm-node-progress-fill" id="${node.id}-prog" style="width:0%"></div>
+                </div>
+                <div class="fm-node-status-text" id="${node.id}-status">Waiting…</div>
+            </div>`;
+        canvas.appendChild(div);
+    });
+}
+
+function renderEdges() {
+    const svg = document.getElementById('fmFlowSvg');
+    const canvas = document.getElementById('fmFlowCanvas');
+    svg.innerHTML = '';
+    if (!canvas || !svg) return;
+
+    // Defer to after layout paint
+    requestAnimationFrame(() => {
+        const cRect = canvas.getBoundingClientRect();
+        EDGES.forEach(([from, to]) => {
+            const fromEl = document.getElementById(pipelineNodes[from]?.id);
+            const toEl   = document.getElementById(pipelineNodes[to]?.id);
+            if (!fromEl || !toEl) return;
+
+            const fR = fromEl.getBoundingClientRect();
+            const tR = toEl.getBoundingClientRect();
+
+            const fx = fR.right - cRect.left;
+            const fy = fR.top + fR.height / 2 - cRect.top;
+            const tx = tR.left - cRect.left;
+            const ty = tR.top + tR.height / 2 - cRect.top;
+
+            // Bezier curve
+            const cx1 = fx + (tx - fx) * 0.5;
+            const cy1 = fy;
+            const cx2 = tx - (tx - fx) * 0.5;
+            const cy2 = ty;
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M${fx},${fy} C${cx1},${cy1} ${cx2},${cy2} ${tx},${ty}`);
+            path.setAttribute('class', 'fm-edge-path');
+            path.id = `fe-${from}-${to}`;
+            svg.appendChild(path);
+
+            // Arrowhead
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            const angle = Math.atan2(ty - cy2, tx - cx2);
+            const size = 5;
+            const pts = [
+                [tx, ty],
+                [tx - size * Math.cos(angle - 0.4), ty - size * Math.sin(angle - 0.4)],
+                [tx - size * Math.cos(angle + 0.4), ty - size * Math.sin(angle + 0.4)],
+            ].map(p => p.join(',')).join(' ');
+            marker.setAttribute('points', pts);
+            marker.setAttribute('class', 'fm-edge-arrow');
+            svg.appendChild(marker);
+        });
+    });
+}
+
+// ── Cinematic diagram (frame_005 style) ──────────────────────────
+// 4 fixed cinematic nodes: each covers a range of pipeline steps.
+// The HERO node (cin-b) updates its title to the current active step.
+const CIN_STAGES = [
+    { id: 'cin-a', range: [0, 1], x: '3%',  y: '8%',  w: 200, hero: false },
+    { id: 'cin-b', range: [2, 5], x: '18%', y: '38%', w: 240, hero: true  },
+    { id: 'cin-c', range: [6, 6], x: '58%', y: '5%',  w: 195, hero: false },
+    { id: 'cin-d', range: [7, 7], x: '62%', y: '60%', w: 195, hero: false },
+];
+const CIN_EDGES = [['cin-a','cin-b'],['cin-b','cin-c'],['cin-c','cin-d'],['cin-b','cin-d']];
+let cinAccent = '#3ef2d0';
+
+function initCinematicDiagram(accentColor) {
+    cinAccent = accentColor;
+    const canvas = document.getElementById('fmCinCanvas');
+    const svg    = document.getElementById('fmCinSvg');
+    if (!canvas) return;
+    canvas.querySelectorAll('.fm-cin-node').forEach(n => n.remove());
+    if (svg) svg.innerHTML = '';
+
+    CIN_STAGES.forEach(stage => {
+        const startNode = pipelineNodes[stage.range[0]];
+        if (!startNode) return;
+        const div = document.createElement('div');
+        div.className = 'fm-cin-node fm-cin-node--pending' + (stage.hero ? ' fm-cin-node--is-hero' : '');
+        div.id = stage.id;
+        div.style.left = stage.x;
+        div.style.top  = stage.y;
+        div.style.width = stage.w + 'px';
+        div.style.setProperty('--cin-accent', accentColor);
+        div.innerHTML = `
+            <div class="fm-cin-head">
+                <i class="bi ${nodeIcons[stage.range[0]] || 'bi-circle'} fm-cin-icon"></i>
+                <span class="fm-cin-badge fm-cin-badge--pending" id="${stage.id}-badge">Pending</span>
+            </div>
+            <div class="fm-cin-title" id="${stage.id}-title">${startNode.label}</div>
+            <div class="fm-cin-prog-track">
+                <div class="fm-cin-prog-fill" id="${stage.id}-prog" style="width:0%"></div>
+            </div>
+            <div class="fm-cin-foot">
+                <span class="fm-cin-dot fm-cin-dot--pending" id="${stage.id}-dot"></span>
+                <span class="fm-cin-foot-text" id="${stage.id}-foot">Waiting</span>
+                ${stage.hero ? '<span class="fm-cin-syncing" id="fmCinSyncing" hidden>Syncing</span>' : ''}
+            </div>`;
+        canvas.appendChild(div);
+    });
+    setTimeout(drawCinEdges, 80);
+}
+
+function drawCinEdges() {
+    const canvas = document.getElementById('fmCinCanvas');
+    const svg    = document.getElementById('fmCinSvg');
+    if (!canvas || !svg) return;
+    svg.innerHTML = '';
+    const cRect = canvas.getBoundingClientRect();
+
+    CIN_EDGES.forEach(([fromId, toId]) => {
+        const fEl = document.getElementById(fromId);
+        const tEl = document.getElementById(toId);
+        if (!fEl || !tEl) return;
+        const fR = fEl.getBoundingClientRect();
+        const tR = tEl.getBoundingClientRect();
+        const fx = fR.right  - cRect.left;
+        const fy = fR.top    + fR.height * 0.5 - cRect.top;
+        const tx = tR.left   - cRect.left;
+        const ty = tR.top    + tR.height * 0.5 - cRect.top;
+        const mx = (fx + tx) / 2;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M${fx},${fy} C${mx},${fy} ${mx},${ty} ${tx},${ty}`);
+        path.setAttribute('class', 'fm-cin-edge');
+        path.id = `fce-${fromId}-${toId}`;
+        svg.appendChild(path);
+
+        // Arrowhead
+        const angle = Math.atan2(ty - fy, tx - fx);
+        const s = 6;
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        const pts = [[tx,ty],
+            [tx - s*Math.cos(angle-0.45), ty - s*Math.sin(angle-0.45)],
+            [tx - s*Math.cos(angle+0.45), ty - s*Math.sin(angle+0.45)]
+        ].map(p => p.join(',')).join(' ');
+        arrow.setAttribute('points', pts);
+        arrow.setAttribute('class', 'fm-cin-arrow');
+        svg.appendChild(arrow);
+    });
+}
+
+function updateCinematicDiagram(nodeIdx) {
+    CIN_STAGES.forEach(stage => {
+        const el    = document.getElementById(stage.id);
+        const badge = document.getElementById(stage.id + '-badge');
+        const prog  = document.getElementById(stage.id + '-prog');
+        const foot  = document.getElementById(stage.id + '-foot');
+        const dot   = document.getElementById(stage.id + '-dot');
+        const title = document.getElementById(stage.id + '-title');
+        if (!el) return;
+
+        const [lo, hi] = stage.range;
+        const base = 'fm-cin-node' + (stage.hero ? ' fm-cin-node--is-hero' : '');
+
+        if (nodeIdx > hi) {
+            // Entire range is done
+            el.className = base + ' fm-cin-node--done';
+            if (badge) { badge.className = 'fm-cin-badge fm-cin-badge--done'; badge.textContent = 'Done ✓'; }
+            if (prog)  prog.style.width = '100%';
+            if (foot)  foot.textContent = 'Complete ✓';
+            if (dot)   dot.className = 'fm-cin-dot fm-cin-dot--done';
+            CIN_EDGES.filter(([f]) => f === stage.id).forEach(([f, t]) => {
+                const p = document.getElementById(`fce-${f}-${t}`);
+                if (p) p.classList.add('fm-cin-edge--done');
+            });
+            document.getElementById('fmCinSyncing') && (document.getElementById('fmCinSyncing').hidden = true);
+        } else if (nodeIdx >= lo) {
+            // Currently in this range — running
+            el.className = base + ' fm-cin-node--running';
+            if (badge) { badge.className = 'fm-cin-badge fm-cin-badge--running'; badge.textContent = 'Running'; }
+            if (dot)   dot.className = 'fm-cin-dot fm-cin-dot--running';
+            if (foot)  foot.textContent = 'Processing…';
+            // Update title to the current pipeline step label
+            if (title && pipelineNodes[nodeIdx]) title.textContent = pipelineNodes[nodeIdx].label;
+            // Sub-progress within this stage
+            const subPct = ((nodeIdx - lo) / (hi - lo + 1)) * 100;
+            if (prog) prog.style.width = subPct + '%';
+            if (stage.hero) {
+                const syncEl = document.getElementById('fmCinSyncing');
+                if (syncEl) syncEl.hidden = false;
+                document.getElementById('fmCinStageLabel').textContent = pipelineNodes[nodeIdx]?.label || '';
+            }
+        }
+        // else still pending — no change
+    });
+}
+
+function fmAdvanceNode() {
+    if (pipelinePaused) return;
+    if (pipelineNodeIdx >= pipelineNodes.length) {
+        clearInterval(pipelineTimer);
+        document.getElementById('fmPipeStatusText').textContent = 'Complete';
+        document.querySelector('.fm-pipe-dot').className = 'fm-pipe-dot fm-pipe-dot--done';
+        document.getElementById('fmPipelineSubtitle').textContent = 'All stages complete ✓';
+        document.getElementById('fmCinStageLabel').textContent = 'All stages complete ✓';
+        fmAddLog('success', 'Pipeline completed successfully.');
+        updateCinematicDiagram(pipelineNodes.length); // mark all done
+        return;
+    }
+
+    const node = pipelineNodes[pipelineNodeIdx];
+    const el = document.getElementById(node.id);
+    if (!el) return;
+
+    // Mark previous as done
+    if (pipelineNodeIdx > 0) {
+        const prev = pipelineNodes[pipelineNodeIdx - 1];
+        const prevEl = document.getElementById(prev.id);
+        if (prevEl) {
+            prevEl.className = 'fm-node fm-node--done';
+            document.getElementById(prev.id + '-prog').style.width = '100%';
+            document.getElementById(prev.id + '-status').textContent = 'Complete ✓';
+            prevEl.querySelector('.fm-node-badge').className = 'fm-node-badge fm-node-badge--done';
+            prevEl.querySelector('.fm-node-badge').textContent = 'Done';
+        }
+        // Animate edge
+        const edgePath = document.getElementById(`fe-${pipelineNodeIdx-1}-${pipelineNodeIdx}`);
+        if (edgePath) edgePath.classList.add('fm-edge-path--done');
+    }
+
+    // Set current as running
+    el.className = 'fm-node fm-node--running';
+    el.querySelector('.fm-node-badge').className = 'fm-node-badge fm-node-badge--running';
+    el.querySelector('.fm-node-badge').textContent = 'Running';
+    document.getElementById(node.id + '-status').textContent = 'Processing…';
+    document.getElementById('fmPipelineSubtitle').textContent = `Running: ${node.label}`;
+    document.getElementById('fmPipeStatusText').textContent = `Running · ${node.label}`;
+
+    fmAddLog('run', node.label);
+    updateCinematicDiagram(pipelineNodeIdx);
+
+    // Animate progress fill
+    let prog = 0;
+    const progBar = document.getElementById(node.id + '-prog');
+    const progTimer = setInterval(() => {
+        prog += randBetween(8, 22);
+        if (prog >= 100) { prog = 100; clearInterval(progTimer); }
+        if (progBar) progBar.style.width = prog + '%';
+    }, 180);
+
+    pipelineNodeIdx++;
+}
+
+window.fmTogglePipeline = () => {
+    pipelinePaused = !pipelinePaused;
+    const btn = document.getElementById('fmPipePlayBtn');
+    if (pipelinePaused) {
+        btn.innerHTML = '<i class="bi bi-play-fill"></i> Resume';
+        fmAddLog('info', 'Pipeline paused.');
+    } else {
+        btn.innerHTML = '<i class="bi bi-pause-fill"></i> Pause';
+        fmAddLog('info', 'Pipeline resumed.');
+    }
+};
+
+window.fmRestartPipeline = () => {
+    if (pipelineTimer) clearInterval(pipelineTimer);
+    pipelineNodeIdx = 0;
+    fmStartPipeline();
+    fmAddLog('info', 'Pipeline restarted.');
+};
+
+const logIcons = { info: 'bi-info-circle', run: 'bi-arrow-right-circle-fill', success: 'bi-check-circle-fill', warn: 'bi-exclamation-triangle-fill' };
+const logColors = { info: '#8ea4cb', run: '#3ef2d0', success: '#84f57a', warn: '#f5a623' };
+const logMessages = {
+    'Validate Source':        ['Checking source integrity…','Source path accessible','Permissions OK'],
+    'Enumerate Files':        ['Scanning directory tree…','Found {n} files','Building index…'],
+    'Hash Files':             ['Computing SHA-256 hashes…','{n} hashes complete','Verifying checksums'],
+    'Transfer Files':         ['Opening destination…','Transferring batch 1/{b}','Copy rate: {r} MB/s'],
+    'Verify Integrity':       ['Comparing hashes…','All checksums match','Integrity verified ✓'],
+    'Update Inventory':       ['Registering new paths…','Updating FileInventory service','Index synced'],
+    'Refresh Analytics':      ['Aggregating metrics…','Rebuilding dashboard…','Analytics updated'],
+    'Complete':               ['Finalizing…','Sending notifications…','Operation complete ✓'],
+    default:                  ['Processing…','Stage complete','Moving to next step']
+};
+
+function fmAddLog(type, stage) {
+    const feed = document.getElementById('fmLogFeed');
+    if (!feed) return;
+    const msgs = logMessages[stage] || logMessages.default;
+    const msg = msgs[Math.floor(Math.random() * msgs.length)]
+        .replace('{n}', fmtN(randBetween(800, 44000)))
+        .replace('{b}', randBetween(4, 16))
+        .replace('{r}', randBetween(180, 950));
+
+    const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const row = document.createElement('div');
+    row.className = 'fm-log-row';
+    row.innerHTML = `<span class="fm-log-time">${now}</span>
+        <i class="bi ${logIcons[type] || 'bi-circle'}" style="color:${logColors[type]};font-size:0.72rem;flex-shrink:0;"></i>
+        <span class="fm-log-msg">${msg}</span>`;
+    feed.appendChild(row);
+    feed.scrollTop = feed.scrollHeight;
+
+    // Trim old log entries
+    while (feed.children.length > 30) feed.removeChild(feed.firstChild);
+}
+
+// Auto-expand first location in tree
+const firstDrive = document.querySelector('[data-expand-loc]');
+if (firstDrive) {
+    const locId = firstDrive.dataset.expandLoc;
+    const children = document.getElementById(`fm-children-${locId}`);
+    if (children) {
+        children.hidden = false;
+        const chevron = firstDrive.querySelector('.fm-chevron');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+    }
+}
+
+}());
+</script>
+}
