@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StorageLens.Shared.Infrastructure;
 using StorageLens.Web.Clients;
 using StorageLens.Web.Data;
 using StorageLens.Web.Services;
 using System.Threading.RateLimiting;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,7 +124,7 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapRazorPages();
-app.MapStorageLensHealthChecks();
+MapWebHealthEndpoints(app);
 
 using (var scope = app.Services.CreateScope())
 {
@@ -193,4 +195,38 @@ static async Task WaitForReadyAsync(
     }
 
     logger.LogWarning("Upstream {Dependency} did not become ready within {MaxWaitSeconds} seconds.", dependencyName, maxWait.TotalSeconds);
+}
+
+static void MapWebHealthEndpoints(WebApplication app)
+{
+    app.MapGet("/health/live", () => Results.Json(new { status = "Healthy" }))
+        .AllowAnonymous();
+
+    app.MapGet("/health/ready", async (HealthCheckService healthChecks, CancellationToken cancellationToken) =>
+    {
+        var report = await healthChecks.CheckHealthAsync(
+            check => check.Tags.Contains("ready"),
+            cancellationToken);
+
+        var payload = new
+        {
+            status = report.Status.ToString(),
+            entries = report.Entries.ToDictionary(
+                e => e.Key,
+                e => new
+                {
+                    status = e.Value.Status.ToString(),
+                    description = e.Value.Description,
+                    duration = e.Value.Duration.TotalMilliseconds,
+                    tags = e.Value.Tags
+                })
+        };
+
+        return report.Status == HealthStatus.Unhealthy
+            ? Results.Json(payload, statusCode: StatusCodes.Status503ServiceUnavailable)
+            : Results.Json(payload);
+    }).AllowAnonymous();
+
+    app.MapGet("/health", () => Results.Json(new { status = "Healthy" }))
+        .AllowAnonymous();
 }

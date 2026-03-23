@@ -19,7 +19,7 @@ public class WorkflowBackgroundService(
         var activeTasks = new System.Collections.Concurrent.ConcurrentDictionary<Guid, Task>();
 
         logger.LogInformation("Workflow background service started with MaxConcurrentWorkflows={Max}", maxConcurrent);
-        await EnqueueRecoverableWorkflowsAsync(stoppingToken);
+        await TryEnqueueRecoverableWorkflowsWithRetryAsync(stoppingToken);
 
         try
         {
@@ -101,6 +101,31 @@ public class WorkflowBackgroundService(
         if (workflowIds.Count > 0)
         {
             logger.LogInformation("Recovered {Count} pending workflow(s) into the in-memory queue.", workflowIds.Count);
+        }
+    }
+
+    private async Task TryEnqueueRecoverableWorkflowsWithRetryAsync(CancellationToken cancellationToken)
+    {
+        var delay = TimeSpan.FromSeconds(5);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await EnqueueRecoverableWorkflowsAsync(cancellationToken);
+                return;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Unable to recover startup workflows yet. Retrying in {DelaySeconds}s.",
+                    delay.TotalSeconds);
+                await Task.Delay(delay, cancellationToken);
+            }
         }
     }
 }
