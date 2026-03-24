@@ -1,4 +1,50 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+﻿// ── Quick Action Button definitions (shared with AppearanceSettings) ────────
+window.SL_QUICK_BTN_DEFS = [
+	{ id: 'dashboard',     label: 'Dashboard',          icon: 'bi-speedometer2',   href: '/Index' },
+	{ id: 'globalview',    label: 'Global View',         icon: 'bi-globe2',         href: '/GlobalView' },
+	{ id: 'locations',     label: 'Storage Locations',   icon: 'bi-hdd-stack',      href: '/StorageLocations' },
+	{ id: 'scanjobs',      label: 'Scan Jobs',           icon: 'bi-activity',       href: '/ScanJobs' },
+	{ id: 'flowmanager',   label: 'Flow Manager',        icon: 'bi-diagram-3',      href: '/FlowManager' },
+	{ id: 'fileinventory', label: 'File Inventory',      icon: 'bi-folder2-open',   href: '/FileInventory' },
+	{ id: 'duplicates',    label: 'Duplicates',          icon: 'bi-files',          href: '/Duplicates' },
+	{ id: 'reports',       label: 'Reports',             icon: 'bi-graph-up-arrow', href: '/Reports' },
+	{ id: 'insights',      label: 'Insights',            icon: 'bi-journal-text',   href: '/Insights' },
+	{ id: 'alerts',        label: 'Alerts',              icon: 'bi-bell-fill',      href: '/Alerts' },
+	{ id: 'logging',       label: 'Logging',             icon: 'bi-terminal',       href: '/Logging' },
+	{ id: 'settings',      label: 'Settings',            icon: 'bi-gear',           href: '/Settings' },
+	{ id: 'profile',       label: 'Profile',             icon: 'bi-person-circle',  href: '/Profile' },
+];
+
+window.SL_QUICK_BTNS_KEY = 'sl-quick-buttons';
+window.SL_QUICK_BTNS_DEFAULT = ['locations', 'scanjobs', 'flowmanager'];
+
+window.renderQuickActionBtns = function () {
+	const container = document.getElementById('quickActionBtns');
+	if (!container) return;
+	let selected;
+	try {
+		const raw = localStorage.getItem(window.SL_QUICK_BTNS_KEY);
+		selected = raw ? JSON.parse(raw) : window.SL_QUICK_BTNS_DEFAULT;
+	} catch {
+		selected = window.SL_QUICK_BTNS_DEFAULT;
+	}
+	if (!Array.isArray(selected) || selected.length === 0) selected = window.SL_QUICK_BTNS_DEFAULT;
+	selected = selected.slice(0, 3);
+	container.innerHTML = '';
+	selected.forEach(id => {
+		const def = window.SL_QUICK_BTN_DEFS.find(d => d.id === id);
+		if (!def) return;
+		const a = document.createElement('a');
+		a.href = def.href;
+		a.className = 'btn icon-btn';
+		a.title = def.label;
+		a.setAttribute('aria-label', def.label);
+		a.innerHTML = `<i class="bi ${def.icon}" aria-hidden="true"></i>`;
+		container.appendChild(a);
+	});
+};
+
+document.addEventListener("DOMContentLoaded", () => {
 	const themeStorageKey = "storagelens-theme";
 	const uiColorStorageKey = "sl-ui-color";
 	const uiColorCustomStorageKey = "sl-ui-color-custom";
@@ -135,6 +181,7 @@
 		: (prefersDarkMode ? darkThemeValue : lightThemeValue);
 
 	applyTheme(initialTheme);
+	window.renderQuickActionBtns();
 
 	themeToggle?.addEventListener("click", () => {
 		const nextTheme = document.body.classList.contains("dark-mode") ? lightThemeValue : darkThemeValue;
@@ -196,118 +243,6 @@
 		}
 	}
 
-	const topLevelSections = Array.from(document.querySelectorAll("main.content-area > section"));
-	if (topLevelSections.length > 0) {
-		const contentArea = document.querySelector("main.content-area");
-		const perPageCollapseKey = `sl-collapsed-sections:${window.location.pathname}`;
-		let collapsedStateByPage = {};
-
-		try {
-			const raw = localStorage.getItem(perPageCollapseKey);
-			collapsedStateByPage = raw ? JSON.parse(raw) : {};
-		} catch {
-			collapsedStateByPage = {};
-		}
-
-		const persistSectionState = (sectionKey, isCollapsed) => {
-			collapsedStateByPage[sectionKey] = isCollapsed;
-			localStorage.setItem(perPageCollapseKey, JSON.stringify(collapsedStateByPage));
-		};
-
-		const sectionControllers = [];
-
-		topLevelSections.forEach((section, index) => {
-			if (section.dataset.slCollapsibleInit === "true") {
-				return;
-			}
-
-			const sectionStateKey = section.id ? `id:${section.id}` : `index:${index + 1}`;
-
-			section.dataset.slCollapsibleInit = "true";
-			section.classList.add("sl-collapsible-section");
-
-			const controls = document.createElement("div");
-			controls.className = "sl-section-toggle-wrap";
-
-			const button = document.createElement("button");
-			button.type = "button";
-			button.className = "btn btn-sm btn-outline-secondary sl-section-toggle";
-			button.setAttribute("aria-expanded", "true");
-
-			const body = document.createElement("div");
-			body.className = "sl-section-body";
-			body.id = section.id ? `${section.id}__body` : `sl-section-body-${index + 1}`;
-			button.setAttribute("aria-controls", body.id);
-
-			while (section.firstChild) {
-				body.appendChild(section.firstChild);
-			}
-
-			const setButtonState = (expanded) => {
-				button.setAttribute("aria-expanded", String(expanded));
-				button.innerHTML = expanded
-					? '<i class="bi bi-chevron-up" aria-hidden="true"></i><span>Collapse Section</span>'
-					: '<i class="bi bi-chevron-down" aria-hidden="true"></i><span>Expand Section</span>';
-			};
-
-			const applySectionState = (expanded) => {
-				body.hidden = !expanded;
-				section.classList.toggle("is-collapsed", !expanded);
-				setButtonState(expanded);
-			};
-
-			button.addEventListener("click", () => {
-				const currentlyExpanded = button.getAttribute("aria-expanded") === "true";
-				const nextExpanded = !currentlyExpanded;
-				applySectionState(nextExpanded);
-				persistSectionState(sectionStateKey, !nextExpanded);
-			});
-
-			const shouldStartCollapsed = collapsedStateByPage[sectionStateKey] === true;
-			applySectionState(!shouldStartCollapsed);
-			sectionControllers.push({
-				sectionKey: sectionStateKey,
-				applyExpanded: () => {
-					applySectionState(true);
-					persistSectionState(sectionStateKey, false);
-				},
-				applyCollapsed: () => {
-					applySectionState(false);
-					persistSectionState(sectionStateKey, true);
-				}
-			});
-			controls.appendChild(button);
-			section.appendChild(controls);
-			section.appendChild(body);
-		});
-
-		if (contentArea && sectionControllers.length > 1) {
-			const pageControls = document.createElement("div");
-			pageControls.className = "sl-page-controls";
-
-			const expandAllButton = document.createElement("button");
-			expandAllButton.type = "button";
-			expandAllButton.className = "btn btn-sm btn-outline-primary sl-expand-all";
-			expandAllButton.innerHTML = '<i class="bi bi-arrows-expand" aria-hidden="true"></i><span>Expand All Sections</span>';
-
-			const collapseAllButton = document.createElement("button");
-			collapseAllButton.type = "button";
-			collapseAllButton.className = "btn btn-sm btn-outline-secondary sl-collapse-all";
-			collapseAllButton.innerHTML = '<i class="bi bi-arrows-collapse" aria-hidden="true"></i><span>Collapse All Sections</span>';
-
-			expandAllButton.addEventListener("click", () => {
-				sectionControllers.forEach((controller) => controller.applyExpanded());
-			});
-
-			collapseAllButton.addEventListener("click", () => {
-				sectionControllers.forEach((controller) => controller.applyCollapsed());
-			});
-
-			pageControls.appendChild(expandAllButton);
-			pageControls.appendChild(collapseAllButton);
-			contentArea.insertBefore(pageControls, topLevelSections[0]);
-		}
-	}
 });
 
 const buildStoragePathCandidates = (rawPath) => {

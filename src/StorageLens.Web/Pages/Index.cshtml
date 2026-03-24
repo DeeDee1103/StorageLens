@@ -10,13 +10,15 @@
 }
 
 <section class="mb-3 reveal-item dashboard-mode-header">
-    <div>
-        <h1 class="dashboard-title">Storage Operations Dashboard</h1>
-        <p class="text-secondary mb-0">Executive overview of capacity, duplicate waste, and scan performance.</p>
+    <div class="dashboard-header-text">
+        <h1 class="dashboard-title" style="text-align:left">Storage Operations Dashboard</h1>
+        <p class="text-secondary mb-0" style="text-align:left">Executive overview of capacity, duplicate waste, and scan performance.</p>
     </div>
-    <div class="dashboard-mode-toggle" role="group" aria-label="Dashboard mode selector">
-        <button type="button" class="btn dashboard-mode-btn" data-dashboard-mode-btn="classic" aria-pressed="true">Original</button>
-        <button type="button" class="btn dashboard-mode-btn" data-dashboard-mode-btn="interactive" aria-pressed="false">Interactive</button>
+    <div class="ms-auto">
+        <div class="dashboard-mode-toggle" role="group" aria-label="Dashboard mode selector">
+            <button type="button" class="btn dashboard-mode-btn" data-dashboard-mode-btn="classic" aria-pressed="true">Original</button>
+            <button type="button" class="btn dashboard-mode-btn" data-dashboard-mode-btn="interactive" aria-pressed="false">Interactive</button>
+        </div>
     </div>
 </section>
 
@@ -208,10 +210,34 @@
                 <i class="bi bi-search" aria-hidden="true"></i>
                 <span>Scan history</span>
             </div>
-            <div class="interactive-actions">
-                <button class="interactive-action-btn interactive-action-btn--red" id="idbClose" title="Switch to Classic view" aria-label="Switch to Classic view"></button>
-                <button class="interactive-action-btn interactive-action-btn--yellow" id="idbMinimize" title="Toggle compact mode" aria-label="Toggle compact mode"></button>
-                <button class="interactive-action-btn interactive-action-btn--green" id="idbExpand" title="Toggle fullscreen" aria-label="Toggle fullscreen"></button>
+            <div class="interactive-actions" id="healthStatusDots">
+                <button class="interactive-action-btn interactive-action-btn--unknown"
+                        id="idbClose"
+                        data-health-tier="data"
+                        data-health-keys="upstream:locations,upstream:scanjobs,upstream:fileinventory"
+                        data-health-label="Data Layer"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="bottom"
+                        data-bs-title="Data Layer: checking…"
+                        aria-label="Data Layer status — Switch to Classic view"></button>
+                <button class="interactive-action-btn interactive-action-btn--unknown"
+                        id="idbMinimize"
+                        data-health-tier="processing"
+                        data-health-keys="upstream:duplicates,upstream:analytics"
+                        data-health-label="Processing"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="bottom"
+                        data-bs-title="Processing: checking…"
+                        aria-label="Processing status — Toggle compact mode"></button>
+                <button class="interactive-action-btn interactive-action-btn--unknown"
+                        id="idbExpand"
+                        data-health-tier="orchestration"
+                        data-health-keys="upstream:orchestrator"
+                        data-health-label="Orchestration"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="bottom"
+                        data-bs-title="Orchestration: checking…"
+                        aria-label="Orchestration status — Toggle fullscreen"></button>
             </div>
         </div>
 
@@ -976,5 +1002,84 @@
                 idbExpand.title = document.fullscreenElement ? 'Exit fullscreen' : 'Toggle fullscreen';
             });
         }
+
+        // ── System health status circles ─────────────────────────────────────
+        const statusColors = ['interactive-action-btn--healthy', 'interactive-action-btn--degraded', 'interactive-action-btn--unhealthy', 'interactive-action-btn--unknown'];
+
+        function applyHealthStatus(btn, tierLabel, entries) {
+            const keys = (btn.dataset.healthKeys || '').split(',').map(k => k.trim()).filter(Boolean);
+            const relevantEntries = keys.map(k => entries[k]).filter(Boolean);
+
+            let worstStatus = 'unknown';
+            if (relevantEntries.length > 0) {
+                if (relevantEntries.some(e => e.status === 'Unhealthy')) {
+                    worstStatus = 'unhealthy';
+                } else if (relevantEntries.some(e => e.status === 'Degraded')) {
+                    worstStatus = 'degraded';
+                } else {
+                    worstStatus = 'healthy';
+                }
+            }
+
+            // Build detailed tooltip text
+            let tooltipText = `${tierLabel}: `;
+            if (worstStatus === 'healthy') {
+                tooltipText += 'All systems nominal';
+            } else if (worstStatus === 'degraded') {
+                const degraded = relevantEntries.filter(e => e.status !== 'Healthy').map(e => e._key);
+                tooltipText += `Degraded (${degraded.join(', ')})`;
+            } else if (worstStatus === 'unhealthy') {
+                const down = relevantEntries.filter(e => e.status === 'Unhealthy').map(e => e._key);
+                tooltipText += `Down (${down.join(', ')})`;
+            } else {
+                tooltipText += 'Status unknown';
+            }
+
+            // Update color class
+            btn.classList.remove(...statusColors);
+            btn.classList.add(`interactive-action-btn--${worstStatus}`);
+
+            // Update Bootstrap tooltip
+            const tip = bootstrap.Tooltip.getInstance(btn);
+            if (tip) {
+                tip._config.title = tooltipText;
+                tip.setContent({ '.tooltip-inner': tooltipText });
+            } else {
+                btn.setAttribute('data-bs-title', tooltipText);
+            }
+            btn.setAttribute('aria-label', tooltipText);
+        }
+
+        async function refreshHealthStatus() {
+            const dots = document.querySelectorAll('#healthStatusDots .interactive-action-btn');
+            try {
+                const resp = await fetch('/health/ready');
+                const data = resp.ok || resp.status === 503 ? await resp.json() : null;
+                const entries = {};
+                if (data && data.entries) {
+                    Object.entries(data.entries).forEach(([key, val]) => {
+                        entries[key] = { ...val, _key: key.replace('upstream:', '') };
+                    });
+                }
+                dots.forEach(btn => applyHealthStatus(btn, btn.dataset.healthLabel || 'System', entries));
+            } catch {
+                dots.forEach(btn => {
+                    btn.classList.remove(...statusColors);
+                    btn.classList.add('interactive-action-btn--unknown');
+                    const tip = bootstrap.Tooltip.getInstance(btn);
+                    const msg = `${btn.dataset.healthLabel || 'System'}: Unable to reach health endpoint`;
+                    if (tip) { tip._config.title = msg; tip.setContent({ '.tooltip-inner': msg }); }
+                });
+            }
+        }
+
+        // Initialise Bootstrap tooltips on the status dots
+        document.querySelectorAll('#healthStatusDots .interactive-action-btn').forEach(btn => {
+            new bootstrap.Tooltip(btn, { trigger: 'hover focus', placement: 'bottom' });
+        });
+
+        // Fetch health on load and every 30 seconds
+        refreshHealthStatus();
+        setInterval(refreshHealthStatus, 30000);
     </script>
 }

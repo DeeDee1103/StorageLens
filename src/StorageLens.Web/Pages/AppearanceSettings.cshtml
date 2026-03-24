@@ -159,7 +159,25 @@
     </div>
 </div>
 
-<!-- ═══ 4. TABLES & DATA DISPLAY ════════════════════════════════════════ -->
+<!-- ═══ 4. QUICK ACTION BUTTONS ══════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Quick Action Buttons</h5>
+    </div>
+    <p class="text-secondary small mb-3">Choose up to 3 shortcut buttons to display in the top bar on every page. Click a button to toggle it; selected order is preserved.</p>
+
+    <div class="d-flex flex-wrap gap-2 mb-3" id="quickBtnPicker">
+        <!-- populated by JS -->
+    </div>
+
+    <div class="form-text">
+        <span id="quickBtnCount" class="fw-semibold">0</span> of 3 selected.
+        <span id="quickBtnMaxNote" class="text-warning ms-1" style="display:none">Maximum 3 reached — deselect one to choose another.</span>
+    </div>
+</div>
+
+<!-- ═══ 5. TABLES & DATA DISPLAY ════════════════════════════════════════ -->
 <div class="card-premium p-4 mb-4 reveal-item">
     <div class="d-flex align-items-center gap-2 mb-1">
         <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-table" aria-hidden="true"></i></div>
@@ -257,6 +275,29 @@
 
 @section Scripts {
 <style>
+/* ── Quick action button picker ─────────────────────────────────────── */
+.qb-picker-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 8px; font-size: .82rem; font-weight: 500;
+    border: 1.5px solid var(--bs-border-color, #dee2e6);
+    background: transparent; color: var(--bs-body-color);
+    cursor: pointer; position: relative; transition: border-color .15s, background .15s, color .15s;
+}
+.qb-picker-btn:hover { border-color: var(--sl-accent, #3b82f6); color: var(--sl-accent, #3b82f6); }
+.qb-picker-btn--selected {
+    border-color: var(--sl-accent, #3b82f6);
+    background: color-mix(in srgb, var(--sl-accent, #3b82f6) 12%, transparent);
+    color: var(--sl-accent, #3b82f6);
+}
+.qb-picker-icon { font-size: 1rem; }
+.qb-picker-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%; font-size: .7rem; font-weight: 700;
+    background: var(--sl-accent, #3b82f6); color: #fff;
+    visibility: hidden;
+}
+.qb-picker-btn--selected .qb-picker-badge { visibility: visible; }
+
 /* ── Theme option cards ──────────────────────────────────────────────── */
 .theme-option-card { cursor: pointer; text-align: center; }
 .theme-option-card input:focus-visible + .theme-preview { outline: 2px solid var(--sl-accent, #3b82f6); outline-offset: 2px; }
@@ -328,6 +369,7 @@
         kpiAnim:          'sl-kpi-count-anim',
         reduceMotion:     'sl-reduce-motion',
         compactMode:      'sl-compact-mode',
+        quickButtons:     'sl-quick-buttons',
     };
     var DEFAULT_CUSTOM_COLOR = '#6f64e7';
 
@@ -475,6 +517,66 @@
         if (banner) banner._timer = setTimeout(function () { banner.classList.remove('show'); banner.style.setProperty('display','none','important'); }, 2500);
     };
 
+    // ── Quick Action Buttons picker ────────────────────────────────────────
+    var DEFAULT_QUICK_BTNS = window.SL_QUICK_BTNS_DEFAULT || ['locations', 'scanjobs', 'flowmanager'];
+
+    function getQuickBtns() {
+        try {
+            var raw = localStorage.getItem(KEYS.quickButtons);
+            var arr = raw ? JSON.parse(raw) : DEFAULT_QUICK_BTNS;
+            return Array.isArray(arr) ? arr.slice(0, 3) : DEFAULT_QUICK_BTNS;
+        } catch (e) { return DEFAULT_QUICK_BTNS; }
+    }
+
+    function saveQuickBtns(arr) {
+        localStorage.setItem(KEYS.quickButtons, JSON.stringify(arr));
+        if (typeof window.renderQuickActionBtns === 'function') window.renderQuickActionBtns();
+        updateQuickBtnCount(arr.length);
+        refreshDisplay();
+        showSaved('quick action buttons');
+    }
+
+    function updateQuickBtnCount(n) {
+        var countEl = document.getElementById('quickBtnCount');
+        var noteEl  = document.getElementById('quickBtnMaxNote');
+        if (countEl) countEl.textContent = n;
+        if (noteEl) noteEl.style.display = n >= 3 ? '' : 'none';
+    }
+
+    function buildQuickBtnPicker(selected) {
+        var picker = document.getElementById('quickBtnPicker');
+        if (!picker) return;
+        var defs = window.SL_QUICK_BTN_DEFS || [];
+        picker.innerHTML = '';
+        defs.forEach(function (def) {
+            var isSelected = selected.indexOf(def.id) !== -1;
+            var order = selected.indexOf(def.id) + 1;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'qb-picker-btn' + (isSelected ? ' qb-picker-btn--selected' : '');
+            btn.dataset.id = def.id;
+            btn.title = def.label;
+            btn.innerHTML =
+                '<i class="bi ' + def.icon + ' qb-picker-icon" aria-hidden="true"></i>' +
+                '<span class="qb-picker-label">' + def.label + '</span>' +
+                '<span class="qb-picker-badge">' + (isSelected ? order : '') + '</span>';
+            btn.addEventListener('click', function () {
+                var cur = getQuickBtns();
+                var idx = cur.indexOf(def.id);
+                if (idx !== -1) {
+                    cur.splice(idx, 1);
+                } else {
+                    if (cur.length >= 3) return;
+                    cur.push(def.id);
+                }
+                saveQuickBtns(cur);
+                buildQuickBtnPicker(cur);
+            });
+            picker.appendChild(btn);
+        });
+        updateQuickBtnCount(selected.length);
+    }
+
     function loadPrefsIntoUI() {
         // theme
         var storedTheme = localStorage.getItem(KEYS.theme);
@@ -508,6 +610,9 @@
 
         var cm = document.getElementById('compactMode');
         if (cm) cm.checked = getPref(KEYS.compactMode, 'false') === 'true';
+
+        // quick action buttons
+        buildQuickBtnPicker(getQuickBtns());
     }
 
     // run on load
