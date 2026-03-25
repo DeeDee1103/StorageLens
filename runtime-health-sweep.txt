@@ -1,18 +1,18 @@
-SERVICE=web PROBE=live STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=web PROBE=ready STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
+SERVICE=web PROBE=live STATUS=200 RESULT=PASS
+SERVICE=web PROBE=ready STATUS=200 RESULT=PASS
 SERVICE=locations PROBE=live STATUS=200 RESULT=PASS
 SERVICE=locations PROBE=ready STATUS=200 RESULT=PASS
 SERVICE=scanjobs PROBE=live STATUS=200 RESULT=PASS
 SERVICE=scanjobs PROBE=ready STATUS=200 RESULT=PASS
 SERVICE=fileinventory PROBE=live STATUS=200 RESULT=PASS
 SERVICE=fileinventory PROBE=ready STATUS=200 RESULT=PASS
-SERVICE=duplicates PROBE=live STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=duplicates PROBE=ready STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=analytics PROBE=live STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=analytics PROBE=ready STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=scanner PROBE=live STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=scanner PROBE=ready STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=hashing PROBE=live STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=hashing PROBE=ready STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=orchestrator PROBE=live STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-SERVICE=orchestrator PROBE=ready STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
+SERVICE=duplicates PROBE=live STATUS=200 RESULT=PASS
+SERVICE=duplicates PROBE=ready STATUS=200 RESULT=PASS
+SERVICE=analytics PROBE=live STATUS=200 RESULT=PASS
+SERVICE=analytics PROBE=ready STATUS=200 RESULT=PASS
+SERVICE=scanner PROBE=live STATUS=200 RESULT=PASS
+SERVICE=scanner PROBE=ready STATUS=200 RESULT=PASS
+SERVICE=hashing PROBE=live STATUS=200 RESULT=PASS
+SERVICE=hashing PROBE=ready STATUS=200 RESULT=PASS
+SERVICE=orchestrator PROBE=live STATUS=200 RESULT=PASS
+SERVICE=orchestrator PROBE=ready STATUS=200 RESULT=PASS

@@ -15,7 +15,7 @@ builder.AddStorageLensObservability("StorageLens.Web");
 
 builder.Services.AddRazorPages(options =>
 {
-    options.Conventions.AddPageRoute("/Landing", "");
+    options.Conventions.AddPageRoute("/Index", "");
 });
 
 builder.Services.Configure<ServiceEndpointsOptions>(

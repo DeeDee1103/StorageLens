@@ -145,24 +145,23 @@
             </div>
 
             <nav class="menu-nav">
-                <a class="menu-link @(activeNav == "home" ? "active" : string.Empty)" asp-page="/Landing"><i class="bi bi-house-door"></i>Home</a>
-                <a class="menu-link @(activeNav == "dashboard" ? "active" : string.Empty)" asp-page="/Index"><i class="bi bi-speedometer2"></i>Dashboard</a>
-                <a class="menu-link @(activeNav == "globalview" ? "active" : string.Empty)" asp-page="/GlobalView"><i class="bi bi-globe2"></i>Global View</a>
-                <a class="menu-link @(activeNav == "locations" ? "active" : string.Empty)" asp-page="/StorageLocations"><i class="bi bi-hdd-stack"></i>Storage Locations</a>
-                <a class="menu-link @(activeNav == "scanjobs" ? "active" : string.Empty)" asp-page="/ScanJobs"><i class="bi bi-activity"></i>Scan Jobs</a>
-                <a class="menu-link @(activeNav == "flowmanager" ? "active" : string.Empty)" asp-page="/FlowManager"><i class="bi bi-diagram-3"></i>Flow Manager</a>
-                <a class="menu-link @(activeNav == "fileinventory" ? "active" : string.Empty)" asp-page="/FileInventory"><i class="bi bi-folder2-open"></i>File Inventory</a>
-                <a class="menu-link @(activeNav == "duplicates" ? "active" : string.Empty)" asp-page="/Duplicates"><i class="bi bi-files"></i>Duplicates</a>
-                <a class="menu-link @(activeNav == "reports" ? "active" : string.Empty)" asp-page="/Reports"><i class="bi bi-graph-up-arrow"></i>Reports</a>
-                <a class="menu-link @(activeNav == "insights" ? "active" : string.Empty)" asp-page="/Insights"><i class="bi bi-journal-text"></i>Storage Lens Insights</a>
-                <a class="menu-link @(activeNav == "alerts" ? "active" : string.Empty)" asp-page="/Alerts"><i class="bi bi-bell-fill"></i>Alerts</a>
-                <a class="menu-link @(activeNav == "pricing" ? "active" : string.Empty)" asp-page="/Pricing"><i class="bi bi-tags"></i>Pricing</a>
-                <a class="menu-link @(activeNav == "settings" ? "active" : string.Empty)" asp-page="/Settings"><i class="bi bi-gear"></i>Settings</a>
-                <a class="menu-link @(activeNav == "about" ? "active" : string.Empty)" asp-page="/About"><i class="bi bi-info-circle"></i>About</a>
+                <a class="menu-link @(activeNav == "dashboard" ? "active" : string.Empty)" asp-page="/Index" title="Return to the product home, overview, and entry points into the platform."><i class="bi bi-speedometer2"></i>Dashboard</a>
+                <a class="menu-link @(activeNav == "globalview" ? "active" : string.Empty)" asp-page="/GlobalView" title="Open the live operational dashboard for capacity, locations, and scan activity."><i class="bi bi-globe2"></i>Global View</a>
+                <a class="menu-link @(activeNav == "locations" ? "active" : string.Empty)" asp-page="/StorageLocations" title="Manage monitored storage locations, paths, connection status, and metadata."><i class="bi bi-hdd-stack"></i>Storage Locations</a>
+                <a class="menu-link @(activeNav == "scanjobs" ? "active" : string.Empty)" asp-page="/ScanJobs" title="Start scans and track current and historical job progress."><i class="bi bi-activity"></i>Scan Jobs</a>
+                <a class="menu-link @(activeNav == "flowmanager" ? "active" : string.Empty)" asp-page="/FlowManager" title="Coordinate multi-step storage workflows and orchestration progress."><i class="bi bi-diagram-3"></i>Flow Manager</a>
+                <a class="menu-link @(activeNav == "fileinventory" ? "active" : string.Empty)" asp-page="/FileInventory" title="Browse indexed files, metadata, paths, and hash status."><i class="bi bi-folder2-open"></i>File Inventory</a>
+                <a class="menu-link @(activeNav == "duplicates" ? "active" : string.Empty)" asp-page="/Duplicates" title="Review duplicate groups and identify reclaimable storage opportunities."><i class="bi bi-files"></i>Duplicates</a>
+                <a class="menu-link @(activeNav == "reports" ? "active" : string.Empty)" asp-page="/Reports" title="Explore analytics views and export report data for offline review."><i class="bi bi-graph-up-arrow"></i>Reports</a>
+                <a class="menu-link @(activeNav == "insights" ? "active" : string.Empty)" asp-page="/Insights" title="Read curated storage insights, trends, and recommendations."><i class="bi bi-journal-text"></i>Storage Lens Insights</a>
+                <a class="menu-link @(activeNav == "alerts" ? "active" : string.Empty)" asp-page="/Alerts" title="Monitor alert conditions and review notification signals."><i class="bi bi-bell-fill"></i>Alerts</a>
+                <a class="menu-link @(activeNav == "pricing" ? "active" : string.Empty)" asp-page="/Pricing" title="Compare plans, included capabilities, and commercial options."><i class="bi bi-tags"></i>Pricing</a>
+                <a class="menu-link @(activeNav == "settings" ? "active" : string.Empty)" asp-page="/Settings" title="Configure environment, database, notifications, appearance, and platform settings."><i class="bi bi-gear"></i>Settings</a>
+                <a class="menu-link @(activeNav == "about" ? "active" : string.Empty)" asp-page="/About" title="Learn about StorageLens, its capabilities, and product background."><i class="bi bi-info-circle"></i>About</a>
             </nav>
 
             <div class="sidebar-profile-footer">
-                <a class="sidebar-profile-link @(activeNav == "profile" ? "active" : string.Empty)" asp-page="/Profile">
+                <a class="sidebar-profile-link @(activeNav == "profile" ? "active" : string.Empty)" asp-page="/Profile" title="Open your profile, preferences, and subscription details.">
                     <span class="sidebar-profile-avatar" id="sidebarAvatarImg"></span>
                     <div class="sidebar-profile-info">
                         <span class="sidebar-profile-name" id="sidebarProfileName">DeeDee</span>
@@ -178,10 +177,19 @@
                 <button class="btn btn-light d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
                     <i class="bi bi-list"></i>
                 </button>
-                <div class="search-wrap">
-                    <i class="bi bi-search" aria-hidden="true"></i>
-                    <input class="form-control" id="globalSearch" type="search" placeholder="Search files, locations, reports" aria-label="Search" />
-                    <kbd class="search-kbd d-none d-md-inline">Ctrl K</kbd>
+                <div class="top-search-stack">
+                    <div class="search-wrap">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input class="form-control" id="globalSearch" type="search" placeholder="Search files, locations, reports" aria-label="Search" />
+                        <kbd class="search-kbd d-none d-md-inline">Ctrl K</kbd>
+                    </div>
+                    @if (activeNav == "globalview")
+                    {
+                        <div class="top-search-context" aria-hidden="true">
+                            <p class="top-search-context-title mb-0">Global View</p>
+                            <p class="top-search-context-subtitle mb-0">Executive overview of capacity, duplicate waste, and scan performance.</p>
+                        </div>
+                    }
                 </div>
                 <div class="top-actions">
                     <div id="quickActionBtns" class="d-flex gap-1"></div>
@@ -230,21 +238,20 @@
         </div>
         <div class="offcanvas-body">
             <nav class="menu-nav">
-                <a class="menu-link @(activeNav == "home" ? "active" : string.Empty)" asp-page="/Landing"><i class="bi bi-house-door"></i>Home</a>
-                <a class="menu-link @(activeNav == "dashboard" ? "active" : string.Empty)" asp-page="/Index"><i class="bi bi-speedometer2"></i>Dashboard</a>
-                <a class="menu-link @(activeNav == "globalview" ? "active" : string.Empty)" asp-page="/GlobalView"><i class="bi bi-globe2"></i>Global View</a>
-                <a class="menu-link @(activeNav == "locations" ? "active" : string.Empty)" asp-page="/StorageLocations"><i class="bi bi-hdd-stack"></i>Storage Locations</a>
-                <a class="menu-link @(activeNav == "scanjobs" ? "active" : string.Empty)" asp-page="/ScanJobs"><i class="bi bi-activity"></i>Scan Jobs</a>
-                <a class="menu-link @(activeNav == "flowmanager" ? "active" : string.Empty)" asp-page="/FlowManager"><i class="bi bi-diagram-3"></i>Flow Manager</a>
-                <a class="menu-link @(activeNav == "fileinventory" ? "active" : string.Empty)" asp-page="/FileInventory"><i class="bi bi-folder2-open"></i>File Inventory</a>
-                <a class="menu-link @(activeNav == "duplicates" ? "active" : string.Empty)" asp-page="/Duplicates"><i class="bi bi-files"></i>Duplicates</a>
-                <a class="menu-link @(activeNav == "reports" ? "active" : string.Empty)" asp-page="/Reports"><i class="bi bi-graph-up-arrow"></i>Reports</a>
-                <a class="menu-link @(activeNav == "insights" ? "active" : string.Empty)" asp-page="/Insights"><i class="bi bi-journal-text"></i>Storage Lens Insights</a>
-                <a class="menu-link @(activeNav == "alerts" ? "active" : string.Empty)" asp-page="/Alerts"><i class="bi bi-bell-fill"></i>Alerts</a>
-                <a class="menu-link @(activeNav == "pricing" ? "active" : string.Empty)" asp-page="/Pricing"><i class="bi bi-tags"></i>Pricing</a>
-                <a class="menu-link @(activeNav == "settings" ? "active" : string.Empty)" asp-page="/Settings"><i class="bi bi-gear"></i>Settings</a>
-                <a class="menu-link @(activeNav == "about" ? "active" : string.Empty)" asp-page="/About"><i class="bi bi-info-circle"></i>About</a>
-                <a class="menu-link @(activeNav == "profile" ? "active" : string.Empty)" asp-page="/Profile"><i class="bi bi-person-circle"></i>Profile</a>
+                <a class="menu-link @(activeNav == "dashboard" ? "active" : string.Empty)" asp-page="/Index" title="Return to the product home, overview, and entry points into the platform."><i class="bi bi-speedometer2"></i>Dashboard</a>
+                <a class="menu-link @(activeNav == "globalview" ? "active" : string.Empty)" asp-page="/GlobalView" title="Open the live operational dashboard for capacity, locations, and scan activity."><i class="bi bi-globe2"></i>Global View</a>
+                <a class="menu-link @(activeNav == "locations" ? "active" : string.Empty)" asp-page="/StorageLocations" title="Manage monitored storage locations, paths, connection status, and metadata."><i class="bi bi-hdd-stack"></i>Storage Locations</a>
+                <a class="menu-link @(activeNav == "scanjobs" ? "active" : string.Empty)" asp-page="/ScanJobs" title="Start scans and track current and historical job progress."><i class="bi bi-activity"></i>Scan Jobs</a>
+                <a class="menu-link @(activeNav == "flowmanager" ? "active" : string.Empty)" asp-page="/FlowManager" title="Coordinate multi-step storage workflows and orchestration progress."><i class="bi bi-diagram-3"></i>Flow Manager</a>
+                <a class="menu-link @(activeNav == "fileinventory" ? "active" : string.Empty)" asp-page="/FileInventory" title="Browse indexed files, metadata, paths, and hash status."><i class="bi bi-folder2-open"></i>File Inventory</a>
+                <a class="menu-link @(activeNav == "duplicates" ? "active" : string.Empty)" asp-page="/Duplicates" title="Review duplicate groups and identify reclaimable storage opportunities."><i class="bi bi-files"></i>Duplicates</a>
+                <a class="menu-link @(activeNav == "reports" ? "active" : string.Empty)" asp-page="/Reports" title="Explore analytics views and export report data for offline review."><i class="bi bi-graph-up-arrow"></i>Reports</a>
+                <a class="menu-link @(activeNav == "insights" ? "active" : string.Empty)" asp-page="/Insights" title="Read curated storage insights, trends, and recommendations."><i class="bi bi-journal-text"></i>Storage Lens Insights</a>
+                <a class="menu-link @(activeNav == "alerts" ? "active" : string.Empty)" asp-page="/Alerts" title="Monitor alert conditions and review notification signals."><i class="bi bi-bell-fill"></i>Alerts</a>
+                <a class="menu-link @(activeNav == "pricing" ? "active" : string.Empty)" asp-page="/Pricing" title="Compare plans, included capabilities, and commercial options."><i class="bi bi-tags"></i>Pricing</a>
+                <a class="menu-link @(activeNav == "settings" ? "active" : string.Empty)" asp-page="/Settings" title="Configure environment, database, notifications, appearance, and platform settings."><i class="bi bi-gear"></i>Settings</a>
+                <a class="menu-link @(activeNav == "about" ? "active" : string.Empty)" asp-page="/About" title="Learn about StorageLens, its capabilities, and product background."><i class="bi bi-info-circle"></i>About</a>
+                <a class="menu-link @(activeNav == "profile" ? "active" : string.Empty)" asp-page="/Profile" title="Open your profile, preferences, and subscription details."><i class="bi bi-person-circle"></i>Profile</a>
             </nav>
         </div>
     </div>

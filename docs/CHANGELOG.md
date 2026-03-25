@@ -25,6 +25,16 @@ Example:
 
 ## [Unreleased]
 
+### Added
+- **Marketing home lead capture** — the public home experience now includes a demo request form, pilot/demo CTAs, FAQ/contact sections, and quick links into the operational pages.
+- **Reports CSV exports** — the Reports page now supports CSV export for oldest files, largest files, common file types, and duplicate-heavy locations.
+
+### Changed
+- **Home routing and navigation** — `/` now routes to `Index`, which serves the marketing-style product home. The previous separate Home navigation pattern is no longer the primary app-shell entry, and the live operational dashboard is surfaced from the landing experience through Global View.
+- **Pricing packaging** — public pricing is aligned to the current three-plan catalogue: Starter ($99/month), Professional ($499/month), and Enterprise (contact sales).
+- **Duplicate analysis default view** — the Duplicates page now opens in Interactive mode by default while keeping the Original view available.
+- **Marketing copy and positioning** — header, footer, and CTA language now emphasize enterprise storage operations, automation, and audit-ready reporting instead of MVP-era landing terminology.
+
 ### Fixed
 - **Build errors in `StorageLens.Shared.Infrastructure`** — Added missing `using Microsoft.AspNetCore.Routing` to `HealthCheckExtensions.cs` (fixes `IEndpointRouteBuilder` CS0246 build error). Fixed `MetadataName<TimeSpan>` to `string` comparison in `DistributedRateLimiter.cs` using `.Name` property. Added missing `using Microsoft.Extensions.Hosting` to `ObservabilityExtensions.cs`. Reordered `ArgumentNullException`/`ArgumentException` arms in `GlobalExceptionHandler.cs` switch expression to fix CS8510 unreachable pattern.
 - **Seeder `CancellationToken` mismatch** — Added `CancellationToken cancellationToken = default` parameter to `DuplicatesSeeder`, `LocationsSeeder`, `FileInventorySeeder`, and `ScanJobsSeeder`. Seeders now propagate the cancellation token to `SaveChangesAsync` and match the delegate signature expected by `BackgroundDatabaseInitialization.Start`.
@@ -267,7 +277,7 @@ Example:
   - "Save Active Tier" button persists the selection to the target `appsettings.{Environment}.json`.
   - Visual summary of services included in the currently selected tier.
 
-- **Pricing page screenshot** added to `docs/screenshots/pricing-page.png` — full-page capture of the `/Pricing` route showing all four subscription tiers (Starter, Professional, Business, Enterprise) and the Service Details reference panel.
+- **Pricing page screenshot** added to `docs/screenshots/pricing-page.png` — full-page capture of the `/Pricing` route showing the public pricing catalogue and supporting service reference content.
 - **About page** (`/About`) — professional About Us page for StorageLens:
   - Hero banner with product logo, description, version badge, and capability tags.
   - KPI highlight cards: storage locations, files supported, scan engine, microservices count.

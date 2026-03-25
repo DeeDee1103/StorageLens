@@ -45,6 +45,116 @@ window.renderQuickActionBtns = function () {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+	const applyButtonHoverText = (root = document) => {
+		const selector = [
+			"button",
+			"input[type='button']",
+			"input[type='submit']",
+			"input[type='reset']",
+			"a.btn",
+			"[role='button']"
+		].join(",");
+
+		const targets = root.matches?.(selector)
+			? [root, ...root.querySelectorAll(selector)]
+			: root.querySelectorAll(selector);
+
+		targets.forEach((el) => {
+			if (el.hasAttribute("title")) {
+				return;
+			}
+
+			const dataHoverText = (el.getAttribute("data-hover-text") || "").trim();
+			const ariaLabel = (el.getAttribute("aria-label") || "").trim();
+			const valueText = "value" in el ? String(el.value || "").trim() : "";
+			const visibleText = (el.textContent || "").replace(/\s+/g, " ").trim();
+
+			const hoverText = dataHoverText || ariaLabel || valueText || visibleText;
+			if (hoverText) {
+				el.setAttribute("title", hoverText);
+			}
+		});
+	};
+
+	const initGlobalButtonHoverText = () => {
+		applyButtonHoverText(document);
+
+		const initBootstrapTooltips = (root = document) => {
+			if (!window.bootstrap || !window.bootstrap.Tooltip) {
+				return;
+			}
+
+			const selector = "[title], [data-bs-title]";
+			const targets = root.matches?.(selector)
+				? [root, ...root.querySelectorAll(selector)]
+				: root.querySelectorAll(selector);
+
+			targets.forEach((el) => {
+				if (el.hasAttribute("data-bs-no-tooltip")) {
+					return;
+				}
+
+				const rawTitle = (el.getAttribute("title") || el.getAttribute("data-bs-title") || "").trim();
+				if (!rawTitle) {
+					return;
+				}
+
+				let placement = (el.getAttribute("data-tooltip-placement") || "").trim();
+				if (!placement) {
+					if (el.closest("#sidebarOffcanvas")) {
+						placement = "top";
+					} else if (el.closest(".sidebar-panel .menu-nav") || el.closest(".sidebar-panel .sidebar-profile-footer")) {
+						placement = "right";
+					} else {
+						placement = "top";
+					}
+				}
+
+				window.bootstrap.Tooltip.getOrCreateInstance(el, {
+					trigger: "hover focus",
+					placement,
+					container: "body"
+				});
+			});
+		};
+
+		initBootstrapTooltips(document);
+
+		if (!("MutationObserver" in window)) {
+			return;
+		}
+
+		const observer = new MutationObserver((mutations) => {
+			mutations.forEach((mutation) => {
+				if (mutation.type === "childList") {
+					mutation.addedNodes.forEach((node) => {
+						if (node.nodeType === Node.ELEMENT_NODE) {
+							applyButtonHoverText(node);
+							initBootstrapTooltips(node);
+						}
+					});
+				}
+
+				if (
+					mutation.type === "attributes" &&
+					mutation.target.nodeType === Node.ELEMENT_NODE
+				) {
+					applyButtonHoverText(mutation.target);
+					initBootstrapTooltips(mutation.target);
+				}
+			});
+		});
+
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ["class", "aria-label", "value", "data-hover-text", "title", "data-bs-title", "data-tooltip-placement"]
+		});
+	};
+
+	initGlobalButtonHoverText();
+
 	const themeStorageKey = "storagelens-theme";
 	const uiColorStorageKey = "sl-ui-color";
 	const uiColorCustomStorageKey = "sl-ui-color-custom";
