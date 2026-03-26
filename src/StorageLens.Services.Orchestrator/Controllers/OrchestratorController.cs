@@ -11,9 +11,17 @@ namespace StorageLens.Services.Orchestrator.Controllers;
 public class OrchestratorController(IWorkflowOrchestratorService workflowService) : ControllerBase
 {
     [HttpPost("scans/start/{locationId:guid}")]
-    public async Task<ActionResult<WorkflowStartResultDto>> Start(Guid locationId, CancellationToken cancellationToken)
+    public async Task<ActionResult<WorkflowStartResultDto>> Start(
+        Guid locationId,
+        [FromBody] StartScanRequest? request,
+        CancellationToken cancellationToken)
     {
-        var result = await workflowService.StartScanAsync(locationId, cancellationToken);
+        if (locationId == Guid.Empty)
+        {
+            return BadRequest("Location id cannot be empty.");
+        }
+
+        var result = await workflowService.StartScanAsync(locationId, request?.ScheduledStartUtc, cancellationToken);
         return Accepted(result);
     }
 
@@ -35,6 +43,20 @@ public class OrchestratorController(IWorkflowOrchestratorService workflowService
     public async Task<ActionResult<WorkflowStartResultDto>> Retry(Guid id, CancellationToken cancellationToken)
     {
         var result = await workflowService.RetryAsync(id, cancellationToken);
+        return result is null ? NotFound() : Accepted(result);
+    }
+
+    [HttpPost("scans/{scanJobId:guid}/cancel")]
+    public async Task<IActionResult> Cancel(Guid scanJobId, CancellationToken cancellationToken)
+    {
+        var cancelled = await workflowService.CancelByScanJobIdAsync(scanJobId, cancellationToken);
+        return cancelled ? Accepted() : NotFound();
+    }
+
+    [HttpPost("scans/{scanJobId:guid}/resume")]
+    public async Task<ActionResult<WorkflowStartResultDto>> ResumeByScanJob(Guid scanJobId, CancellationToken cancellationToken)
+    {
+        var result = await workflowService.ResumeByScanJobIdAsync(scanJobId, cancellationToken);
         return result is null ? NotFound() : Accepted(result);
     }
 }

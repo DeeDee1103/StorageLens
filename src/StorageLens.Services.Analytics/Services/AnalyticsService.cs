@@ -15,30 +15,81 @@ public class AnalyticsService(
         var filesClient = new UpstreamApiClient(httpClientFactory.CreateClient("fileinventory"));
         var duplicatesClient = new UpstreamApiClient(httpClientFactory.CreateClient("duplicates"));
 
-        var locationsTask = locationsClient.GetLocationsAsync(cancellationToken);
-        var jobsTask = scanJobsClient.GetRecentScanJobsAsync(cancellationToken);
-        var filesTask = filesClient.GetFilesAsync(cancellationToken);
-        var duplicateGroupsTask = duplicatesClient.GetDuplicateGroupsAsync(cancellationToken);
-        var duplicateSummaryTask = duplicatesClient.GetDuplicateSummaryAsync(cancellationToken);
+        var locationsTask = SafeFetchAsync(
+            "locations",
+            locationsClient.GetLocationsAsync,
+            Array.Empty<StorageLocationDto>(),
+            cancellationToken);
 
-        await Task.WhenAll(locationsTask, jobsTask, filesTask, duplicateGroupsTask, duplicateSummaryTask);
+        var jobsTask = SafeFetchAsync(
+            "scanjobs",
+            scanJobsClient.GetRecentScanJobsAsync,
+            Array.Empty<ScanJobDto>(),
+            cancellationToken);
+
+        var filesTask = SafeFetchAsync(
+            "fileinventory",
+            filesClient.GetFilesAsync,
+            Array.Empty<FileRecordDto>(),
+            cancellationToken);
+
+        var locationStatsTask = SafeFetchAsync(
+            "fileinventory-location-stats",
+            filesClient.GetLocationStatsAsync,
+            Array.Empty<LocationStorageStatsDto>(),
+            cancellationToken);
+
+        var duplicateGroupsTask = SafeFetchAsync(
+            "duplicates-groups",
+            duplicatesClient.GetDuplicateGroupsAsync,
+            Array.Empty<DuplicateGroupDto>(),
+            cancellationToken);
+
+        var duplicateSummaryTask = SafeFetchAsync(
+            "duplicates-summary",
+            duplicatesClient.GetDuplicateSummaryAsync,
+            new DuplicateSummaryDto(0, 0, 0, 0),
+            cancellationToken);
+
+        await Task.WhenAll(locationsTask, jobsTask, filesTask, locationStatsTask, duplicateGroupsTask, duplicateSummaryTask);
 
         var locations = await locationsTask;
         var jobs = await jobsTask;
         var files = await filesTask;
+        var locationStats = await locationStatsTask;
         var duplicateGroups = await duplicateGroupsTask;
         var duplicateSummary = await duplicateSummaryTask;
 
-        var totalStorage = locations.Sum(x => x.TotalSizeBytes);
-        var totalFiles = locations.Sum(x => x.FileCount);
+        var statsByLocation = locationStats.ToDictionary(x => x.StorageLocationId, x => x);
+        var enrichedLocations = locations
+            .Select(location =>
+            {
+                if (statsByLocation.TryGetValue(location.Id, out var stats))
+                {
+                    return location with
+                    {
+                        TotalSizeBytes = stats.TotalSizeBytes,
+                        FileCount = stats.FileCount,
+                        LastScanDate = stats.FileCount > 0 ? DateTimeOffset.UtcNow : location.LastScanDate
+                    };
+                }
+
+                return location;
+            })
+            .ToList();
+
+        _ = SyncLocationStatsAsync(locationsClient, locations, statsByLocation, cancellationToken);
+
+        var totalStorage = enrichedLocations.Sum(x => x.TotalSizeBytes);
+        var totalFiles = enrichedLocations.Sum(x => x.FileCount);
 
         var kpis = new DashboardKpiDto(
             totalStorage,
             totalFiles,
-            Math.Clamp((int)Math.Round(duplicateSummary.DuplicatePercent), 0, 100),
+            Math.Clamp(duplicateSummary.DuplicatePercent, 0, 100),
             duplicateSummary.WastedBytes);
 
-        var locationSizeById = locations.ToDictionary(l => l.Id, l => l.TotalSizeBytes);
+        var locationSizeById = enrichedLocations.ToDictionary(l => l.Id, l => l.TotalSizeBytes);
 
         var storageGrowth = jobs
             .GroupBy(x => x.StartTime.UtcDateTime.ToString("yyyy-MM-dd"))
@@ -66,7 +117,7 @@ public class AnalyticsService(
             fileTypeDistribution.Add(new ChartPointDto("(none)", 0));
         }
 
-        var largestLocations = locations
+        var largestLocations = enrichedLocations
             .OrderByDescending(x => x.TotalSizeBytes)
             .Take(5)
             .Select(x => new ChartPointDto(x.Name, Math.Round(x.TotalSizeBytes / (double)(1024L * 1024 * 1024 * 1024), 1)))
@@ -77,7 +128,7 @@ public class AnalyticsService(
             storageGrowth.Add(new ChartPointDto("N/A", 0));
         }
 
-        logger.LogInformation("Dashboard aggregation complete with {LocationCount} locations", locations.Count);
+        logger.LogInformation("Dashboard aggregation complete with {LocationCount} locations", enrichedLocations.Count);
 
         return new DashboardDto(
             kpis,
@@ -86,7 +137,7 @@ public class AnalyticsService(
             largestLocations,
             jobs,
             duplicateGroups.OrderByDescending(x => x.WastedBytes).Take(6).ToList(),
-            locations);
+                enrichedLocations);
     }
 
     public async Task<ReportsDto> GetReportsAsync(CancellationToken cancellationToken)
@@ -94,8 +145,22 @@ public class AnalyticsService(
         var filesClient = new UpstreamApiClient(httpClientFactory.CreateClient("fileinventory"));
         var duplicatesClient = new UpstreamApiClient(httpClientFactory.CreateClient("duplicates"));
 
-        var files = await filesClient.GetFilesAsync(cancellationToken);
-        var duplicates = await duplicatesClient.GetDuplicateGroupsAsync(cancellationToken);
+        var filesTask = SafeFetchAsync(
+            "fileinventory",
+            filesClient.GetFilesAsync,
+            Array.Empty<FileRecordDto>(),
+            cancellationToken);
+
+        var duplicatesTask = SafeFetchAsync(
+            "duplicates-groups",
+            duplicatesClient.GetDuplicateGroupsAsync,
+            Array.Empty<DuplicateGroupDto>(),
+            cancellationToken);
+
+        await Task.WhenAll(filesTask, duplicatesTask);
+
+        var files = await filesTask;
+        var duplicates = await duplicatesTask;
 
         var oldest = files.OrderBy(x => x.LastModifiedDate).Take(10).ToList();
         var largest = files.OrderByDescending(x => x.SizeBytes).Take(10).ToList();
@@ -127,5 +192,59 @@ public class AnalyticsService(
     {
         var dashboard = await GetDashboardAsync(cancellationToken);
         return dashboard.StorageGrowth;
+    }
+
+    private async Task<T> SafeFetchAsync<T>(
+        string upstream,
+        Func<CancellationToken, Task<T>> fetch,
+        T fallback,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await fetch(cancellationToken);
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(ex, "Analytics upstream {Upstream} timed out. Using fallback payload.", upstream);
+            return fallback;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Analytics upstream {Upstream} failed. Using fallback payload.", upstream);
+            return fallback;
+        }
+    }
+
+    private async Task SyncLocationStatsAsync(
+        UpstreamApiClient locationsClient,
+        IReadOnlyList<StorageLocationDto> locations,
+        IReadOnlyDictionary<Guid, LocationStorageStatsDto> statsByLocation,
+        CancellationToken cancellationToken)
+    {
+        foreach (var location in locations)
+        {
+            if (!statsByLocation.TryGetValue(location.Id, out var stats))
+            {
+                continue;
+            }
+
+            if (location.TotalSizeBytes == stats.TotalSizeBytes && location.FileCount == stats.FileCount)
+            {
+                continue;
+            }
+
+            try
+            {
+                await locationsClient.UpdateLocationStatsAsync(
+                    location.Id,
+                    new UpdateStorageLocationStatsRequest(stats.TotalSizeBytes, stats.FileCount, DateTimeOffset.UtcNow),
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to sync location stats for {LocationId}", location.Id);
+            }
+        }
     }
 }

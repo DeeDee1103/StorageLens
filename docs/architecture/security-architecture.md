@@ -12,15 +12,19 @@
 - Configuration-based endpoint management
 - Health endpoints separated from business APIs
 - Read-only scanning behavior (no file mutation)
+- Service-to-service API key authentication via `X-API-Key`
+- Correlation ID propagation for request traceability and audit context
+- Rate limiting on service endpoints to reduce abuse and saturation risk
+- Structured audit logging for sensitive and workflow actions
 
 ## Recommended Enhancements
 
-- Add authentication and authorization (OIDC/JWT)
+- Add end-user authentication and authorization for interactive access (OIDC/JWT)
 - Introduce API gateway and service identity
 - Encrypt in transit (TLS everywhere)
 - Encrypt SQL data at rest and backup sets
 - Store secrets in vault-managed providers, not plain env vars
-- Implement centralized audit trail and tamper-evident logging
+- Extend centralized audit trail with tamper-evident logging
 
 ## Threat Considerations
 

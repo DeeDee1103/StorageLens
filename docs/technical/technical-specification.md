@@ -15,6 +15,7 @@
 - Enumerate and persist file metadata
 - Compute hashes and duplicate groups
 - Expose analytics and dashboard aggregates
+- Keep location-level storage totals synchronized from authoritative file inventory aggregates
 
 ## Key Non-Functional Requirements
 
@@ -31,4 +32,5 @@
 4. Hashing processes pending files.
 5. Duplicates recalculates groups.
 6. Analytics refreshes projections.
-7. Scan job is marked terminal.
+7. Analytics enriches per-location totals from FileInventory grouped stats and synchronizes totals to Locations metadata.
+8. Scan job is marked terminal.

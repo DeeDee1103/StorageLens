@@ -83,15 +83,20 @@ public class ScanJobsService(ScanJobsDbContext dbContext) : IScanJobsService
 
     public async Task<ScanJobDto> CreateAsync(CreateScanJobRequest request, CancellationToken cancellationToken)
     {
+        var initialStatus = request.InitialStatus ?? ScanJobStatus.Queued;
+        var initialStage = string.IsNullOrWhiteSpace(request.InitialStage)
+            ? initialStatus.ToString()
+            : request.InitialStage;
+
         var entity = new ScanJob
         {
             Id = Guid.NewGuid(),
             StorageLocationId = request.StorageLocationId,
             LocationName = string.IsNullOrWhiteSpace(request.LocationName) ? "Scheduled Location" : request.LocationName,
             CorrelationId = string.IsNullOrWhiteSpace(request.CorrelationId) ? Guid.NewGuid().ToString("N") : request.CorrelationId,
-            Status = ScanJobStatus.Queued,
-            CurrentStage = "Queued",
-            StartTime = DateTimeOffset.UtcNow,
+            Status = initialStatus,
+            CurrentStage = initialStage,
+            StartTime = request.ScheduledStartUtc?.ToUniversalTime() ?? DateTimeOffset.UtcNow,
             EndTime = null,
             FilesScanned = 0,
             FilesHashed = 0,

@@ -6,7 +6,8 @@ public enum WorkflowStatus
 	Running = 2,
 	Completed = 3,
 	Failed = 4,
-	RetryQueued = 5
+	RetryQueued = 5,
+	Cancelled = 6
 }
 
 public record WorkflowStepExecutionDto(
@@ -30,3 +31,5 @@ public record WorkflowInstanceDto(
 	IReadOnlyList<WorkflowStepExecutionDto> Steps);
 
 public record WorkflowStartResultDto(Guid WorkflowId, Guid ScanJobId, string CorrelationId, string Status);
+
+public record StartScanRequest(DateTimeOffset? ScheduledStartUtc);

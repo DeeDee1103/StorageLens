@@ -6,15 +6,26 @@ StorageLens is a SaaS platform for analyzing NAS and cloud-connected storage foo
 
 ## Recent Updates (Last 2 Days)
 
+
+- Global storage distribution data is now fully live:
+	- Global View location totals now derive from aggregated FileInventory stats rather than stale location defaults.
+	- Analytics now synchronizes per-location `TotalSizeBytes` and `FileCount` values back into Locations metadata.
+	- New locations are automatically included in global distribution and map plotting after analytics refresh.
 - Marketing and header branding polish:
 	- StorageLens logo scale reduced for cleaner visual balance.
 	- Header subtitle "Storage intelligence for modern operations" moved directly under the logo with refined typography.
 - Browser tab icon alignment:
 	- Shared and marketing layouts now use `storagelens-logo-small.png` for both `icon` and `shortcut icon` links.
-- Landing and navigation UX:
-	- Landing page remains the default home route (`/`) and dashboard remains available at `/Index`.
-	- Home link is present in desktop sidebar and mobile off-canvas navigation above Dashboard.
-	- Header and navigation refinements are reflected in the web UI.
+- Home, dashboard, and navigation UX:
+	- `/` and `/Index` now open the marketing-style product home.
+	- Global View is the primary operational dashboard entry from the landing experience.
+	- The old sidebar Home link pattern has been retired in favor of product-home and dashboard entry points.
+- Product-led conversion and reporting UX:
+	- The product home includes demo request capture, pilot/demo CTAs, FAQ/contact sections, and quick links into app modules.
+	- Reports now provides CSV exports for oldest files, largest files, common file types, and duplicate-heavy locations.
+	- Duplicates now opens in Interactive mode by default, with the Original view still available.
+- Pricing alignment:
+	- Public pricing now reflects the active three-plan catalogue: Starter ($99), Professional ($499), and Enterprise (contact sales).
 - Frontend module organization:
 	- Profile page initialization logic was split from `site.js` into dedicated `profile.js` for cleaner page-level script boundaries.
 - Runtime verification updates:
@@ -67,10 +78,17 @@ StorageLens provides a production-ready architecture for:
 - [Technical Specification](technical/technical-specification.md)
 - [Technology Stack](technical/technology-stack.md)
 - [Database Schema](technical/database-schema.md)
+- [Data Dictionary](data-dictionary.md)
+- [Glossary of Terms - Technical](glossary-terms-technical.md)
+- [Terminology Consistency Matrix](technical/terminology-consistency-matrix.md)
 - [API Specification](technical/api-specification.md)
 - [API Versioning Strategy](technical/api-versioning-strategy.md)
 - [Service Contracts](technical/service-contracts.md)
 - [Configuration Guide](technical/configuration-guide.md)
+
+## Glossaries
+- [Glossary of Terms - Business Users](glossary-terms-business-users.md)
+- [Glossary of Terms - Technical](glossary-terms-technical.md)
 
 ## Release History
 - [Changelog](CHANGELOG.md)

@@ -4,10 +4,12 @@
 
 StorageLens follows service-owned data boundaries. Each service has independent schema/database ownership and is the sole writer for its domain entities.
 
+> Detailed reference: For entity-level fields, keys, and relationships, see [Data Dictionary](../data-dictionary.md).
+
 ## Domain Schemas
 
 - `locations`
-  - Storage location entities and lifecycle status
+  - Storage location entities, lifecycle status, and synchronized totals (`TotalSizeBytes`, `FileCount`)
 - `scanjobs`
   - Scan jobs, status, progress counters, correlation identifiers
 - `fileinventory`
@@ -27,6 +29,7 @@ StorageLens follows service-owned data boundaries. Each service has independent 
 - Correlation IDs for cross-service traceability
 - Explicit status fields to model state transitions
 - Separate execution telemetry from primary domain records
+- Cross-service synchronization via APIs only; no direct database writes across service boundaries
 
 ## Operational Guidance
 

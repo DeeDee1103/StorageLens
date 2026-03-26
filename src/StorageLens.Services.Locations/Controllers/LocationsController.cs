@@ -40,6 +40,13 @@ public class LocationsController(ILocationService locationService) : ControllerB
         return updated ? NoContent() : NotFound();
     }
 
+    [HttpPut("{id:guid}/stats")]
+    public async Task<IActionResult> UpdateStats(Guid id, [FromBody] UpdateStorageLocationStatsRequest request, CancellationToken cancellationToken)
+    {
+        var updated = await locationService.UpdateStatsAsync(id, request, cancellationToken);
+        return updated ? NoContent() : NotFound();
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

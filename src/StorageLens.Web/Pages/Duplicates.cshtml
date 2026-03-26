@@ -1,11 +1,6 @@
 @page
 @model DuplicatesModel
 
-<section class="mb-3 reveal-item">
-    <h1 class="dashboard-title">Duplicate Files</h1>
-    <p class="text-secondary mb-0">Identify duplicate waste and triage high-impact groups for cleanup.</p>
-</section>
-
 @if (!Model.IsFeatureAvailable)
 {
     <div class="alert alert-warning d-flex align-items-center gap-3 reveal-item" role="alert">
@@ -26,8 +21,25 @@ else if (Model.ServiceUnavailable)
         <span>Duplicates service is currently unavailable. Please check your service configuration and try again.</span>
     </div>
 }
-else
+
+@if (Model.IsFeatureAvailable && !Model.ServiceUnavailable)
 {
+
+<section class="mb-3 reveal-item dashboard-mode-header">
+    <div class="dashboard-header-text">
+        <h1 class="dashboard-title" style="text-align:left">Duplicate Files</h1>
+        <p class="text-secondary mb-0" style="text-align:left">Identify duplicate waste and triage high-impact groups for cleanup.</p>
+    </div>
+    <div class="ms-auto">
+        <div class="dashboard-mode-toggle" role="group" aria-label="Duplicates mode selector">
+            <button type="button" class="btn dashboard-mode-btn" data-dup-mode-btn="classic" aria-pressed="false">Original</button>
+            <button type="button" class="btn dashboard-mode-btn" data-dup-mode-btn="interactive" aria-pressed="true">Interactive</button>
+        </div>
+    </div>
+</section>
+
+<!-- ===============  CLASSIC MODE  =============== -->
+<div class="dup-mode" data-dup-mode-panel="classic" hidden>
 
 <section class="row g-3 mb-3">
     <div class="col-md-4 reveal-item">
@@ -87,4 +99,430 @@ else
     </div>
 </section>
 
+</div>
+
+<!-- ===============  INTERACTIVE MODE  =============== -->
+<div class="dup-mode" data-dup-mode-panel="interactive">
+    <section class="dup-interactive-shell reveal-item">
+
+        <!-- Headbar -->
+        <div class="dup-interactive-headbar">
+            <div class="dup-brand-pill">
+                <i class="bi bi-files" aria-hidden="true"></i>
+                <span>Duplicate Analysis</span>
+            </div>
+            <div class="dup-live-status">
+                <span class="dup-status-item"><strong id="dupStatusGroups">@Model.Summary.DuplicateGroups</strong> groups</span>
+                <span class="dup-status-sep">|</span>
+                <span class="dup-status-item"><strong id="dupStatusFiles">@Model.Summary.DuplicateFiles.ToString("N0")</strong> files</span>
+            </div>
+            <div class="dup-filter-group" role="group" aria-label="Filter duplicate groups">
+                <button type="button" class="btn btn-sm dup-filter-btn active" data-dup-filter-btn="all">All</button>
+                <button type="button" class="btn btn-sm dup-filter-btn" data-dup-filter-btn="large">Large (&gt;5 copies)</button>
+                <button type="button" class="btn btn-sm dup-filter-btn" data-dup-filter-btn="small">Small (2-5 copies)</button>
+            </div>
+        </div>
+
+        <!-- KPI Grid -->
+        <div class="dup-kpi-grid">
+            <article class="dup-kpi-card dup-kpi-cyan">
+                <div class="dup-kpi-label">Duplicate Groups</div>
+                <div class="dup-kpi-value">@Model.Summary.DuplicateGroups</div>
+                <div class="dup-kpi-indicator">
+                    <i class="bi bi-collection" aria-hidden="true"></i>
+                    <span>Detected</span>
+                </div>
+            </article>
+            <article class="dup-kpi-card dup-kpi-teal">
+                <div class="dup-kpi-label">Duplicate Files</div>
+                <div class="dup-kpi-value">@Model.Summary.DuplicateFiles.ToString("N0")</div>
+                <div class="dup-kpi-indicator">
+                    <i class="bi bi-files" aria-hidden="true"></i>
+                    <span>Total</span>
+                </div>
+            </article>
+            <article class="dup-kpi-card dup-kpi-orange">
+                <div class="dup-kpi-label">Wasted Storage</div>
+                <div class="dup-kpi-value">@SizeFormatter.ToFriendlySize(Model.Summary.WastedBytes)</div>
+                <div class="dup-kpi-indicator">
+                    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                    <span>Reclaimable</span>
+                </div>
+            </article>
+            <article class="dup-kpi-card dup-kpi-mint">
+                <div class="dup-kpi-label">Duplicate %</div>
+                <div class="dup-kpi-value">@Model.Summary.DuplicatePercent.ToString("0.0")%</div>
+                <div class="dup-kpi-indicator">
+                    <i class="bi bi-pie-chart" aria-hidden="true"></i>
+                    <span>Of total</span>
+                </div>
+            </article>
+        </div>
+
+        <!-- Main content: split layout -->
+        <div class="dup-content-grid">
+
+            <!-- Left: Groups panel -->
+            <div class="dup-groups-panel">
+                <div class="dup-groups-panel-header">
+                    <span class="dup-groups-panel-title">Duplicate Groups</span>
+                    <span class="dup-groups-count badge bg-secondary" id="dupVisibleCount">@Model.Groups.Count</span>
+                </div>
+                <div class="dup-groups-list" id="dupGroupsList">
+                    @if (!Model.Groups.Any())
+                    {
+                        <div class="dup-empty-state">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <p>No duplicate groups detected</p>
+                        </div>
+                    }
+                    @{ var idx = 0; }
+                    @foreach (var group in Model.Groups)
+                    {
+                        <div class="dup-group-card"
+                             data-dup-group-id="@group.Id"
+                             data-dup-group-idx="@idx"
+                             data-dup-file-count="@group.FileCount"
+                             tabindex="0"
+                             role="button"
+                             aria-label="Select group @group.Id.ToString()[..8]">
+                            <div class="dup-group-card-header">
+                                <span class="dup-group-short-id">@group.Id.ToString()[..8]</span>
+                                <span class="badge bg-info dup-file-count-badge">@group.FileCount files</span>
+                            </div>
+                            <div class="dup-group-card-filename" title="@group.ExampleFileName">@group.ExampleFileName</div>
+                            <div class="dup-group-card-meta">
+                                <span class="dup-group-size">@SizeFormatter.ToFriendlySize(group.TotalSizeBytes)</span>
+                                <code class="dup-group-hash">@group.HashValue[..Math.Min(14, group.HashValue.Length)]...</code>
+                            </div>
+                            <div class="dup-group-card-locations">
+                                @foreach (var loc in group.Locations)
+                                {
+                                    <span class="badge dup-location-pill">@loc</span>
+                                }
+                            </div>
+                        </div>
+                        idx++;
+                    }
+                </div>
+            </div>
+
+            <!-- Right: Preview / Detail pane -->
+            <div class="dup-preview-pane" id="dupPreviewPane">
+                <div class="dup-preview-empty" id="dupPreviewEmpty">
+                    <i class="bi bi-arrow-left-circle" style="font-size:2rem;opacity:.4"></i>
+                    <p class="mt-2 text-secondary">Select a group to inspect</p>
+                </div>
+                <div class="dup-preview-detail" id="dupPreviewDetail" hidden>
+                    <div class="dup-detail-header">
+                        <h5 class="dup-detail-title" id="dupDetailTitle"></h5>
+                        <div class="dup-detail-meta">
+                            <span id="dupDetailHash" class="dup-detail-hash"></span>
+                            <span id="dupDetailSize" class="dup-detail-size"></span>
+                            <span id="dupDetailCount" class="badge bg-info"></span>
+                        </div>
+                    </div>
+                    <div class="dup-detail-locations" id="dupDetailLocations"></div>
+                    <div class="dup-detail-actions mt-3">
+                        <button class="btn btn-outline-primary btn-sm" id="dupCompareBtn" disabled>
+                            <i class="bi bi-layout-split me-1"></i>Compare Selected
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" id="dupDeleteBtn" disabled>
+                            <i class="bi bi-trash me-1"></i>Delete Selected
+                        </button>
+                    </div>
+                    <div class="dup-compare-view mt-3" id="dupCompareView" hidden></div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="dupDeleteModal" tabindex="-1" aria-labelledby="dupDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dupDeleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the selected duplicate files?</p>
+                <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>This action cannot be undone.</p>
+                <div id="dupDeleteFileList" class="small text-secondary"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="dupConfirmDeleteBtn">
+                    <i class="bi bi-trash me-1"></i>Delete Files
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+}
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    // ── Helpers ──
+    function formatBytes(bytes) {
+        if (bytes <= 0) return '0 B';
+        var units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        var i = 0, size = bytes;
+        while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+        return (Math.round(size * 10) / 10) + ' ' + units[i];
+    }
+
+    // ── Group data from server ──
+    var dupGroups = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Groups));
+
+    // ── Mode toggle ──
+    var STORAGE_KEY = 'storagelens-dup-mode';
+    var modeBtns = document.querySelectorAll('[data-dup-mode-btn]');
+    var modePanels = document.querySelectorAll('[data-dup-mode-panel]');
+
+    function setMode(mode) {
+        modeBtns.forEach(function (btn) {
+            var isActive = btn.getAttribute('data-dup-mode-btn') === mode;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+        modePanels.forEach(function (panel) {
+            var show = panel.getAttribute('data-dup-mode-panel') === mode;
+            panel.hidden = !show;
+        });
+        if (mode === 'interactive') {
+            document.body.classList.add('duplicates-interactive-mode');
+        } else {
+            document.body.classList.remove('duplicates-interactive-mode');
+        }
+        try { localStorage.setItem(STORAGE_KEY, mode); } catch (e) { }
+    }
+
+    modeBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setMode(btn.getAttribute('data-dup-mode-btn'));
+        });
+    });
+
+    // Restore saved mode
+    var saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) { }
+    if (saved === 'interactive') {
+        setMode(saved);
+    } else {
+        setMode('interactive');
+    }
+
+    // ── Filter logic ──
+    var filterBtns = document.querySelectorAll('[data-dup-filter-btn]');
+    var groupCards = document.querySelectorAll('.dup-group-card');
+    var visibleCountEl = document.getElementById('dupVisibleCount');
+
+    function applyFilter(filter) {
+        filterBtns.forEach(function (btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-dup-filter-btn') === filter);
+        });
+        var visible = 0;
+        groupCards.forEach(function (card) {
+            var count = parseInt(card.getAttribute('data-dup-file-count'), 10);
+            var show = true;
+            if (filter === 'large') show = count > 5;
+            else if (filter === 'small') show = count >= 2 && count <= 5;
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        if (visibleCountEl) visibleCountEl.textContent = visible;
+    }
+
+    filterBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            applyFilter(btn.getAttribute('data-dup-filter-btn'));
+        });
+    });
+
+    // ── Group card selection ──
+    var previewEmpty = document.getElementById('dupPreviewEmpty');
+    var previewDetail = document.getElementById('dupPreviewDetail');
+    var detailTitle = document.getElementById('dupDetailTitle');
+    var detailHash = document.getElementById('dupDetailHash');
+    var detailSize = document.getElementById('dupDetailSize');
+    var detailCount = document.getElementById('dupDetailCount');
+    var detailLocations = document.getElementById('dupDetailLocations');
+    var compareBtn = document.getElementById('dupCompareBtn');
+    var deleteBtn = document.getElementById('dupDeleteBtn');
+    var compareView = document.getElementById('dupCompareView');
+    var selectedGroupIdx = -1;
+
+    function selectGroup(idx) {
+        selectedGroupIdx = idx;
+        var group = dupGroups[idx];
+        if (!group) return;
+
+        // Highlight card
+        groupCards.forEach(function (c) {
+            c.classList.toggle('dup-group-card--selected',
+                parseInt(c.getAttribute('data-dup-group-idx'), 10) === idx);
+        });
+
+        // Populate detail
+        if (previewEmpty) previewEmpty.hidden = true;
+        if (previewDetail) previewDetail.hidden = false;
+        if (compareView) compareView.hidden = true;
+
+        if (detailTitle) detailTitle.textContent = group.exampleFileName;
+        if (detailHash) {
+            detailHash.innerHTML = '<code>' + group.hashValue + '</code>';
+        }
+        if (detailSize) detailSize.textContent = formatBytes(group.totalSizeBytes);
+        if (detailCount) detailCount.textContent = group.fileCount + ' files';
+
+        // Render locations with checkboxes
+        if (detailLocations) {
+            var html = '<div class="list-group">';
+            group.locations.forEach(function (loc, i) {
+                html += '<label class="list-group-item d-flex align-items-center gap-2 dup-location-item">' +
+                    '<input type="checkbox" class="form-check-input dup-loc-check" data-loc-idx="' + i + '" value="' + loc.replace(/"/g, '&quot;') + '">' +
+                    '<span class="flex-grow-1">' + loc + '</span>' +
+                    '<span class="badge bg-secondary">' + formatBytes(Math.round(group.totalSizeBytes / group.fileCount)) + '</span>' +
+                    '</label>';
+            });
+            html += '</div>';
+            detailLocations.innerHTML = html;
+
+            // Attach checkbox listeners
+            detailLocations.querySelectorAll('.dup-loc-check').forEach(function (cb) {
+                cb.addEventListener('change', updateActionButtons);
+            });
+        }
+
+        updateActionButtons();
+    }
+
+    function getCheckedLocations() {
+        if (!detailLocations) return [];
+        var checks = detailLocations.querySelectorAll('.dup-loc-check:checked');
+        var locs = [];
+        checks.forEach(function (cb) { locs.push({ idx: parseInt(cb.getAttribute('data-loc-idx'), 10), value: cb.value }); });
+        return locs;
+    }
+
+    function updateActionButtons() {
+        var checked = getCheckedLocations();
+        if (compareBtn) compareBtn.disabled = checked.length !== 2;
+        if (deleteBtn) deleteBtn.disabled = checked.length < 1;
+    }
+
+    groupCards.forEach(function (card) {
+        card.addEventListener('click', function () {
+            selectGroup(parseInt(card.getAttribute('data-dup-group-idx'), 10));
+        });
+        card.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                selectGroup(parseInt(card.getAttribute('data-dup-group-idx'), 10));
+            }
+        });
+    });
+
+    // ── Compare view ──
+    if (compareBtn) {
+        compareBtn.addEventListener('click', function () {
+            var checked = getCheckedLocations();
+            if (checked.length !== 2 || selectedGroupIdx < 0) return;
+            var group = dupGroups[selectedGroupIdx];
+            if (!group) return;
+
+            var sizePerFile = Math.round(group.totalSizeBytes / group.fileCount);
+            var html = '<div class="dup-compare-header"><h6>Comparing Files</h6></div>' +
+                '<div class="row g-3">';
+
+            checked.forEach(function (loc, ci) {
+                html += '<div class="col-md-6">' +
+                    '<div class="card dup-compare-card">' +
+                    '<div class="card-body">' +
+                    '<h6 class="card-title text-truncate" title="' + loc.value.replace(/"/g, '&quot;') + '">' + loc.value + '</h6>' +
+                    '<dl class="mb-2 small">' +
+                    '<dt>Location</dt><dd>' + loc.value + '</dd>' +
+                    '<dt>Size</dt><dd>' + formatBytes(sizePerFile) + '</dd>' +
+                    '<dt>Hash match</dt><dd><span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Match</span></dd>' +
+                    '</dl>' +
+                    '<div class="d-flex gap-2">' +
+                    '<button class="btn btn-sm btn-outline-success dup-keep-btn" data-loc="' + loc.value.replace(/"/g, '&quot;') + '"><i class="bi bi-check-lg me-1"></i>Keep this</button>' +
+                    '<button class="btn btn-sm btn-outline-danger dup-remove-btn" data-loc="' + loc.value.replace(/"/g, '&quot;') + '"><i class="bi bi-trash me-1"></i>Delete this</button>' +
+                    '</div>' +
+                    '</div></div></div>';
+            });
+
+            html += '</div>';
+            if (compareView) {
+                compareView.innerHTML = html;
+                compareView.hidden = false;
+
+                // Keep / Delete actions in compare view
+                compareView.querySelectorAll('.dup-keep-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        btn.classList.remove('btn-outline-success');
+                        btn.classList.add('btn-success');
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Keeping';
+                    });
+                });
+                compareView.querySelectorAll('.dup-remove-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        showDeleteModal([btn.getAttribute('data-loc')]);
+                    });
+                });
+            }
+        });
+    }
+
+    // ── Delete confirmation ──
+    var deleteModal = document.getElementById('dupDeleteModal');
+    var deleteFileList = document.getElementById('dupDeleteFileList');
+    var confirmDeleteBtn = document.getElementById('dupConfirmDeleteBtn');
+    var bsDeleteModal = null;
+
+    function showDeleteModal(files) {
+        if (deleteFileList) {
+            deleteFileList.innerHTML = '<ul class="mb-0">' +
+                files.map(function (f) { return '<li>' + f + '</li>'; }).join('') +
+                '</ul>';
+        }
+        if (deleteModal && typeof bootstrap !== 'undefined') {
+            if (!bsDeleteModal) bsDeleteModal = new bootstrap.Modal(deleteModal);
+            bsDeleteModal.show();
+        }
+    }
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function () {
+            var checked = getCheckedLocations();
+            if (checked.length < 1) return;
+            showDeleteModal(checked.map(function (c) { return c.value; }));
+        });
+    }
+
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', function () {
+            if (bsDeleteModal) bsDeleteModal.hide();
+            // Bulk remediation via API is coming in a future release.
+            if (deleteBtn) {
+                deleteBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Coming Soon';
+                deleteBtn.disabled = true;
+                setTimeout(function () {
+                    deleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Selected';
+                    deleteBtn.disabled = false;
+                }, 3000);
+            }
+        });
+    }
+
+})();
+</script>
 }
