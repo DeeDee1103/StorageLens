@@ -8,5 +8,6 @@ public interface ILocationService
     Task<StorageLocationDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<StorageLocationDto> CreateAsync(CreateStorageLocationRequest request, CancellationToken cancellationToken);
     Task<bool> UpdateAsync(Guid id, UpdateStorageLocationRequest request, CancellationToken cancellationToken);
+    Task<bool> UpdateStatsAsync(Guid id, UpdateStorageLocationStatsRequest request, CancellationToken cancellationToken);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
 }

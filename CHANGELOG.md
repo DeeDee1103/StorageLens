@@ -28,6 +28,10 @@ The format is based on Keep a Changelog and this project uses semantic versionin
   - `HttpClientConfigurationExtensions.cs`: Secure HTTP client timeout configuration
 - Comprehensive security documentation: `docs/developer/SECURITY-FIXES.md` - covers all 11 security issues identified in external code review, implementation status, and usage patterns for new developers
 - Security checklist in `docs/developer/SECURITY-FIXES.md` for developers to follow when adding new features
+- Added location storage stats synchronization contracts and endpoints:
+  - `LocationStorageStatsDto` and `UpdateStorageLocationStatsRequest`
+  - `GET /api/files/stats/by-location`
+  - `PUT /api/locations/{id}/stats`
 
 ### Changed
 - Web branding polish: reduced StorageLens logo scale in key web variants and repositioned the "Storage intelligence for modern operations" subtitle beneath the logo for a cleaner header presentation.
@@ -38,11 +42,14 @@ The format is based on Keep a Changelog and this project uses semantic versionin
 - `StorageLens.Services.Scanner\Program.cs`: Added 30-second timeout to fileinventory and scanjobs HTTP clients
 - `StorageLens.Services.Duplicates\Program.cs`: Added 30-second timeout to fileinventory HTTP client
 - `StorageLens.Web\Pages\Alerts.cshtml.cs`: Integrated `EmailValidation.IsValidEmail()` for RFC 5322 compliant validation; added TODO for config write audit trail
+- `AnalyticsService.GetDashboardAsync`: now enriches location totals from grouped FileInventory stats and performs best-effort synchronization to Locations metadata.
+- `GlobalView` map behavior: now always plots configured locations and deterministically derives coordinates when explicit coordinates are unavailable.
 
 ### Fixed
 - **P1 Security**: Fixed potential memory DoS vulnerability in HashingService where file size was checked after stream open
 - **P1 Security**: Fixed insufficient email validation (now uses RFC 5322 pattern instead of simple `.Contains('@')`)
 - **P2 Security**: Fixed HTTP client resource exhaustion risk by adding explicit timeouts to all service-to-service calls
+- Fixed global storage distribution values showing `0 B` for active locations when authoritative file inventory data existed.
 
 ### To Do (Pending Implementation)
 - **P2**: Implement N+1/memory optimization in Duplicates service - refactor to batch processing with cursor-based pagination

@@ -21,6 +21,21 @@ public class FileInventoryApiClient(HttpClient httpClient, ILogger<FileInventory
         }
     }
 
+    public async Task<HttpResponseMessage?> GetFileContentAsync(Guid fileId, bool download, CancellationToken cancellationToken = default)
+    {
+        var query = $"api/files/{fileId}/content?download={download.ToString().ToLowerInvariant()}";
+        try
+        {
+            var response = await httpClient.GetAsync(query, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            return response;
+        }
+        catch (Exception ex) when (IsServiceUnavailable(ex, cancellationToken))
+        {
+            logger.LogWarning(ex, "FileInventory content stream unavailable for file {FileId}.", fileId);
+            return null;
+        }
+    }
+
     private static bool IsServiceUnavailable(Exception ex, CancellationToken cancellationToken) =>
         ex is HttpRequestException or BrokenCircuitException ||
         ex is TaskCanceledException && !cancellationToken.IsCancellationRequested;

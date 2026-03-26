@@ -13,6 +13,14 @@
     <p class="text-secondary mb-0">Surface operational hotspots, old data, and heavy storage consumers.</p>
 </section>
 
+@if (TempData["ReportExportError"] is string exportError && !string.IsNullOrWhiteSpace(exportError))
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true"></i>
+        <span>@exportError</span>
+    </div>
+}
+
 @if (Model.ServiceUnavailable)
 {
     <div class="alert alert-warning d-flex align-items-center gap-2 mb-3 reveal-item" role="alert">
@@ -80,7 +88,12 @@
 <section class="row g-3">
     <div class="col-lg-6 reveal-item">
         <div class="card-premium p-3 h-100">
-            <div class="section-title">Oldest Files</div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="section-title mb-0">Oldest Files</div>
+                <a asp-page="/Reports" asp-page-handler="ExportCsv" asp-route-report="oldest-files" class="btn btn-sm btn-outline-soft">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>Export CSV
+                </a>
+            </div>
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead><tr><th>File</th><th>Modified</th><th>Location</th></tr></thead>
@@ -96,7 +109,12 @@
     </div>
     <div class="col-lg-6 reveal-item">
         <div class="card-premium p-3 h-100">
-            <div class="section-title">Largest Files</div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="section-title mb-0">Largest Files</div>
+                <a asp-page="/Reports" asp-page-handler="ExportCsv" asp-route-report="largest-files" class="btn btn-sm btn-outline-soft">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>Export CSV
+                </a>
+            </div>
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead><tr><th>File</th><th>Size</th><th>Location</th></tr></thead>
@@ -107,6 +125,14 @@
                     }
                     </tbody>
                 </table>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-2 flex-wrap">
+                <a asp-page="/Reports" asp-page-handler="ExportCsv" asp-route-report="common-types" class="btn btn-sm btn-outline-soft">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>Export Common Types
+                </a>
+                <a asp-page="/Reports" asp-page-handler="ExportCsv" asp-route-report="duplicate-heavy" class="btn btn-sm btn-outline-soft">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>Export Duplicate Locations
+                </a>
             </div>
         </div>
     </div>
@@ -266,6 +292,9 @@
                 animation: {
                     duration: 1200,
                     easing: 'easeOutCubic'
+                },
+                layout: {
+                    padding: { top: 24, bottom: 4 }
                 },
                 scales: {
                     y: {

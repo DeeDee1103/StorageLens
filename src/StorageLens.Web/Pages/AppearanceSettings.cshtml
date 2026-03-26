@@ -65,7 +65,60 @@
     </div>
 </div>
 
-<!-- ═══ 2. NAVIGATION & DEFAULTS ════════════════════════════════════════ -->
+<!-- ═══ 2. UI COLOR ═════════════════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-droplet-half" aria-hidden="true"></i></div>
+        <h5 class="mb-0">UI Color</h5>
+    </div>
+    <p class="text-secondary small mb-3">Select one of four curated palettes, or use a custom accent color.</p>
+
+    <div class="d-flex flex-wrap gap-3" id="colorCards">
+        <label class="color-option-card" id="colorCard-azure">
+            <input type="radio" name="sl-ui-color" value="azure" class="visually-hidden" onchange="applyUIColorPref('azure')">
+            <span class="color-swatch" style="--sw-primary:#1165d8;--sw-accent:#6f64e7;--sw-soft:#16b5aa;"></span>
+            <span class="color-label">Azure</span>
+        </label>
+
+        <label class="color-option-card" id="colorCard-lagoon">
+            <input type="radio" name="sl-ui-color" value="lagoon" class="visually-hidden" onchange="applyUIColorPref('lagoon')">
+            <span class="color-swatch" style="--sw-primary:#0f766e;--sw-accent:#0ea5e9;--sw-soft:#14b8a6;"></span>
+            <span class="color-label">Lagoon</span>
+        </label>
+
+        <label class="color-option-card" id="colorCard-forest">
+            <input type="radio" name="sl-ui-color" value="forest" class="visually-hidden" onchange="applyUIColorPref('forest')">
+            <span class="color-swatch" style="--sw-primary:#166534;--sw-accent:#15803d;--sw-soft:#4ade80;"></span>
+            <span class="color-label">Forest</span>
+        </label>
+
+        <label class="color-option-card" id="colorCard-sunset">
+            <input type="radio" name="sl-ui-color" value="sunset" class="visually-hidden" onchange="applyUIColorPref('sunset')">
+            <span class="color-swatch" style="--sw-primary:#b45309;--sw-accent:#fb923c;--sw-soft:#f59e0b;"></span>
+            <span class="color-label">Sunset</span>
+        </label>
+
+        <label class="color-option-card" id="colorCard-custom">
+            <input type="radio" name="sl-ui-color" value="custom" class="visually-hidden" onchange="applyUIColorPref('custom')">
+            <span class="color-swatch color-swatch-custom" id="customColorSwatch"></span>
+            <span class="color-label">Custom</span>
+        </label>
+    </div>
+
+    <div class="row g-3 mt-1 align-items-end">
+        <div class="col-sm-4 col-md-3">
+            <label class="form-label" for="customUIColor">Custom Accent Color</label>
+            <input id="customUIColor" type="color" class="form-control form-control-color" value="#6f64e7"
+                   onchange="applyCustomUIColor(this.value)" oninput="previewCustomUIColor(this.value)"
+                   title="Choose custom UI accent color">
+        </div>
+        <div class="col-sm-8 col-md-9">
+            <div class="form-text mt-0">When Custom is selected, this color becomes the app accent and drives the palette across all pages.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ 3. NAVIGATION & DEFAULTS ════════════════════════════════════════ -->
 <div class="card-premium p-4 mb-4 reveal-item">
     <div class="d-flex align-items-center gap-2 mb-1">
         <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-layout-sidebar" aria-hidden="true"></i></div>
@@ -106,7 +159,25 @@
     </div>
 </div>
 
-<!-- ═══ 3. TABLES & DATA DISPLAY ════════════════════════════════════════ -->
+<!-- ═══ 4. QUICK ACTION BUTTONS ══════════════════════════════════════════ -->
+<div class="card-premium p-4 mb-4 reveal-item">
+    <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="kpi-icon kpi-icon-teal mb-0"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
+        <h5 class="mb-0">Quick Action Buttons</h5>
+    </div>
+    <p class="text-secondary small mb-3">Choose up to 3 shortcut buttons to display in the top bar on every page. Click a button to toggle it; selected order is preserved.</p>
+
+    <div class="d-flex flex-wrap gap-2 mb-3" id="quickBtnPicker">
+        <!-- populated by JS -->
+    </div>
+
+    <div class="form-text">
+        <span id="quickBtnCount" class="fw-semibold">0</span> of 3 selected.
+        <span id="quickBtnMaxNote" class="text-warning ms-1" style="display:none">Maximum 3 reached — deselect one to choose another.</span>
+    </div>
+</div>
+
+<!-- ═══ 5. TABLES & DATA DISPLAY ════════════════════════════════════════ -->
 <div class="card-premium p-4 mb-4 reveal-item">
     <div class="d-flex align-items-center gap-2 mb-1">
         <div class="kpi-icon kpi-icon-green mb-0"><i class="bi bi-table" aria-hidden="true"></i></div>
@@ -126,7 +197,7 @@
         </div>
 
         <div class="col-md-4">
-            <label class="form-label" for="scanRefreshInterval">Scan Jobs Auto-Refresh</label>
+            <label class="form-label" for="scanRefreshInterval">Live Page Auto-Refresh</label>
             <select class="form-select" id="scanRefreshInterval" onchange="savePref('sl-scan-refresh', this.value)">
                 @foreach (var (val, lbl) in AppearanceSettingsModel.RefreshIntervals)
                 {
@@ -147,7 +218,7 @@
     </div>
 </div>
 
-<!-- ═══ 4. ANIMATIONS & ACCESSIBILITY ══════════════════════════════════ -->
+<!-- ═══ 5. ANIMATIONS & ACCESSIBILITY ══════════════════════════════════ -->
 <div class="card-premium p-4 mb-4 reveal-item">
     <div class="d-flex align-items-center gap-2 mb-1">
         <div class="kpi-icon kpi-icon-orange mb-0"><i class="bi bi-stars" aria-hidden="true"></i></div>
@@ -183,7 +254,7 @@
     </div>
 </div>
 
-<!-- ═══ 5. RESET ═══════════════════════════════════════════════════════ -->
+<!-- ═══ 6. RESET ═══════════════════════════════════════════════════════ -->
 <div class="card-premium p-4 mb-4 reveal-item">
     <div class="d-flex align-items-center gap-2 mb-1">
         <div class="kpi-icon kpi-icon-blue mb-0"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></div>
@@ -204,6 +275,29 @@
 
 @section Scripts {
 <style>
+/* ── Quick action button picker ─────────────────────────────────────── */
+.qb-picker-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 8px; font-size: .82rem; font-weight: 500;
+    border: 1.5px solid var(--bs-border-color, #dee2e6);
+    background: transparent; color: var(--bs-body-color);
+    cursor: pointer; position: relative; transition: border-color .15s, background .15s, color .15s;
+}
+.qb-picker-btn:hover { border-color: var(--sl-accent, #3b82f6); color: var(--sl-accent, #3b82f6); }
+.qb-picker-btn--selected {
+    border-color: var(--sl-accent, #3b82f6);
+    background: color-mix(in srgb, var(--sl-accent, #3b82f6) 12%, transparent);
+    color: var(--sl-accent, #3b82f6);
+}
+.qb-picker-icon { font-size: 1rem; }
+.qb-picker-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%; font-size: .7rem; font-weight: 700;
+    background: var(--sl-accent, #3b82f6); color: #fff;
+    visibility: hidden;
+}
+.qb-picker-btn--selected .qb-picker-badge { visibility: visible; }
+
 /* ── Theme option cards ──────────────────────────────────────────────── */
 .theme-option-card { cursor: pointer; text-align: center; }
 .theme-option-card input:focus-visible + .theme-preview { outline: 2px solid var(--sl-accent, #3b82f6); outline-offset: 2px; }
@@ -233,12 +327,40 @@
 .theme-preview-system .tp-bar { background: linear-gradient(90deg, #e5e7eb 50%, #334155 50%); }
 .theme-label { font-size: .8rem; font-weight: 500; color: var(--bs-secondary-color); }
 .theme-option-card.selected .theme-label { color: var(--sl-accent, #3b82f6); font-weight: 600; }
+
+/* ── UI color cards ──────────────────────────────────────────────────── */
+.color-option-card { cursor: pointer; text-align: center; min-width: 92px; }
+.color-option-card .color-swatch {
+    width: 92px;
+    height: 56px;
+    border-radius: 10px;
+    margin: 0 auto 6px;
+    display: block;
+    border: 2px solid transparent;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, .08);
+    background:
+        linear-gradient(135deg, var(--sw-primary, #1165d8), var(--sw-accent, #6f64e7) 55%, var(--sw-soft, #16b5aa));
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.color-option-card:hover .color-swatch {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, .14);
+}
+.color-option-card.selected .color-swatch { border-color: var(--sl-accent, #3b82f6); }
+.color-option-card .color-label { font-size: .8rem; font-weight: 600; color: var(--bs-secondary-color); }
+.color-option-card.selected .color-label { color: var(--sl-accent, #3b82f6); }
+.color-swatch-custom {
+    background:
+        linear-gradient(135deg, var(--sw-primary, #4f46e5), var(--sw-accent, #6f64e7) 55%, var(--sw-soft, #7dd3fc));
+}
 </style>
 <script>
 (function () {
     // ── preference keys ────────────────────────────────────────────────
     var KEYS = {
         theme:            'storagelens-theme',
+        uiColor:          'sl-ui-color',
+        uiColorCustom:    'sl-ui-color-custom',
         landingPage:      'sl-landing-page',
         sidebarCollapsed: 'sl-sidebar-collapsed',
         tablePageSize:    'sl-table-page-size',
@@ -247,7 +369,19 @@
         kpiAnim:          'sl-kpi-count-anim',
         reduceMotion:     'sl-reduce-motion',
         compactMode:      'sl-compact-mode',
+        quickButtons:     'sl-quick-buttons',
     };
+    var DEFAULT_CUSTOM_COLOR = '#6f64e7';
+
+    function normalizeHex(value) {
+        if (!value) return DEFAULT_CUSTOM_COLOR;
+        var v = String(value).trim();
+        if (v.charAt(0) !== '#') v = '#' + v;
+        if (/^#[0-9a-fA-F]{3}$/.test(v)) {
+            v = '#' + v.charAt(1) + v.charAt(1) + v.charAt(2) + v.charAt(2) + v.charAt(3) + v.charAt(3);
+        }
+        return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toLowerCase() : DEFAULT_CUSTOM_COLOR;
+    }
 
     // ── helpers ────────────────────────────────────────────────────────
     function getPref(key, def) {
@@ -273,6 +407,56 @@
         refreshDisplay();
         updateThemeCards(value);
         showSaved('theme');
+    };
+
+    function updateColorCards(selected) {
+        ['azure', 'lagoon', 'forest', 'sunset', 'custom'].forEach(function (v) {
+            var card = document.getElementById('colorCard-' + v);
+            var radio = card && card.querySelector('input[type=radio]');
+            if (card) card.classList.toggle('selected', v === selected);
+            if (radio) radio.checked = v === selected;
+        });
+    }
+
+    function updateCustomSwatch(color) {
+        var sw = document.getElementById('customColorSwatch');
+        if (!sw) return;
+        var c = normalizeHex(color);
+        sw.style.setProperty('--sw-primary', c);
+        sw.style.setProperty('--sw-accent', c);
+        sw.style.setProperty('--sw-soft', '#7dd3fc');
+    }
+
+    function applyUIColorWithGlobalHook(colorName, customColor) {
+        if (typeof window.applyStorageLensUIColor === 'function') {
+            window.applyStorageLensUIColor(colorName, customColor);
+        }
+    }
+
+    window.applyUIColorPref = function (value) {
+        var selected = value || 'azure';
+        localStorage.setItem(KEYS.uiColor, selected);
+        var custom = normalizeHex(getPref(KEYS.uiColorCustom, DEFAULT_CUSTOM_COLOR));
+        applyUIColorWithGlobalHook(selected, custom);
+        updateColorCards(selected);
+        refreshDisplay();
+        showSaved('ui color');
+    };
+
+    window.previewCustomUIColor = function (value) {
+        updateCustomSwatch(value);
+    };
+
+    window.applyCustomUIColor = function (value) {
+        var custom = normalizeHex(value);
+        localStorage.setItem(KEYS.uiColorCustom, custom);
+        updateCustomSwatch(custom);
+        var selected = getPref(KEYS.uiColor, 'azure');
+        if (selected === 'custom') {
+            applyUIColorWithGlobalHook('custom', custom);
+        }
+        refreshDisplay();
+        showSaved('custom ui color');
     };
 
     function updateThemeCards(selected) {
@@ -322,6 +506,7 @@
         // re-apply theme from system
         var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         document.body.classList.toggle('dark-mode', dark);
+        applyUIColorWithGlobalHook('azure', DEFAULT_CUSTOM_COLOR);
         loadPrefsIntoUI();
         refreshDisplay();
         var banner = document.getElementById('saveSuccessBanner');
@@ -332,11 +517,80 @@
         if (banner) banner._timer = setTimeout(function () { banner.classList.remove('show'); banner.style.setProperty('display','none','important'); }, 2500);
     };
 
+    // ── Quick Action Buttons picker ────────────────────────────────────────
+    var DEFAULT_QUICK_BTNS = window.SL_QUICK_BTNS_DEFAULT || ['locations', 'scanjobs', 'flowmanager'];
+
+    function getQuickBtns() {
+        try {
+            var raw = localStorage.getItem(KEYS.quickButtons);
+            var arr = raw ? JSON.parse(raw) : DEFAULT_QUICK_BTNS;
+            return Array.isArray(arr) ? arr.slice(0, 3) : DEFAULT_QUICK_BTNS;
+        } catch (e) { return DEFAULT_QUICK_BTNS; }
+    }
+
+    function saveQuickBtns(arr) {
+        localStorage.setItem(KEYS.quickButtons, JSON.stringify(arr));
+        if (typeof window.renderQuickActionBtns === 'function') window.renderQuickActionBtns();
+        updateQuickBtnCount(arr.length);
+        refreshDisplay();
+        showSaved('quick action buttons');
+    }
+
+    function updateQuickBtnCount(n) {
+        var countEl = document.getElementById('quickBtnCount');
+        var noteEl  = document.getElementById('quickBtnMaxNote');
+        if (countEl) countEl.textContent = n;
+        if (noteEl) noteEl.style.display = n >= 3 ? '' : 'none';
+    }
+
+    function buildQuickBtnPicker(selected) {
+        var picker = document.getElementById('quickBtnPicker');
+        if (!picker) return;
+        var defs = window.SL_QUICK_BTN_DEFS || [];
+        picker.innerHTML = '';
+        defs.forEach(function (def) {
+            var isSelected = selected.indexOf(def.id) !== -1;
+            var order = selected.indexOf(def.id) + 1;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'qb-picker-btn' + (isSelected ? ' qb-picker-btn--selected' : '');
+            btn.dataset.id = def.id;
+            btn.title = def.label;
+            btn.innerHTML =
+                '<i class="bi ' + def.icon + ' qb-picker-icon" aria-hidden="true"></i>' +
+                '<span class="qb-picker-label">' + def.label + '</span>' +
+                '<span class="qb-picker-badge">' + (isSelected ? order : '') + '</span>';
+            btn.addEventListener('click', function () {
+                var cur = getQuickBtns();
+                var idx = cur.indexOf(def.id);
+                if (idx !== -1) {
+                    cur.splice(idx, 1);
+                } else {
+                    if (cur.length >= 3) return;
+                    cur.push(def.id);
+                }
+                saveQuickBtns(cur);
+                buildQuickBtnPicker(cur);
+            });
+            picker.appendChild(btn);
+        });
+        updateQuickBtnCount(selected.length);
+    }
+
     function loadPrefsIntoUI() {
         // theme
         var storedTheme = localStorage.getItem(KEYS.theme);
         var currentTheme = storedTheme || 'system';
         updateThemeCards(currentTheme);
+
+        // ui color
+        var currentUIColor = getPref(KEYS.uiColor, 'azure');
+        var currentCustom = normalizeHex(getPref(KEYS.uiColorCustom, DEFAULT_CUSTOM_COLOR));
+        updateColorCards(currentUIColor);
+        updateCustomSwatch(currentCustom);
+        var picker = document.getElementById('customUIColor');
+        if (picker) picker.value = currentCustom;
+        applyUIColorWithGlobalHook(currentUIColor, currentCustom);
 
         // selects
         setSelectValue('defaultLandingPage', getPref(KEYS.landingPage, '@Model.DefaultLandingPage'));
@@ -356,6 +610,9 @@
 
         var cm = document.getElementById('compactMode');
         if (cm) cm.checked = getPref(KEYS.compactMode, 'false') === 'true';
+
+        // quick action buttons
+        buildQuickBtnPicker(getQuickBtns());
     }
 
     // run on load

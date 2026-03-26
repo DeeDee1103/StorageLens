@@ -32,6 +32,7 @@ namespace StorageLens.Integration.Tests.Infrastructure;
 public sealed class LocationsWebFactory : WebApplicationFactory<LocationsProgram>
 {
     internal const string TestApiKey = "integration-test-key";
+    private readonly string _dbName = $"integration-locations-{Guid.NewGuid()}";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -45,7 +46,7 @@ public sealed class LocationsWebFactory : WebApplicationFactory<LocationsProgram
             // Swap out any registered LocationsDbContext for an in-memory one
             services.RemoveAll<DbContextOptions<LocationsDbContext>>();
             services.AddDbContext<LocationsDbContext>(opts =>
-                opts.UseInMemoryDatabase($"integration-{Guid.NewGuid()}"));
+                opts.UseInMemoryDatabase(_dbName));
         });
     }
 

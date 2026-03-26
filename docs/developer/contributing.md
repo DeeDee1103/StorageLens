@@ -15,6 +15,7 @@ Issue and release process references:
 - Solution builds and tests pass
 - Code quality workflow passes (`Code Quality Checks`)
 - API or contract changes documented
+- If entities/schemas change, `docs/data-dictionary.md` updated
 - Operational impact documented (config, deploy, scale)
 - Backward compatibility assessed
 - `docs/CHANGELOG.md` updated for user-visible, API, or operational changes

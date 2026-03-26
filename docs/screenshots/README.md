@@ -6,7 +6,7 @@ Full-page screenshots of every UI screen in the StorageLens web application, cap
 
 ## Dashboard
 
-Executive overview of capacity, duplicate waste, and scan performance. Shows KPI cards (total storage, files, duplicate %, potential savings), storage growth trend chart, file type distribution, quick actions, recent scan jobs table, and top duplicate groups.
+Operational dashboard view for capacity, duplicate waste, location coverage, and scan performance. Use the public home at `/` or `/Index` to enter the product experience, then open the operational dashboard from Global View and related workspace links.
 
 ![Dashboard](https://github.com/user-attachments/assets/9761f6d4-b9e5-4f4a-a3f6-e9dab7326d2f)
 
@@ -38,7 +38,7 @@ Browse file metadata from scanned content with search, extension filter, and pag
 
 ## Duplicate Files
 
-Identify duplicate waste and triage high-impact groups for cleanup. Shows summary KPIs (duplicate groups, duplicate files, wasted storage) and a table of groups with file count, total duplicate size, example file, truncated hash, and locations.
+Identify duplicate waste and triage high-impact groups for cleanup. The page now opens in Interactive mode by default, with the Original view still available for the classic KPI-and-table layout.
 
 ![Duplicate Files](https://github.com/user-attachments/assets/4aeaa267-2d1f-41f9-9c8d-a749dd96e7af)
 
@@ -46,7 +46,7 @@ Identify duplicate waste and triage high-impact groups for cleanup. Shows summar
 
 ## Reports & Insights
 
-Surface operational hotspots, old data, and heavy storage consumers. Shows most common file types chart, duplicate-heavy locations list, oldest files table, and largest files table.
+Surface operational hotspots, old data, and heavy storage consumers. The page includes CSV export actions for oldest files, largest files, common file types, and duplicate-heavy locations.
 
 ![Reports](https://github.com/user-attachments/assets/fdb38511-b69f-4869-b601-b35f3f69a857)
 
@@ -54,7 +54,7 @@ Surface operational hotspots, old data, and heavy storage consumers. Shows most 
 
 ## Pricing
 
-Public-facing pricing catalogue. Shows four subscription tiers (Starter $29, Professional $79, Business $149, Enterprise — Contact Us) with feature checklists, and a Service Details reference panel.
+Public-facing pricing catalogue. Shows the active plans: Starter ($99), Professional ($499), and Enterprise (contact sales), aligned to the current feature packaging and acquisition flow.
 
 ![Pricing](https://github.com/user-attachments/assets/a6ffd61a-1364-4d74-b0c7-ca90901c5077)
 

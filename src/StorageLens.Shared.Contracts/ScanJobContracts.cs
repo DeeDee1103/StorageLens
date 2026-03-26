@@ -11,7 +11,8 @@ public enum ScanJobStatus
 	Completed = 7,
 	Failed = 8,
 	PartiallyCompleted = 9,
-	Running = 10
+	Running = 10,
+	Cancelled = 11
 }
 
 public record ScanJobDto(
@@ -35,7 +36,10 @@ public record CreateScanJobRequest(
 	Guid StorageLocationId,
 	string Notes,
 	string? CorrelationId = null,
-	string? LocationName = null);
+	string? LocationName = null,
+	DateTimeOffset? ScheduledStartUtc = null,
+	ScanJobStatus? InitialStatus = null,
+	string? InitialStage = null);
 
 public record UpdateScanJobStatusRequest(
 	ScanJobStatus Status,

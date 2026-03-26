@@ -8,6 +8,12 @@ services:
       - "4318:4318"     # OTLP HTTP  (alternative)
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "exit 0"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -15,6 +21,12 @@ services:
     ports:
       - "6379:6379"
     command: redis-server --save "" --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -26,6 +38,12 @@ services:
       - "14333:1433"
     volumes:
       - storagelens-sql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost", "-U", "sa", "-P", "${STORAGELENS_SQL_PASSWORD}", "-Q", "SELECT 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 35s
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -33,6 +51,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 15s
+      retries: 12
+      start_period: 45s
 
   locations:
     build:
@@ -47,10 +71,19 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 15s
     depends_on:
-      - sqlserver
-      - jaeger
-      - redis
+      sqlserver:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   scanjobs:
     build:
@@ -65,10 +98,19 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 15s
     depends_on:
-      - sqlserver
-      - jaeger
-      - redis
+      sqlserver:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   fileinventory:
     build:
@@ -83,10 +125,19 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 15s
     depends_on:
-      - sqlserver
-      - jaeger
-      - redis
+      sqlserver:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   duplicates:
     build:
@@ -102,11 +153,21 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 15s
     depends_on:
-      - sqlserver
-      - fileinventory
-      - jaeger
-      - redis
+      sqlserver:
+        condition: service_healthy
+      fileinventory:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   analytics:
     build:
@@ -123,13 +184,25 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 8
+      start_period: 20s
     depends_on:
-      - locations
-      - scanjobs
-      - fileinventory
-      - duplicates
-      - jaeger
-      - redis
+      locations:
+        condition: service_healthy
+      scanjobs:
+        condition: service_healthy
+      fileinventory:
+        condition: service_healthy
+      duplicates:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   scanner:
     build:
@@ -146,21 +219,34 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 8
+      start_period: 20s
     volumes:
       - ./sample-scan:/scan-root
-      # The following Windows-specific mounts enable Scanner's built-in
-      # C:\ and UNC path auto-mapping (e.g., C:\ -> /host/drives/c).
-      # Uncomment these lines if you are running Docker Compose on Windows
-      # and want to scan local/UNC paths using the /host/drives and /host/unc
-      # conventions inside the container.
-      # - /host/drives:/host/drives
-      # - /host/unc:/host/unc
+      # Windows host path access for scanner auto-mapping:
+      # C:\... -> /host/drives/c/... and \\server\share -> /host/unc/server/share/...
+      # On Windows Docker Desktop (WSL2 or Hyper-V): each drive must be mounted explicitly.
+      # Docker Desktop file sharing must be enabled for these drives in Settings > Resources > File Sharing.
+      - C:/:/host/drives/c
+      # Add more drives as needed, e.g.: - D:/:/host/drives/d
+      # On a Linux Docker host: replace the lines above with: - /host/drives:/host/drives
+      # UNC network shares must be mounted explicitly:
+      - //DouglasCludEx2/Development:/host/unc/DouglasCludEx2/Development
     depends_on:
-      - sqlserver
-      - fileinventory
-      - scanjobs
-      - jaeger
-      - redis
+      sqlserver:
+        condition: service_healthy
+      fileinventory:
+        condition: service_healthy
+      scanjobs:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   hashing:
     build:
@@ -180,14 +266,32 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 8
+      start_period: 20s
     volumes:
       - ./sample-scan:/scan-root
+      # Keep hashing path access aligned with scanner-resolved file paths.
+      # On Windows Docker Desktop: mount each drive explicitly (matches scanner resolver output).
+      - C:/:/host/drives/c
+      # Add more drives as needed, e.g.: - D:/:/host/drives/d
+      # On a Linux Docker host: replace the lines above with: - /host/drives:/host/drives
+      # UNC network shares must be mounted explicitly:
+      - //DouglasCludEx2/Development:/host/unc/DouglasCludEx2/Development
     depends_on:
-      - sqlserver
-      - fileinventory
-      - scanjobs
-      - jaeger
-      - redis
+      sqlserver:
+        condition: service_healthy
+      fileinventory:
+        condition: service_healthy
+      scanjobs:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   orchestrator:
     build:
@@ -208,16 +312,31 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+      start_period: 25s
     depends_on:
-      - sqlserver
-      - locations
-      - scanjobs
-      - scanner
-      - hashing
-      - duplicates
-      - analytics
-      - jaeger
-      - redis
+      sqlserver:
+        condition: service_healthy
+      locations:
+        condition: service_healthy
+      scanjobs:
+        condition: service_healthy
+      scanner:
+        condition: service_healthy
+      hashing:
+        condition: service_healthy
+      duplicates:
+        condition: service_healthy
+      analytics:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   web:
     build:
@@ -237,15 +356,29 @@ services:
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+      start_period: 25s
     depends_on:
-      - locations
-      - scanjobs
-      - fileinventory
-      - duplicates
-      - analytics
-      - orchestrator
-      - jaeger
-      - redis
+      locations:
+        condition: service_healthy
+      scanjobs:
+        condition: service_healthy
+      fileinventory:
+        condition: service_healthy
+      duplicates:
+        condition: service_healthy
+      analytics:
+        condition: service_healthy
+      orchestrator:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
 volumes:
   storagelens-sql-data:

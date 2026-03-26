@@ -20,7 +20,7 @@ public class OrchestratorControllerTests
         var stub = new StubWorkflowOrchestratorService { StartResult = expected };
         var controller = new OrchestratorController(stub);
 
-        var result = await controller.Start(locationId, CancellationToken.None);
+        var result = await controller.Start(locationId, null, CancellationToken.None);
 
         var accepted = Assert.IsType<AcceptedResult>(result.Result);
         var dto = Assert.IsType<WorkflowStartResultDto>(accepted.Value);
@@ -37,7 +37,7 @@ public class OrchestratorControllerTests
         var stub = new StubWorkflowOrchestratorService { StartResult = BuildStartResult() };
         var controller = new OrchestratorController(stub);
 
-        await controller.Start(locationId, CancellationToken.None);
+        await controller.Start(locationId, null, CancellationToken.None);
 
         Assert.Equal(locationId, stub.LastStartLocationId);
     }
@@ -49,7 +49,7 @@ public class OrchestratorControllerTests
         var controller = new OrchestratorController(stub);
         using var cts = new CancellationTokenSource();
 
-        await controller.Start(Guid.NewGuid(), cts.Token);
+        await controller.Start(Guid.NewGuid(), null, cts.Token);
 
         Assert.Equal(cts.Token, stub.LastCancellationToken);
     }
@@ -246,7 +246,7 @@ public class OrchestratorControllerTests
         public Guid LastRetryId { get; private set; }
         public CancellationToken LastCancellationToken { get; private set; }
 
-        public Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, CancellationToken cancellationToken)
+        public Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, DateTimeOffset? scheduledStartUtc, CancellationToken cancellationToken)
         {
             LastStartLocationId = locationId;
             LastCancellationToken = cancellationToken;
@@ -272,6 +272,18 @@ public class OrchestratorControllerTests
             LastRetryId = id;
             LastCancellationToken = cancellationToken;
             return Task.FromResult(RetryResult);
+        }
+
+        public Task<bool> CancelByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken)
+        {
+            LastCancellationToken = cancellationToken;
+            return Task.FromResult(true);
+        }
+
+        public Task<WorkflowStartResultDto?> ResumeByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken)
+        {
+            LastCancellationToken = cancellationToken;
+            return Task.FromResult(ResumeResult);
         }
 
         public ValueTask EnqueueAsync(Guid workflowId, CancellationToken cancellationToken) =>
