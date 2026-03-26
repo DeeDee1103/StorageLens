@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using StorageLens.Services.FileInventory.Interfaces;
 using StorageLens.Shared.Contracts;
 
@@ -10,6 +11,8 @@ namespace StorageLens.Services.FileInventory.Controllers;
 [Route("api/[controller]")]
 public class FilesController(IFileInventoryService fileInventoryService) : ControllerBase
 {
+    private static readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<FileRecordDto>>> GetAll(
         [FromQuery] string? search,
@@ -45,6 +48,13 @@ public class FilesController(IFileInventoryService fileInventoryService) : Contr
     public async Task<ActionResult<IReadOnlyList<FileRecordDto>>> GetByLocation(Guid locationId, CancellationToken cancellationToken)
     {
         var items = await fileInventoryService.GetByLocationAsync(locationId, cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpGet("stats/by-location")]
+    public async Task<ActionResult<IReadOnlyList<LocationStorageStatsDto>>> GetStorageStatsByLocation(CancellationToken cancellationToken)
+    {
+        var items = await fileInventoryService.GetLocationStorageStatsAsync(cancellationToken);
         return Ok(items);
     }
 
@@ -90,5 +100,85 @@ public class FilesController(IFileInventoryService fileInventoryService) : Contr
             cancellationToken);
 
         return Ok(changed);
+    }
+
+    [HttpGet("{id:guid}/content")]
+    public async Task<IActionResult> GetContent(Guid id, [FromQuery] bool download = false, CancellationToken cancellationToken = default)
+    {
+        var item = await fileInventoryService.GetByIdAsync(id, cancellationToken);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        var resolvedPath = ResolveMountedPath(item.FilePath);
+        if (string.IsNullOrWhiteSpace(resolvedPath) || !System.IO.File.Exists(resolvedPath))
+        {
+            return NotFound(new { message = "File not reachable from service container.", file = item.FileName });
+        }
+
+        var fileName = string.IsNullOrWhiteSpace(item.FileName) ? Path.GetFileName(resolvedPath) : item.FileName;
+        var contentType = ResolveContentType(fileName);
+        var stream = new FileStream(
+            resolvedPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite,
+            bufferSize: 64 * 1024,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+        if (download)
+        {
+            return File(stream, contentType, fileName, enableRangeProcessing: true);
+        }
+
+        return File(stream, contentType, enableRangeProcessing: true);
+    }
+
+    private static string ResolveContentType(string fileName)
+    {
+        if (ContentTypeProvider.TryGetContentType(fileName, out var contentType))
+        {
+            return contentType;
+        }
+
+        return "application/octet-stream";
+    }
+
+    private static string ResolveMountedPath(string rawPath)
+    {
+        var path = (rawPath ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        if (path.StartsWith("/host/drives/", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/host/unc/", StringComparison.OrdinalIgnoreCase))
+        {
+            return path;
+        }
+
+        if (path.StartsWith("\\\\", StringComparison.Ordinal))
+        {
+            var uncPath = path.TrimStart('\\').Replace('\\', '/');
+            return $"/host/unc/{uncPath}";
+        }
+
+        if (path.Length >= 3 && char.IsLetter(path[0]) && path[1] == ':' && (path[2] == '\\' || path[2] == '/'))
+        {
+            var drive = char.ToLowerInvariant(path[0]);
+            var remainder = path[3..].Replace('\\', '/');
+            return string.IsNullOrWhiteSpace(remainder)
+                ? $"/host/drives/{drive}"
+                : $"/host/drives/{drive}/{remainder}";
+        }
+
+        if (path.StartsWith("/", StringComparison.Ordinal))
+        {
+            return path;
+        }
+
+        return path;
     }
 }

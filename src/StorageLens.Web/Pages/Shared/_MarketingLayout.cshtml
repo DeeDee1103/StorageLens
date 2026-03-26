@@ -18,8 +18,28 @@
     <script>
         (function () {
             var t = localStorage.getItem('storagelens-theme');
-            var d = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (t === 'dark' || (!t && d)) { document.body.classList.add('dark-mode'); }
+            if (!t) {
+                localStorage.setItem('storagelens-theme', 'light');
+                t = 'light';
+            }
+
+            if (t === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+
+            function syncMarketingHeaderOffset() {
+                var header = document.querySelector('.marketing-header');
+                if (!header) {
+                    return;
+                }
+
+                document.documentElement.style.setProperty('--marketing-header-offset', header.offsetHeight + 'px');
+            }
+
+            window.addEventListener('resize', syncMarketingHeaderOffset);
+            window.addEventListener('load', syncMarketingHeaderOffset);
+            document.addEventListener('DOMContentLoaded', syncMarketingHeaderOffset);
+
             document.body.classList.add('preload');
             window.addEventListener('load', function () { document.body.classList.remove('preload'); });
         }());
@@ -27,7 +47,7 @@
 
     <header class="marketing-header">
         <div class="marketing-container marketing-header-inner">
-            <a class="marketing-brand" asp-page="/Landing" aria-label="StorageLens landing page">
+            <a class="marketing-brand" asp-page="/Index" aria-label="StorageLens landing page">
                 <span class="sl-logo sl-logo--marketing" aria-hidden="true">
                     <span class="sl-logo__line sl-logo__line--left"></span>
                     <span class="sl-logo__core">
@@ -39,15 +59,20 @@
                     <span class="sl-logo__line sl-logo__line--right"></span>
                 </span>
                 <span class="marketing-brand-copy">
-                    <span class="marketing-brand-subtitle">Storage intelligence for modern operations</span>
+                    <span class="marketing-brand-subtitle">Storage operations intelligence and automation</span>
                 </span>
             </a>
 
             <nav class="marketing-nav" aria-label="Primary">
-                <a href="#capabilities">Capabilities</a>
-                <a href="#workflow">Workflow</a>
+                <a href="#product">Product</a>
+                <a href="#problems">Problems We Solve</a>
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
                 <a href="#pricing">Pricing</a>
-                <a asp-page="/About">About</a>
+                <a href="#faq">FAQ</a>
+                <a href="#contact">Contact</a>
+                <span class="marketing-nav-divider" aria-hidden="true"></span>
+                <a asp-page="/GlobalView" class="marketing-nav-app-link"><i class="bi bi-speedometer2" aria-hidden="true"></i> Dashboard</a>
             </nav>
 
             <div class="marketing-header-actions">
@@ -55,8 +80,11 @@
                     <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
                     <span class="theme-toggle-label">Theme</span>
                 </button>
-                <a class="btn btn-outline-soft marketing-header-link" asp-page="/Pricing">Compare Plans</a>
-                <a class="btn btn-gradient marketing-header-cta" asp-page="/Index">Open Dashboard</a>
+                <a class="btn btn-outline-soft marketing-header-link slp-pilot-btn" href="#pricing" aria-label="Start a Pilot">
+                    <span class="slp-pilot-btn-default">Start a Pilot</span>
+                    <span class="slp-pilot-btn-hover" aria-hidden="true">Plan Your Pilot</span>
+                </a>
+                <a class="btn btn-gradient marketing-header-cta" href="#contact">Request a Demo</a>
             </div>
         </div>
     </header>
@@ -67,16 +95,21 @@
 
     <footer class="marketing-footer">
         <div class="marketing-container marketing-footer-inner">
-            <div>
-                <div class="marketing-footer-title">StorageLens MVP</div>
-                <p class="marketing-footer-copy mb-0">Enterprise visibility into storage growth, duplicate waste, and scan execution.</p>
+            <div class="marketing-footer-company">
+                <div class="marketing-footer-title">StorageLens</div>
+                <p class="marketing-footer-copy mb-0">Storage visibility, analytics, automation, and audit-ready reporting for enterprise teams.</p>
+                <p class="marketing-footer-copy mb-0 marketing-footer-contact">Contact: <a href="mailto:sales@storagelens.io">sales@storagelens.io</a></p>
+                <p class="marketing-footer-copy mb-0 marketing-footer-legal">&copy; @DateTime.UtcNow.Year StorageLens. All rights reserved.</p>
             </div>
-            <div class="marketing-footer-links">
-                <a asp-page="/Landing">Landing</a>
-                <a asp-page="/Pricing">Pricing</a>
-                <a asp-page="/About">About</a>
-                <a asp-page="/Index">Dashboard</a>
-            </div>
+            <nav class="marketing-footer-links" aria-label="Footer navigation">
+                <a href="#product">Product</a>
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+                <a href="#contact">Contact</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </nav>
         </div>
     </footer>
 

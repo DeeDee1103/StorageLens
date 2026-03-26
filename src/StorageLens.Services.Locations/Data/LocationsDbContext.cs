@@ -18,6 +18,7 @@ public class LocationsDbContext(DbContextOptions<LocationsDbContext> options) : 
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
             entity.Property(x => x.Path).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.SiteLocation).HasMaxLength(160).IsRequired();
             entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(x => x.Name);

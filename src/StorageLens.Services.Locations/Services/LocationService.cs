@@ -22,7 +22,10 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
                 x.LastScanDate,
                 x.TotalSizeBytes,
                 x.FileCount,
-                x.CreatedDate))
+                x.CreatedDate,
+                x.SiteLocation,
+                x.Latitude,
+                x.Longitude))
             .ToListAsync(cancellationToken);
     }
 
@@ -40,7 +43,10 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
                 x.LastScanDate,
                 x.TotalSizeBytes,
                 x.FileCount,
-                x.CreatedDate))
+                x.CreatedDate,
+                x.SiteLocation,
+                x.Latitude,
+                x.Longitude))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -51,8 +57,11 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
             Id = Guid.NewGuid(),
             Name = request.Name,
             Path = request.Path,
+            SiteLocation = request.SiteLocation,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
             Type = request.Type,
-            Status = LocationStatus.Online,
+            Status = request.Status,
             CreatedDate = DateTimeOffset.UtcNow,
             LastScanDate = DateTimeOffset.UtcNow.AddDays(-1),
             TotalSizeBytes = 0,
@@ -74,6 +83,9 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
                 .ExecuteUpdateAsync(x => x
                     .SetProperty(v => v.Name, request.Name)
                     .SetProperty(v => v.Path, request.Path)
+                    .SetProperty(v => v.SiteLocation, request.SiteLocation)
+                    .SetProperty(v => v.Latitude, request.Latitude)
+                    .SetProperty(v => v.Longitude, request.Longitude)
                     .SetProperty(v => v.Type, request.Type)
                     .SetProperty(v => v.Status, request.Status), cancellationToken);
 
@@ -88,8 +100,41 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
 
         entity.Name = request.Name;
         entity.Path = request.Path;
+        entity.SiteLocation = request.SiteLocation;
+        entity.Latitude = request.Latitude;
+        entity.Longitude = request.Longitude;
         entity.Type = request.Type;
         entity.Status = request.Status;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> UpdateStatsAsync(Guid id, UpdateStorageLocationStatsRequest request, CancellationToken cancellationToken)
+    {
+        var scanDate = request.LastScanDate ?? DateTimeOffset.UtcNow;
+
+        if (dbContext.Database.IsRelational())
+        {
+            var rows = await dbContext.StorageLocations
+                .Where(x => x.Id == id)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(v => v.TotalSizeBytes, request.TotalSizeBytes)
+                    .SetProperty(v => v.FileCount, request.FileCount)
+                    .SetProperty(v => v.LastScanDate, scanDate), cancellationToken);
+
+            return rows > 0;
+        }
+
+        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return false;
+        }
+
+        entity.TotalSizeBytes = request.TotalSizeBytes;
+        entity.FileCount = request.FileCount;
+        entity.LastScanDate = scanDate;
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
@@ -127,5 +172,8 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
             entity.LastScanDate,
             entity.TotalSizeBytes,
             entity.FileCount,
-            entity.CreatedDate);
+            entity.CreatedDate,
+            entity.SiteLocation,
+            entity.Latitude,
+            entity.Longitude);
 }

@@ -13,7 +13,9 @@
       "Bash(grep -r \"ValidationAttribute\\\\|DataAnnotations\\\\|FluentValidation\" a:source_VSCodeStorageLenssrc --include=*.cs)",
       "Bash(grep -r catch.*Exception a:source_VSCodeStorageLenssrc --include=*.cs)",
       "Bash(dotnet build:*)",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(DOCKER_API_VERSION=1.45 docker start storagelens-sql)",
+      "Bash(DOCKER_API_VERSION=1.45 docker inspect storagelens-sql --format '{{.State.Status}} | Health: {{.State.Health.Status}}')"
     ]
   }
 }

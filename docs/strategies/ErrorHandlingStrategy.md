@@ -136,7 +136,7 @@ public class GlobalExceptionHandlerMiddleware
         context.Items["CorrelationId"] = correlationId;
 
         // Add correlation ID to response headers for traceability
-        context.Response.Headers.Add("X-Correlation-Id", correlationId);
+        context.Response.Headers.Add("X-Correlation-ID", correlationId);
 
         try
         {
@@ -156,7 +156,7 @@ public class GlobalExceptionHandlerMiddleware
 
     private static string ExtractOrGenerateCorrelationId(HttpContext context)
     {
-        const string headerName = "X-Correlation-Id";
+        const string headerName = "X-Correlation-ID";
 
         if (context.Request.Headers.TryGetValue(headerName, out var existingId))
         {

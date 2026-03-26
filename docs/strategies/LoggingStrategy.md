@@ -28,7 +28,7 @@ namespace StorageLens.Shared.Infrastructure;
 /// </summary>
 public static class CorrelationIdHttpClientExtensions
 {
-    private const string CorrelationIdHeader = "X-Correlation-Id";
+    private const string CorrelationIdHeader = "X-Correlation-ID";
 
     /// <summary>
     /// Creates an HTTP client configured with correlation ID propagation.
@@ -59,7 +59,7 @@ public static class CorrelationIdHttpClientExtensions
     /// </summary>
     public static string GetOrGenerateCorrelationId(this HttpContext context)
     {
-        const string headerName = "X-Correlation-Id";
+        const string headerName = "X-Correlation-ID";
 
         if (context.Request.Headers.TryGetValue(headerName, out var existing))
         {
@@ -105,9 +105,9 @@ public class CorrelationIdMiddleware
         // Add to response headers
         context.Response.OnStarting(() =>
         {
-            if (!context.Response.Headers.ContainsKey("X-Correlation-Id"))
+            if (!context.Response.Headers.ContainsKey("X-Correlation-ID"))
             {
-                context.Response.Headers.Add("X-Correlation-Id", correlationId);
+                context.Response.Headers.Add("X-Correlation-ID", correlationId);
             }
             return Task.CompletedTask;
         });

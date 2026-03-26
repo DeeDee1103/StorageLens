@@ -17,6 +17,15 @@
 
 ## Service Configuration Reference
 
+## Global Distribution Synchronization
+
+Global storage distribution in Global View depends on these service routes being reachable:
+
+- Analytics -> FileInventory: `GET /api/files/stats/by-location`
+- Analytics -> Locations: `PUT /api/locations/{id}/stats`
+
+If upstream routing or API-key propagation is misconfigured, dashboards may show stale location totals even when file metadata exists.
+
 ### Orchestrator Service (`StorageLens.Services.Orchestrator`)
 
 #### WorkflowProcessing

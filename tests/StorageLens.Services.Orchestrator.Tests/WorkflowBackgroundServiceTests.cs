@@ -1,8 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.Orchestrator.Clients;
+using StorageLens.Services.Orchestrator.Data;
 using StorageLens.Services.Orchestrator.Interfaces;
+using StorageLens.Services.Orchestrator.Models;
 using StorageLens.Services.Orchestrator.Services;
 using StorageLens.Shared.Contracts;
 using Xunit;
@@ -43,6 +46,8 @@ public class WorkflowBackgroundServiceTests
         });
 
         var services = new ServiceCollection();
+        services.AddDbContext<OrchestratorDbContext>(options =>
+            options.UseInMemoryDatabase($"background-service-tests-{Guid.NewGuid()}"));
         services.AddSingleton<IWorkflowOrchestratorService>(mockOrchestrator);
         var serviceProvider = services.BuildServiceProvider();
 
@@ -88,6 +93,8 @@ public class WorkflowBackgroundServiceTests
         });
 
         var services = new ServiceCollection();
+        services.AddDbContext<OrchestratorDbContext>(options =>
+            options.UseInMemoryDatabase($"background-service-tests-{Guid.NewGuid()}"));
         services.AddSingleton<IWorkflowOrchestratorService>(mockOrchestrator);
         var serviceProvider = services.BuildServiceProvider();
 
@@ -115,9 +122,87 @@ public class WorkflowBackgroundServiceTests
         Assert.Empty(processedIds);
     }
 
+    [Fact]
+    public async Task EnqueueDueScheduledWorkflowsAsync_QueuesOnlyDuePendingWorkflows()
+    {
+        var dueWorkflowId = Guid.NewGuid();
+        var futureWorkflowId = Guid.NewGuid();
+        var dbName = $"background-service-scheduled-{Guid.NewGuid()}";
+
+        var services = new ServiceCollection();
+        services.AddDbContext<OrchestratorDbContext>(options =>
+            options.UseInMemoryDatabase(dbName));
+        services.AddSingleton<IWorkflowOrchestratorService>(new FakeOrchestrator((_, _) => Task.CompletedTask));
+
+        await using var provider = services.BuildServiceProvider();
+        await using (var scope = provider.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<OrchestratorDbContext>();
+            dbContext.WorkflowInstances.AddRange(
+                new WorkflowInstance
+                {
+                    Id = dueWorkflowId,
+                    StorageLocationId = Guid.NewGuid(),
+                    ScanJobId = Guid.NewGuid(),
+                    CorrelationId = "corr-due",
+                    RootPath = @"A:\\scheduled\\due",
+                    Status = WorkflowStatus.Pending.ToString(),
+                    CreatedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-2),
+                    LastError = string.Empty
+                },
+                new WorkflowInstance
+                {
+                    Id = futureWorkflowId,
+                    StorageLocationId = Guid.NewGuid(),
+                    ScanJobId = Guid.NewGuid(),
+                    CorrelationId = "corr-future",
+                    RootPath = @"A:\\scheduled\\future",
+                    Status = WorkflowStatus.Pending.ToString(),
+                    CreatedAtUtc = DateTimeOffset.UtcNow.AddMinutes(10),
+                    LastError = string.Empty
+                });
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        var queue = new WorkflowQueue();
+        var svc = new WorkflowBackgroundService(
+            queue,
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            Options.Create(new WorkflowProcessingOptions { MaxConcurrentWorkflows = 1 }),
+            NullLogger<WorkflowBackgroundService>.Instance);
+
+        var method = typeof(WorkflowBackgroundService)
+            .GetMethod("EnqueueDueScheduledWorkflowsAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(method);
+
+        var invoked = (Task?)method!.Invoke(svc, [CancellationToken.None]);
+        Assert.NotNull(invoked);
+        await invoked!;
+
+        using var dequeueTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var dequeuedId = await queue.DequeueAsync(dequeueTimeout.Token);
+        Assert.Equal(dueWorkflowId, dequeuedId);
+
+        using var secondTimeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await queue.DequeueAsync(secondTimeout.Token);
+        });
+
+        await using var verifyScope = provider.CreateAsyncScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<OrchestratorDbContext>();
+
+        var dueWorkflow = await verifyDb.WorkflowInstances.FirstAsync(x => x.Id == dueWorkflowId);
+        var futureWorkflow = await verifyDb.WorkflowInstances.FirstAsync(x => x.Id == futureWorkflowId);
+
+        Assert.Equal(WorkflowStatus.RetryQueued.ToString(), dueWorkflow.Status);
+        Assert.Equal(WorkflowStatus.Pending.ToString(), futureWorkflow.Status);
+    }
+
     private sealed class FakeOrchestrator(Func<Guid, CancellationToken, Task> handler) : IWorkflowOrchestratorService
     {
-        public Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, CancellationToken cancellationToken) =>
+        public Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, DateTimeOffset? scheduledStartUtc, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
         public Task<WorkflowInstanceDto?> GetWorkflowAsync(Guid id, CancellationToken cancellationToken) =>
@@ -127,6 +212,12 @@ public class WorkflowBackgroundServiceTests
             throw new NotImplementedException();
 
         public Task<WorkflowStartResultDto?> RetryAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task<bool> CancelByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task<WorkflowStartResultDto?> ResumeByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
         public ValueTask EnqueueAsync(Guid workflowId, CancellationToken cancellationToken) =>

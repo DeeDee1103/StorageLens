@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.Orchestrator.Clients;
+using StorageLens.Services.Orchestrator.Data;
 using StorageLens.Services.Orchestrator.Interfaces;
 using StorageLens.Services.Orchestrator.Services;
 using StorageLens.Shared.Contracts;
@@ -42,6 +44,8 @@ public class WorkflowResiliencePerformanceTests
         });
 
         var services = new ServiceCollection();
+        services.AddDbContext<OrchestratorDbContext>(options =>
+            options.UseInMemoryDatabase($"resilience-tests-{Guid.NewGuid()}"));
         services.AddSingleton<IWorkflowOrchestratorService>(orchestrator);
         var provider = services.BuildServiceProvider();
 
@@ -92,6 +96,8 @@ public class WorkflowResiliencePerformanceTests
         });
 
         var services = new ServiceCollection();
+        services.AddDbContext<OrchestratorDbContext>(options =>
+            options.UseInMemoryDatabase($"resilience-tests-{Guid.NewGuid()}"));
         services.AddSingleton<IWorkflowOrchestratorService>(orchestrator);
         var provider = services.BuildServiceProvider();
 
@@ -124,7 +130,7 @@ public class WorkflowResiliencePerformanceTests
 
     private sealed class FakeOrchestrator(Func<Guid, CancellationToken, Task> handler) : IWorkflowOrchestratorService
     {
-        public Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, CancellationToken cancellationToken) =>
+        public Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, DateTimeOffset? scheduledStartUtc, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
         public Task<WorkflowInstanceDto?> GetWorkflowAsync(Guid id, CancellationToken cancellationToken) =>
@@ -134,6 +140,12 @@ public class WorkflowResiliencePerformanceTests
             throw new NotImplementedException();
 
         public Task<WorkflowStartResultDto?> RetryAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task<bool> CancelByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task<WorkflowStartResultDto?> ResumeByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
         public ValueTask EnqueueAsync(Guid workflowId, CancellationToken cancellationToken) => ValueTask.CompletedTask;

@@ -12,6 +12,8 @@ public class HttpClientPolicyPipelineIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddHttpContextAccessor();
+        services.AddTransient<CorrelationIdDelegatingHandler>();
 
         var resilience = new UpstreamResilienceOptions
         {
@@ -50,6 +52,8 @@ public class HttpClientPolicyPipelineIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddHttpContextAccessor();
+        services.AddTransient<CorrelationIdDelegatingHandler>();
 
         var resilience = new UpstreamResilienceOptions
         {
