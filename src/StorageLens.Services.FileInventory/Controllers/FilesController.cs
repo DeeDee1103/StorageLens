@@ -48,6 +48,13 @@ public class FilesController(IFileInventoryService fileInventoryService) : Contr
         return Ok(items);
     }
 
+    [HttpGet("stats/by-location")]
+    public async Task<ActionResult<IReadOnlyList<LocationStorageStatsDto>>> GetStorageStatsByLocation(CancellationToken cancellationToken)
+    {
+        var items = await fileInventoryService.GetLocationStorageStatsAsync(cancellationToken);
+        return Ok(items);
+    }
+
     [HttpPost("batch")]
     public async Task<ActionResult<FileBatchIngestResultDto>> IngestBatch(
         [FromBody] FileMetadataBatchIngestRequest request,

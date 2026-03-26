@@ -1,0 +1,101 @@
+FAIL|/|home-index.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/
+Call log:
+[2m  - navigating to "http://localhost:5001/", waiting until "domcontentloaded"[22m
+
+FAIL|/GlobalView|global-view.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/GlobalView
+Call log:
+[2m  - navigating to "http://localhost:5001/GlobalView", waiting until "domcontentloaded"[22m
+
+FAIL|/StorageLocations|storage-locations.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/StorageLocations
+Call log:
+[2m  - navigating to "http://localhost:5001/StorageLocations", waiting until "domcontentloaded"[22m
+
+FAIL|/ScanJobs|scan-jobs.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/ScanJobs
+Call log:
+[2m  - navigating to "http://localhost:5001/ScanJobs", waiting until "domcontentloaded"[22m
+
+FAIL|/FileInventory|file-inventory.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/FileInventory
+Call log:
+[2m  - navigating to "http://localhost:5001/FileInventory", waiting until "domcontentloaded"[22m
+
+FAIL|/Duplicates|duplicates.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Duplicates
+Call log:
+[2m  - navigating to "http://localhost:5001/Duplicates", waiting until "domcontentloaded"[22m
+
+FAIL|/Reports|reports.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Reports
+Call log:
+[2m  - navigating to "http://localhost:5001/Reports", waiting until "domcontentloaded"[22m
+
+FAIL|/Insights|insights.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Insights
+Call log:
+[2m  - navigating to "http://localhost:5001/Insights", waiting until "domcontentloaded"[22m
+
+FAIL|/FlowManager|flow-manager.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/FlowManager
+Call log:
+[2m  - navigating to "http://localhost:5001/FlowManager", waiting until "domcontentloaded"[22m
+
+FAIL|/Settings|settings.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Settings
+Call log:
+[2m  - navigating to "http://localhost:5001/Settings", waiting until "domcontentloaded"[22m
+
+FAIL|/AppearanceSettings|appearance-settings.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/AppearanceSettings
+Call log:
+[2m  - navigating to "http://localhost:5001/AppearanceSettings", waiting until "domcontentloaded"[22m
+
+FAIL|/EnvironmentSettings|environment-settings.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/EnvironmentSettings
+Call log:
+[2m  - navigating to "http://localhost:5001/EnvironmentSettings", waiting until "domcontentloaded"[22m
+
+FAIL|/ClientManagement|client-management.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/ClientManagement
+Call log:
+[2m  - navigating to "http://localhost:5001/ClientManagement", waiting until "domcontentloaded"[22m
+
+FAIL|/Configuration|configuration.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Configuration
+Call log:
+[2m  - navigating to "http://localhost:5001/Configuration", waiting until "domcontentloaded"[22m
+
+FAIL|/ScannerSettings|scanner-settings.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/ScannerSettings
+Call log:
+[2m  - navigating to "http://localhost:5001/ScannerSettings", waiting until "domcontentloaded"[22m
+
+FAIL|/NotificationSettings|notification-settings.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/NotificationSettings
+Call log:
+[2m  - navigating to "http://localhost:5001/NotificationSettings", waiting until "domcontentloaded"[22m
+
+FAIL|/Alerts|alerts.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Alerts
+Call log:
+[2m  - navigating to "http://localhost:5001/Alerts", waiting until "domcontentloaded"[22m
+
+FAIL|/Logging|logging.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Logging
+Call log:
+[2m  - navigating to "http://localhost:5001/Logging", waiting until "domcontentloaded"[22m
+
+FAIL|/PricingAdmin|pricing-admin.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/PricingAdmin
+Call log:
+[2m  - navigating to "http://localhost:5001/PricingAdmin", waiting until "domcontentloaded"[22m
+
+FAIL|/Landing|landing.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Landing
+Call log:
+[2m  - navigating to "http://localhost:5001/Landing", waiting until "domcontentloaded"[22m
+
+FAIL|/About|about.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/About
+Call log:
+[2m  - navigating to "http://localhost:5001/About", waiting until "domcontentloaded"[22m
+
+FAIL|/Pricing|pricing.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Pricing
+Call log:
+[2m  - navigating to "http://localhost:5001/Pricing", waiting until "domcontentloaded"[22m
+
+FAIL|/Profile|profile.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Profile
+Call log:
+[2m  - navigating to "http://localhost:5001/Profile", waiting until "domcontentloaded"[22m
+
+FAIL|/Privacy|privacy.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Privacy
+Call log:
+[2m  - navigating to "http://localhost:5001/Privacy", waiting until "domcontentloaded"[22m
+
+FAIL|/Error|error.png|page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5001/Error
+Call log:
+[2m  - navigating to "http://localhost:5001/Error", waiting until "domcontentloaded"[22m
+
+RESULT|0|25

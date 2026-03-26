@@ -70,3 +70,8 @@ public record FileHashResultRequest(
 	DateTimeOffset ProcessedAtUtc);
 
 public record MarkDuplicateHashesRequest(Guid ScanJobId, string CorrelationId, IReadOnlyList<string> Hashes);
+
+public record LocationStorageStatsDto(
+	Guid StorageLocationId,
+	long TotalSizeBytes,
+	long FileCount);

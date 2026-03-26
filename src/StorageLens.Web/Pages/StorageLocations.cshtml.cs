@@ -56,7 +56,7 @@ public class StorageLocationsModel(
             return RedirectToPage();
         }
 
-        await orchestratorApiClient.StartScanAsync(locationId, cancellationToken);
+        await orchestratorApiClient.StartScanAsync(locationId, cancellationToken: cancellationToken);
         return RedirectToPage("/ScanJobs");
     }
 

@@ -1018,6 +1018,10 @@ body.dashboard-interactive-mode .app-footer {
 
 .status-badge {
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  line-height: 1.15;
 }
 
 .status-pending {
@@ -3183,6 +3187,11 @@ tr.live-update-changed > td {
 
 .scan-jobs-card-head > .status-badge {
   flex-shrink: 0;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .scan-jobs-card-title {

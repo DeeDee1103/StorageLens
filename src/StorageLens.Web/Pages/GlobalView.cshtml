@@ -100,12 +100,12 @@
         <article class="gv-kpi gv-kpi--teal">
             <div class="gv-kpi-label">Total Storage</div>
             <div class="gv-kpi-value">@totalDisplay</div>
-            <div class="gv-kpi-trend"><span class="gv-trend-line"></span>+4.8%</div>
+            <div class="gv-kpi-trend"><span class="gv-trend-line"></span>Live metric</div>
         </article>
         <article class="gv-kpi gv-kpi--blue">
             <div class="gv-kpi-label">Total Files</div>
             <div class="gv-kpi-value">@Model.Dashboard.Kpis.TotalFiles.ToString("N0")</div>
-            <div class="gv-kpi-trend"><span class="gv-trend-line"></span>+2.3%</div>
+            <div class="gv-kpi-trend"><span class="gv-trend-line"></span>Live metric</div>
         </article>
         <article class="gv-kpi gv-kpi--lime">
             <div class="gv-kpi-label">Duplicate %</div>
@@ -165,7 +165,7 @@
                     <div>
                         <div class="gv-panel-title">Global Storage Distribution</div>
                         <div class="gv-panel-subtitle">
-                            @locations.Count location@(locations.Count != 1 ? "s" : "") — click pins for details
+                            @locations.Count location@(locations.Count != 1 ? "s" : "") from live analytics
                         </div>
                     </div>
                     <div class="gv-map-legend">
@@ -310,27 +310,6 @@
     const typeValues = @Html.Raw(typeValues);
     const dupPct = @dupPct;
 
-    const coordPool = [
-        { lat: 37.7749,  lng: -122.4194, region: "San Francisco" },
-        { lat: 40.7128,  lng:  -74.0060, region: "New York" },
-        { lat: 51.5074,  lng:   -0.1278, region: "London" },
-        { lat: 48.8566,  lng:    2.3522, region: "Paris" },
-        { lat: 52.5200,  lng:   13.4050, region: "Frankfurt" },
-        { lat: 35.6762,  lng:  139.6503, region: "Tokyo" },
-        { lat:  1.3521,  lng:  103.8198, region: "Singapore" },
-        { lat: -33.8688, lng:  151.2093, region: "Sydney" },
-        { lat: 43.6532,  lng:  -79.3832, region: "Toronto" },
-        { lat: 25.2048,  lng:   55.2708, region: "Dubai" },
-        { lat: -23.5505, lng:  -46.6333, region: "São Paulo" },
-        { lat: 19.0760,  lng:   72.8777, region: "Mumbai" },
-        { lat: 55.7558,  lng:   37.6176, region: "Moscow" },
-        { lat: 39.9042,  lng:  116.4074, region: "Beijing" },
-        { lat: 37.5665,  lng:  126.9780, region: "Seoul" },
-        { lat: 47.4979,  lng:   19.0402, region: "Budapest" },
-        { lat: 45.4642,  lng:    9.1900, region: "Milan" },
-        { lat: 60.1699,  lng:   24.9384, region: "Helsinki" },
-    ];
-
     const statusColour = { online: '#3ef2d0', warning: '#f5a623', offline: '#f45b5b' };
 
     const fmt = (bytes) => {
@@ -346,6 +325,49 @@
     const statusDot = (s) => {
         const c = statusColour[(s || '').toLowerCase()] || '#8ea4cb';
         return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:5px;vertical-align:middle"></span>`;
+    };
+
+    const coordPool = [
+        { lat: 37.7749, lng: -122.4194 }, // San Francisco
+        { lat: 40.7128, lng: -74.0060 },  // New York
+        { lat: 51.5074, lng: -0.1278 },   // London
+        { lat: 48.8566, lng: 2.3522 },    // Paris
+        { lat: 52.5200, lng: 13.4050 },   // Berlin
+        { lat: 35.6762, lng: 139.6503 },  // Tokyo
+        { lat: 1.3521, lng: 103.8198 },   // Singapore
+        { lat: -33.8688, lng: 151.2093 }, // Sydney
+        { lat: 43.6532, lng: -79.3832 },  // Toronto
+        { lat: 25.2048, lng: 55.2708 },   // Dubai
+        { lat: -23.5505, lng: -46.6333 }, // Sao Paulo
+    ];
+
+    const hashValue = (value) => {
+        const text = (value || '').toString();
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+            hash = ((hash << 5) - hash) + text.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash);
+    };
+
+    const deriveCoordinates = (loc, index) => {
+        const key = `${loc.name}|${loc.path}|${loc.id}`;
+        const hash = hashValue(key);
+        const base = coordPool[(hash + index) % coordPool.length];
+        const latJitter = ((hash % 13) - 6) * 0.35;
+        const lngJitter = ((Math.floor(hash / 17) % 13) - 6) * 0.45;
+
+        return {
+            latitude: Math.max(-75, Math.min(75, base.lat + latJitter)),
+            longitude: Math.max(-170, Math.min(170, base.lng + lngJitter))
+        };
+    };
+
+    const showEmptyState = (selector, message) => {
+        const host = document.querySelector(selector);
+        if (!host) return;
+        host.innerHTML = `<div class="gv-empty-hint"><i class="bi bi-inbox"></i> ${message}</div>`;
     };
 
     // ── Leaflet map ───────────────────────────────────────────────
@@ -372,21 +394,24 @@
             iconAnchor: [6, 12],
             popupAnchor: [0, -14],
         });
+        const geoLocations = (locations || []).map((loc, index) => {
+            if (Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude)) {
+                return loc;
+            }
 
-        const showLocations = locations && locations.length > 0 ? locations : [
-            { id: 'demo1', name: 'NAS-EU-West',  path: '\\\\nas01\\share', type: 'Nas',       status: 'Online',  totalSizeBytes: 4831838208,  fileCount: 12400 },
-            { id: 'demo2', name: 'NAS-US-East',  path: '\\\\nas02\\data',  type: 'Nas',       status: 'Online',  totalSizeBytes: 13958643712, fileCount: 43800 },
-            { id: 'demo3', name: 'Share-APAC',   path: '\\\\fs01\\apac',   type: 'FileShare', status: 'Warning', totalSizeBytes: 2147483648,  fileCount: 7200  },
-            { id: 'demo4', name: 'Local-Dev',    path: 'D:\\DevStorage',   type: 'Local',     status: 'Offline', totalSizeBytes: 536870912,   fileCount: 1200  },
-            { id: 'demo5', name: 'Archive-SA',   path: '\\\\ar01\\backup', type: 'Nas',       status: 'Online',  totalSizeBytes: 8589934592,  fileCount: 92000 },
-        ];
+            return {
+                ...loc,
+                ...deriveCoordinates(loc, index)
+            };
+        });
 
-        showLocations.forEach((loc, i) => {
-            const coord = coordPool[i % coordPool.length];
-            const jLat = coord.lat + (((i * 17 + 3) % 7) - 3) * 0.3;
-            const jLng = coord.lng + (((i * 13 + 5) % 7) - 3) * 0.3;
+        if (geoLocations.length === 0) {
+            showEmptyState('#globalMap', 'No live geo-coordinates available for map plotting');
+        }
+
+        geoLocations.forEach((loc) => {
             const colour = statusColour[(loc.status || '').toLowerCase()] || '#3ef2d0';
-            const marker = L.marker([jLat, jLng], { icon: pinIcon(colour) }).addTo(map);
+            const marker = L.marker([loc.latitude, loc.longitude], { icon: pinIcon(colour) }).addTo(map);
 
             const popup = `<div class="gv-popup">
                 <div class="gv-popup-title">${loc.name}</div>
@@ -395,7 +420,7 @@
                 <div class="gv-popup-row"><span class="gv-popup-lbl">Path</span> <code>${loc.path}</code></div>
                 <div class="gv-popup-row"><span class="gv-popup-lbl">Size</span> ${fmt(loc.totalSizeBytes)}</div>
                 <div class="gv-popup-row"><span class="gv-popup-lbl">Files</span> ${fmtNum(loc.fileCount)}</div>
-                <div class="gv-popup-row"><span class="gv-popup-lbl">Region</span> ${coord.region}</div>
+                <div class="gv-popup-row"><span class="gv-popup-lbl">Coordinates</span> ${loc.latitude.toFixed(2)}, ${loc.longitude.toFixed(2)}</div>
             </div>`;
 
             marker.bindPopup(popup, { maxWidth: 260, className: 'gv-leaflet-popup' });
@@ -411,53 +436,59 @@
     // ── Storage growth sparkline ──────────────────────────────────
     const tiersCtx = document.getElementById('gvTiersChart');
     if (tiersCtx && typeof Chart !== 'undefined') {
-        new Chart(tiersCtx, {
-            type: 'line',
-            data: {
-                labels: growthLabels.length ? growthLabels : ['Jan','Feb','Mar','Apr','May','Jun'],
-                datasets: [{
-                    data: growthValues.length ? growthValues : [2.1,3.4,4.8,6.2,8.1,9.7],
-                    borderColor: '#3ef2d0',
-                    backgroundColor: 'rgba(62,242,208,0.12)',
-                    fill: true,
-                    tension: 0.42,
-                    pointRadius: 0,
-                    borderWidth: 2,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { display: false }, y: { display: false } }
-            }
-        });
+        if (!growthLabels.length || !growthValues.length) {
+            showEmptyState('.gv-tier-chart-wrap', 'No live trend data available');
+        } else {
+            new Chart(tiersCtx, {
+                type: 'line',
+                data: {
+                    labels: growthLabels,
+                    datasets: [{
+                        data: growthValues,
+                        borderColor: '#3ef2d0',
+                        backgroundColor: 'rgba(62,242,208,0.12)',
+                        fill: true,
+                        tension: 0.42,
+                        pointRadius: 0,
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false }, y: { display: false } }
+                }
+            });
+        }
     }
 
     // ── File type donut ───────────────────────────────────────────
     const typeCtx = document.getElementById('gvTypeChart');
     if (typeCtx && typeof Chart !== 'undefined') {
-        const tL = typeLabels.length ? typeLabels : ['Video','Images','Docs','Archives','Other'];
-        const tV = typeValues.length ? typeValues : [38,22,18,12,10];
-        new Chart(typeCtx, {
-            type: 'doughnut',
-            data: {
-                labels: tL,
-                datasets: [{
-                    data: tV,
-                    backgroundColor: ['#3ef2d0','#6b8fff','#f5a623','#f45b5b','#a78bfa'],
-                    borderWidth: 0, hoverOffset: 4,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false, cutout: '68%',
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { color: '#9eb0cd', font: { size: 10, family: 'Manrope', weight: '700' }, boxWidth: 8, padding: 8 }
+        if (!typeLabels.length || !typeValues.length) {
+            showEmptyState('.gv-type-chart-wrap', 'No live file type data available');
+        } else {
+            new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: typeLabels,
+                    datasets: [{
+                        data: typeValues,
+                        backgroundColor: ['#3ef2d0','#6b8fff','#f5a623','#f45b5b','#a78bfa'],
+                        borderWidth: 0, hoverOffset: 4,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '68%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#9eb0cd', font: { size: 10, family: 'Manrope', weight: '700' }, boxWidth: 8, padding: 8 }
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 
     // ── Export / duplicate gauge ──────────────────────────────────

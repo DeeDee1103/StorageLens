@@ -27,3 +27,6 @@
 - All `/health` endpoints return `200`
 - Scan workflow completes in target environment
 - Dashboard and duplicate summary return expected data
+- FileInventory grouped stats endpoint returns data: `GET /api/files/stats/by-location`
+- Locations stats update endpoint accepts updates from analytics: `PUT /api/locations/{id}/stats`
+- Global View storage tier values match authoritative location totals (no persistent `0 B` values for active scanned locations)

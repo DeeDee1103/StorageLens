@@ -17,7 +17,7 @@
 > Related: See [Service Contracts](service-contracts.md) for DTO definitions and [Data Dictionary](../data-dictionary.md) for persisted entity reference.
 
 ## Orchestrator
-- `POST /api/orchestrator/scans/start/{locationId}`
+- `POST /api/orchestrator/scans/start/{locationId}` (supports optional `StartScanRequest` body with `scheduledStartUtc`)
 - `GET /api/orchestrator/workflows/{id}`
 - `POST /api/orchestrator/workflows/{id}/resume`
 - `POST /api/orchestrator/workflows/{id}/retry`
@@ -27,6 +27,7 @@
 - `GET /api/locations/{id}`
 - `POST /api/locations`
 - `PUT /api/locations/{id}`
+- `PUT /api/locations/{id}/stats`
 
 ## ScanJobs
 - `GET /api/scanjobs/recent`
@@ -39,10 +40,17 @@
 - `GET /api/files`
 - `GET /api/files/{id}`
 - `GET /api/files/by-location/{locationId}`
+- `GET /api/files/stats/by-location`
 - `POST /api/files/batch`
 - `GET /api/files/pending-hash`
 - `POST /api/files/{id}/hash-result`
 - `POST /api/files/mark-duplicates/{scanJobId}`
+
+## Global Distribution Data Path
+
+- `GET /api/files/stats/by-location` provides authoritative per-location file totals and byte totals.
+- `GET /api/analytics/dashboard` enriches location payloads with these authoritative totals.
+- `PUT /api/locations/{id}/stats` persists synchronized totals in the Locations catalog for downstream read consistency.
 
 ## Scanner
 - `POST /api/scanner/execute`

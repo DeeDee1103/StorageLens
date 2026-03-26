@@ -12,16 +12,19 @@ It comprises 8 backend microservices plus a web frontend (9 deployable component
   - Calls backend services through typed API clients
 - `Locations Service`
   - Manages storage location metadata and status
+  - Stores synchronized location totals (`TotalSizeBytes`, `FileCount`) used by dashboards and list views
 - `ScanJobs Service`
   - Owns scan job lifecycle state, progress counters, and stage transitions
 - `FileInventory Service`
   - Persists file metadata and hash/duplicate status
   - Supports batch ingest and hash update operations
+  - Exposes grouped per-location storage statistics for analytics projection
 - `Duplicates Service`
   - Computes duplicate groups from file hashes
   - Produces duplicate summary metrics
 - `Analytics Service`
   - Aggregates cross-service data into dashboard/report DTOs
+  - Enriches location metrics from FileInventory grouped stats and synchronizes totals to Locations via API
 - `Scanner Service`
   - Enumerates files from target paths
   - Pushes metadata batches to FileInventory and scan progress to ScanJobs
@@ -53,6 +56,7 @@ No service writes directly to another service database.
 - Contract sharing through `StorageLens.Shared.Contracts`
 - Correlation IDs propagated across scan workflow stages
 - Health probes via `/health` endpoints
+- Cross-service write synchronization is API-driven (`Analytics` -> `Locations` stats endpoint), preserving database ownership boundaries
 
 ## Architecture Diagram
 

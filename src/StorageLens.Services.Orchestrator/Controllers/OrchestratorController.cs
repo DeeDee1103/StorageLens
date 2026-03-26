@@ -11,14 +11,17 @@ namespace StorageLens.Services.Orchestrator.Controllers;
 public class OrchestratorController(IWorkflowOrchestratorService workflowService) : ControllerBase
 {
     [HttpPost("scans/start/{locationId:guid}")]
-    public async Task<ActionResult<WorkflowStartResultDto>> Start(Guid locationId, CancellationToken cancellationToken)
+    public async Task<ActionResult<WorkflowStartResultDto>> Start(
+        Guid locationId,
+        [FromBody] StartScanRequest? request,
+        CancellationToken cancellationToken)
     {
         if (locationId == Guid.Empty)
         {
             return BadRequest("Location id cannot be empty.");
         }
 
-        var result = await workflowService.StartScanAsync(locationId, cancellationToken);
+        var result = await workflowService.StartScanAsync(locationId, request?.ScheduledStartUtc, cancellationToken);
         return Accepted(result);
     }
 

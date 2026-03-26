@@ -234,6 +234,8 @@ services:
       - C:/:/host/drives/c
       # Add more drives as needed, e.g.: - D:/:/host/drives/d
       # On a Linux Docker host: replace the lines above with: - /host/drives:/host/drives
+      # UNC network shares must be mounted explicitly:
+      - //DouglasCludEx2/Development:/host/unc/DouglasCludEx2/Development
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -277,6 +279,8 @@ services:
       - C:/:/host/drives/c
       # Add more drives as needed, e.g.: - D:/:/host/drives/d
       # On a Linux Docker host: replace the lines above with: - /host/drives:/host/drives
+      # UNC network shares must be mounted explicitly:
+      - //DouglasCludEx2/Development:/host/unc/DouglasCludEx2/Development
     depends_on:
       sqlserver:
         condition: service_healthy

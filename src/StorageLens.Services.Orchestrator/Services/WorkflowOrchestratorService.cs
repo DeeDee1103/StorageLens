@@ -24,7 +24,10 @@ public class WorkflowOrchestratorService(
             [WorkflowStatus.Cancelled] = [WorkflowStatus.RetryQueued]
         };
 
-    public async Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, CancellationToken cancellationToken)
+    public async Task<WorkflowStartResultDto> StartScanAsync(
+        Guid locationId,
+        DateTimeOffset? scheduledStartUtc,
+        CancellationToken cancellationToken)
     {
         var locationsClient = httpClientFactory.CreateClient("locations");
         var scanJobsClient = httpClientFactory.CreateClient("scanjobs");
@@ -33,9 +36,23 @@ public class WorkflowOrchestratorService(
                        ?? throw new InvalidOperationException("Location not found.");
 
         var correlationId = Guid.NewGuid().ToString("N");
+        var nowUtc = DateTimeOffset.UtcNow;
+        var requestedStartUtc = scheduledStartUtc?.ToUniversalTime();
+        var isScheduled = requestedStartUtc.HasValue && requestedStartUtc.Value > nowUtc.AddSeconds(30);
+        var effectiveStartUtc = isScheduled ? requestedStartUtc!.Value : nowUtc;
+
         var scanJob = await scanJobsClient.PostAsJsonAsync(
             "api/scanjobs",
-            new CreateScanJobRequest(locationId, "Workflow scan request", correlationId, location.Name),
+            new CreateScanJobRequest(
+                StorageLocationId: locationId,
+                Notes: isScheduled
+                    ? $"Scheduled scan request for {effectiveStartUtc:yyyy-MM-dd HH:mm} UTC"
+                    : "Workflow scan request",
+                CorrelationId: correlationId,
+                LocationName: location.Name,
+                ScheduledStartUtc: effectiveStartUtc,
+                InitialStatus: isScheduled ? ScanJobStatus.Pending : ScanJobStatus.Queued,
+                InitialStage: isScheduled ? "Scheduled" : "Queued"),
             cancellationToken);
         scanJob.EnsureSuccessStatusCode();
 
@@ -49,15 +66,18 @@ public class WorkflowOrchestratorService(
             ScanJobId = createdJob.Id,
             CorrelationId = correlationId,
             RootPath = location.Path,
-            Status = WorkflowStatus.Pending.ToString(),
-            CreatedAtUtc = DateTimeOffset.UtcNow,
+            Status = isScheduled ? WorkflowStatus.Pending.ToString() : WorkflowStatus.RetryQueued.ToString(),
+            CreatedAtUtc = effectiveStartUtc,
             LastError = string.Empty
         };
 
         dbContext.WorkflowInstances.Add(workflow);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        await EnqueueAsync(workflow.Id, cancellationToken);
+        if (!isScheduled)
+        {
+            await EnqueueAsync(workflow.Id, cancellationToken);
+        }
 
         return new WorkflowStartResultDto(workflow.Id, createdJob.Id, correlationId, workflow.Status);
     }

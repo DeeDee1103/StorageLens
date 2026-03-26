@@ -26,3 +26,6 @@ docker compose down
 - Validate database name isolation per service.
 - Confirm host path mounts exist and are accessible.
 - If a service crashes on first start with a SQL connection error, SQL Server may still be initialising. The startup initialiser retries automatically; restart the affected service with `docker compose restart <service>` if it already exited before the retry window.
+- If Global View shows stale or zero location totals, verify both endpoints are healthy from the analytics container perspective:
+	- `GET /api/files/stats/by-location` (FileInventory)
+	- `PUT /api/locations/{id}/stats` (Locations)

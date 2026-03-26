@@ -28,12 +28,16 @@ Example:
 ### Added
 - **Marketing home lead capture** — the public home experience now includes a demo request form, pilot/demo CTAs, FAQ/contact sections, and quick links into the operational pages.
 - **Reports CSV exports** — the Reports page now supports CSV export for oldest files, largest files, common file types, and duplicate-heavy locations.
+- **Live location storage stats API surfaces** — added `GET /api/files/stats/by-location` in FileInventory and `PUT /api/locations/{id}/stats` in Locations to support authoritative per-location totals and synchronized metadata updates.
 
 ### Changed
 - **Home routing and navigation** — `/` now routes to `Index`, which serves the marketing-style product home. The previous separate Home navigation pattern is no longer the primary app-shell entry, and the live operational dashboard is surfaced from the landing experience through Global View.
 - **Pricing packaging** — public pricing is aligned to the current three-plan catalogue: Starter ($99/month), Professional ($499/month), and Enterprise (contact sales).
 - **Duplicate analysis default view** — the Duplicates page now opens in Interactive mode by default while keeping the Original view available.
 - **Marketing copy and positioning** — header, footer, and CTA language now emphasize enterprise storage operations, automation, and audit-ready reporting instead of MVP-era landing terminology.
+- **Global storage distribution data path** — Global View now renders storage totals from live FileInventory aggregates via Analytics enrichment instead of stale location defaults.
+- **Analytics location synchronization** — Analytics now performs best-effort stats synchronization back to Locations metadata so list views and dashboard totals converge on authoritative values.
+- **Global map plotting behavior** — locations are now always plotted from configured data; when explicit coordinates are absent, deterministic coordinate derivation is used to avoid missing map pins.
 
 ### Fixed
 - **Build errors in `StorageLens.Shared.Infrastructure`** — Added missing `using Microsoft.AspNetCore.Routing` to `HealthCheckExtensions.cs` (fixes `IEndpointRouteBuilder` CS0246 build error). Fixed `MetadataName<TimeSpan>` to `string` comparison in `DistributedRateLimiter.cs` using `.Name` property. Added missing `using Microsoft.Extensions.Hosting` to `ObservabilityExtensions.cs`. Reordered `ArgumentNullException`/`ArgumentException` arms in `GlobalExceptionHandler.cs` switch expression to fix CS8510 unreachable pattern.
@@ -41,6 +45,7 @@ Example:
 - **Integration test `Program` accessibility** — Added `public partial class Program {}` to `StorageLens.Services.Locations/Program.cs` so `WebApplicationFactory<Program>` in integration tests can reference the type.
 - **`infra-validation` CI workflow** — Replaced `azure/cli@v2` Docker action with a native `run:` step so the Bicep ARM output file is written to the runner filesystem (not the container) and the subsequent `test -f` check succeeds.
 - **Whitespace formatting** — Replaced tab indentation with 4-space indentation across `Class1.cs` files and corrected trailing/alignment spaces in `DistributedRateLimiter.cs` and `GlobalExceptionHandler.cs` to satisfy `dotnet format --verify-no-changes`.
+- **Global View storage values for new locations** — corrected cases where newly added locations appeared as `0 B` in Global Storage Distribution despite ingested inventory data.
 
 ### Added
 - **Global exception handler + standardised error responses** (Code Quality — Area #2):

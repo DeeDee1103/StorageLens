@@ -10,15 +10,15 @@ Cross-service DTOs are defined in domain-specific files under:
 ## Primary Contract Families
 
 - Location contracts
-  - `StorageLocationDto`, `CreateStorageLocationRequest`, `UpdateStorageLocationRequest`
+  - `StorageLocationDto`, `CreateStorageLocationRequest`, `UpdateStorageLocationRequest`, `UpdateStorageLocationStatsRequest`
 - Scan job contracts
   - `ScanJobDto`, `CreateScanJobRequest`, `UpdateScanJobStatusRequest`, `UpdateScanJobProgressRequest`
 - File inventory contracts
-  - `FileRecordDto`, `FileMetadataDto`, `FileMetadataBatchIngestRequest`, `PendingHashFileDto`, `FileHashResultRequest`
+  - `FileRecordDto`, `FileMetadataDto`, `FileMetadataBatchIngestRequest`, `PendingHashFileDto`, `FileHashResultRequest`, `LocationStorageStatsDto`
 - Duplicate contracts
   - `DuplicateGroupDto`, `DuplicateSummaryDto`, `DuplicateRecalculationResultDto`, `MarkDuplicateHashesRequest`
 - Workflow contracts
-  - `ScannerExecuteRequest`, `ScannerExecutionDto`, `HashingRunResultDto`, `WorkflowInstanceDto`, `WorkflowStartResultDto`
+  - `ScannerExecuteRequest`, `ScannerExecutionDto`, `HashingRunResultDto`, `WorkflowInstanceDto`, `WorkflowStartResultDto`, `StartScanRequest`
 - Analytics contracts
   - `DashboardDto`, `ReportsDto`, `DashboardKpiDto`, `ChartPointDto`
 

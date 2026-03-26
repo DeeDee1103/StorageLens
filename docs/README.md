@@ -7,6 +7,10 @@ StorageLens is a SaaS platform for analyzing NAS and cloud-connected storage foo
 ## Recent Updates (Last 2 Days)
 
 
+- Global storage distribution data is now fully live:
+	- Global View location totals now derive from aggregated FileInventory stats rather than stale location defaults.
+	- Analytics now synchronizes per-location `TotalSizeBytes` and `FileCount` values back into Locations metadata.
+	- New locations are automatically included in global distribution and map plotting after analytics refresh.
 - Marketing and header branding polish:
 	- StorageLens logo scale reduced for cleaner visual balance.
 	- Header subtitle "Storage intelligence for modern operations" moved directly under the logo with refined typography.

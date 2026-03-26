@@ -31,3 +31,5 @@ public record WorkflowInstanceDto(
 	IReadOnlyList<WorkflowStepExecutionDto> Steps);
 
 public record WorkflowStartResultDto(Guid WorkflowId, Guid ScanJobId, string CorrelationId, string Status);
+
+public record StartScanRequest(DateTimeOffset? ScheduledStartUtc);

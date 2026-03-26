@@ -4,7 +4,7 @@ namespace StorageLens.Services.Orchestrator.Interfaces;
 
 public interface IWorkflowOrchestratorService
 {
-    Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, CancellationToken cancellationToken);
+    Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, DateTimeOffset? scheduledStartUtc, CancellationToken cancellationToken);
     Task<WorkflowInstanceDto?> GetWorkflowAsync(Guid id, CancellationToken cancellationToken);
     Task<WorkflowStartResultDto?> ResumeAsync(Guid id, CancellationToken cancellationToken);
     Task<WorkflowStartResultDto?> RetryAsync(Guid id, CancellationToken cancellationToken);

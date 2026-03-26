@@ -36,7 +36,10 @@ public record CreateScanJobRequest(
 	Guid StorageLocationId,
 	string Notes,
 	string? CorrelationId = null,
-	string? LocationName = null);
+	string? LocationName = null,
+	DateTimeOffset? ScheduledStartUtc = null,
+	ScanJobStatus? InitialStatus = null,
+	string? InitialStage = null);
 
 public record UpdateScanJobStatusRequest(
 	ScanJobStatus Status,

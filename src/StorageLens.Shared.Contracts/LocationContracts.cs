@@ -35,3 +35,8 @@ public record UpdateStorageLocationRequest(
 	string Path,
 	StorageLocationType Type,
 	LocationStatus Status);
+
+public record UpdateStorageLocationStatsRequest(
+	long TotalSizeBytes,
+	long FileCount,
+	DateTimeOffset? LastScanDate = null);

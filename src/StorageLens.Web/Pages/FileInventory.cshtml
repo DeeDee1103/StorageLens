@@ -2,14 +2,14 @@
 @model FileInventoryModel
 
 @{
-    var totalFiles = Model.Files.Count;
-    var totalBytes = Model.Files.Sum(file => file.SizeBytes);
+    var totalFiles = Model.GlobalTotalFiles;
+    var totalBytes = Model.GlobalTotalBytes;
     var uniqueExtensions = Model.Files
         .Select(file => file.Extension)
         .Where(extension => !string.IsNullOrWhiteSpace(extension))
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .Count();
-    var duplicateCount = Model.Files.Count(file => file.HashStatus?.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true);
+    var duplicateCount = Model.GlobalDuplicateFiles;
     var latestModified = Model.Files.Any() ? Model.Files.Max(file => file.LastModifiedDate) : (DateTimeOffset?)null;
     var locationSnapshots = Model.Files
         .GroupBy(file => string.IsNullOrWhiteSpace(file.LocationName) ? "Unassigned" : file.LocationName)

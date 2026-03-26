@@ -19,6 +19,9 @@ public class ScanJobsModel(
     [BindProperty]
     public string Notes { get; set; } = "Manual scan request";
 
+    [BindProperty]
+    public DateTime? ScheduledStartLocal { get; set; }
+
     public IReadOnlyList<ScanJobDto> Jobs { get; private set; } = [];
     public IReadOnlyList<StorageLocationDto> Locations { get; private set; } = [];
 
@@ -84,7 +87,14 @@ public class ScanJobsModel(
             return RedirectToPage();
         }
 
-        await orchestratorApiClient.StartScanAsync(SelectedLocationId, cancellationToken);
+        DateTimeOffset? scheduledStartUtc = null;
+        if (ScheduledStartLocal.HasValue)
+        {
+            var localDateTime = DateTime.SpecifyKind(ScheduledStartLocal.Value, DateTimeKind.Local);
+            scheduledStartUtc = new DateTimeOffset(localDateTime).ToUniversalTime();
+        }
+
+        await orchestratorApiClient.StartScanAsync(SelectedLocationId, scheduledStartUtc, cancellationToken);
         return RedirectToPage();
     }
 

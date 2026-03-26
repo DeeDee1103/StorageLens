@@ -95,6 +95,36 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
         return true;
     }
 
+    public async Task<bool> UpdateStatsAsync(Guid id, UpdateStorageLocationStatsRequest request, CancellationToken cancellationToken)
+    {
+        var scanDate = request.LastScanDate ?? DateTimeOffset.UtcNow;
+
+        if (dbContext.Database.IsRelational())
+        {
+            var rows = await dbContext.StorageLocations
+                .Where(x => x.Id == id)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(v => v.TotalSizeBytes, request.TotalSizeBytes)
+                    .SetProperty(v => v.FileCount, request.FileCount)
+                    .SetProperty(v => v.LastScanDate, scanDate), cancellationToken);
+
+            return rows > 0;
+        }
+
+        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return false;
+        }
+
+        entity.TotalSizeBytes = request.TotalSizeBytes;
+        entity.FileCount = request.FileCount;
+        entity.LastScanDate = scanDate;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         if (dbContext.Database.IsRelational())

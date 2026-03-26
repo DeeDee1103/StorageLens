@@ -19,12 +19,16 @@ Track service health via `/health` endpoints.
 - Hash success/failure ratios
 - Duplicate groups and potential savings trends
 - Service error rate and latency by endpoint
+- Location stats synchronization success/failure counts (`Analytics` -> `Locations` stats updates)
+- Drift between `Locations.TotalSizeBytes` and FileInventory grouped totals
 
 ## Alerting Suggestions
 
 - Workflow failure spike
 - Repeated startup/database initialization failures
 - Persistent queue/backlog growth in scan stages
+- Repeated failures on `GET /api/files/stats/by-location` or `PUT /api/locations/{id}/stats`
+- Sustained global distribution drift (dashboard totals disagree with authoritative inventory totals)
 
 ## SLI/SLO Governance
 

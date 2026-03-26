@@ -107,6 +107,20 @@ public class FileInventoryService(FileInventoryDbContext dbContext) : IFileInven
         return items;
     }
 
+    public async Task<IReadOnlyList<LocationStorageStatsDto>> GetLocationStorageStatsAsync(CancellationToken cancellationToken)
+    {
+        var stats = await dbContext.FileRecords
+            .AsNoTracking()
+            .GroupBy(x => x.StorageLocationId)
+            .Select(g => new LocationStorageStatsDto(
+                g.Key,
+                g.Sum(x => x.SizeBytes),
+                g.LongCount()))
+            .ToListAsync(cancellationToken);
+
+        return stats;
+    }
+
     public async Task<FileBatchIngestResultDto> UpsertBatchAsync(FileMetadataBatchIngestRequest request, CancellationToken cancellationToken)
     {
         if (request.Files.Count == 0)

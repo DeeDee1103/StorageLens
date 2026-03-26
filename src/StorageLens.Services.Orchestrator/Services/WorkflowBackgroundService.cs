@@ -12,6 +12,8 @@ public class WorkflowBackgroundService(
     IOptions<WorkflowProcessingOptions> processingOptions,
     ILogger<WorkflowBackgroundService> logger) : BackgroundService
 {
+    private static readonly TimeSpan ScheduledDispatchPollInterval = TimeSpan.FromSeconds(15);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var maxConcurrent = Math.Max(1, processingOptions.Value.MaxConcurrentWorkflows);
@@ -28,7 +30,14 @@ public class WorkflowBackgroundService(
                 Guid workflowId;
                 try
                 {
-                    workflowId = await workflowQueue.DequeueAsync(stoppingToken);
+                    using var dequeueTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                    dequeueTimeoutCts.CancelAfter(ScheduledDispatchPollInterval);
+                    workflowId = await workflowQueue.DequeueAsync(dequeueTimeoutCts.Token);
+                }
+                catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+                {
+                    await TryEnqueueDueScheduledWorkflowsWithRetryAsync(stoppingToken);
+                    continue;
                 }
                 catch (OperationCanceledException)
                 {
@@ -66,6 +75,8 @@ public class WorkflowBackgroundService(
                 }, CancellationToken.None);
 
                 activeTasks[workflowId] = task;
+
+                await TryEnqueueDueScheduledWorkflowsWithRetryAsync(stoppingToken);
             }
         }
         catch (OperationCanceledException)
@@ -88,7 +99,7 @@ public class WorkflowBackgroundService(
 
         var workflowIds = await dbContext.WorkflowInstances
             .AsNoTracking()
-            .Where(x => x.Status == "Pending" || x.Status == "RetryQueued")
+            .Where(x => x.Status == "RetryQueued")
             .OrderBy(x => x.CreatedAtUtc)
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
@@ -100,7 +111,7 @@ public class WorkflowBackgroundService(
 
         if (workflowIds.Count > 0)
         {
-            logger.LogInformation("Recovered {Count} pending workflow(s) into the in-memory queue.", workflowIds.Count);
+            logger.LogInformation("Recovered {Count} retry-queued workflow(s) into the in-memory queue.", workflowIds.Count);
         }
     }
 
@@ -126,6 +137,53 @@ public class WorkflowBackgroundService(
                     delay.TotalSeconds);
                 await Task.Delay(delay, cancellationToken);
             }
+        }
+    }
+
+    private async Task EnqueueDueScheduledWorkflowsAsync(CancellationToken cancellationToken)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<OrchestratorDbContext>();
+
+        var nowUtc = DateTimeOffset.UtcNow;
+        var workflows = await dbContext.WorkflowInstances
+            .Where(x => x.Status == "Pending" && x.CreatedAtUtc <= nowUtc)
+            .OrderBy(x => x.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        if (workflows.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var workflow in workflows)
+        {
+            workflow.Status = "RetryQueued";
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var workflow in workflows)
+        {
+            await workflowQueue.EnqueueAsync(workflow.Id, cancellationToken);
+        }
+
+        logger.LogInformation("Enqueued {Count} scheduled workflow(s) that are now due.", workflows.Count);
+    }
+
+    private async Task TryEnqueueDueScheduledWorkflowsWithRetryAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await EnqueueDueScheduledWorkflowsAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Unable to enqueue due scheduled workflows on this cycle.");
         }
     }
 }
