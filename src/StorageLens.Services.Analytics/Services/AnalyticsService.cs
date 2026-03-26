@@ -86,7 +86,7 @@ public class AnalyticsService(
         var kpis = new DashboardKpiDto(
             totalStorage,
             totalFiles,
-            Math.Clamp((int)Math.Round(duplicateSummary.DuplicatePercent), 0, 100),
+            Math.Clamp(duplicateSummary.DuplicatePercent, 0, 100),
             duplicateSummary.WastedBytes);
 
         var locationSizeById = enrichedLocations.ToDictionary(l => l.Id, l => l.TotalSizeBytes);

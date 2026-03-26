@@ -28,8 +28,8 @@ public class GlobalViewModel : PageModel
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
-        ViewData["Title"] = "Global View";
-        ViewData["Nav"] = "GlobalView";
+        ViewData["Title"] = "Dashboard";
+        ViewData["Nav"] = "dashboard";
 
         var dashboard = await _analyticsApiClient.GetDashboardAsync(cancellationToken);
         if (dashboard is not null)

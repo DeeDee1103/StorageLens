@@ -1,4 +1,4 @@
-ROUTE=/health/live STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-ROUTE=/health/ready STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-ROUTE=/health STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
-ROUTE=/Index STATUS=ERROR RESULT=FAIL ERROR=Unable to connect to the remote server
+ROUTE=/health/live STATUS=200 RESULT=PASS
+ROUTE=/health/ready STATUS=200 RESULT=PASS
+ROUTE=/health STATUS=200 RESULT=PASS
+ROUTE=/Index STATUS=200 RESULT=PASS

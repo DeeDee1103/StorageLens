@@ -21,6 +21,14 @@
     </p>
 </section>
 
+@if (Model.UsingSyntheticData)
+{
+    <div class="alert alert-info d-flex align-items-center gap-2 reveal-item" role="status">
+        <i class="bi bi-info-circle-fill flex-shrink-0" aria-hidden="true"></i>
+        <span>No live log data is available yet. The entries below are <strong>example logs</strong> shown for reference only — run a scan job to generate real log data.</span>
+    </div>
+}
+
 <section class="row g-3 mb-3 reveal-item">
     <div class="col-sm-6 col-xl-3">
         <article class="card-premium p-3 logging-kpi logging-kpi--total">

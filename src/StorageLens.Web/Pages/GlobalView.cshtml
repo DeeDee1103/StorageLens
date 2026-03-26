@@ -3,17 +3,20 @@
 @using System.Text.Json
 
 @{
-    ViewData["Title"] = "Global View";
-    ViewData["Nav"] = "GlobalView";
+    ViewData["Title"] = "Dashboard";
+    ViewData["Nav"] = "dashboard";
 
     var locationsJson = JsonSerializer.Serialize(Model.Dashboard.Locations.Select(loc => new {
         id = loc.Id,
         name = loc.Name,
         path = loc.Path,
+        siteLocation = loc.SiteLocation,
         type = loc.Type,
         status = loc.Status,
         totalSizeBytes = loc.TotalSizeBytes,
-        fileCount = loc.FileCount
+        fileCount = loc.FileCount,
+        latitude = loc.Latitude,
+        longitude = loc.Longitude
     }));
     var growthLabels = JsonSerializer.Serialize(Model.Dashboard.StorageGrowth.Select(x => x.Label));
     var growthValues = JsonSerializer.Serialize(Model.Dashboard.StorageGrowth.Select(x => x.Value));
@@ -68,8 +71,8 @@
             <a class="gv-action-btn" asp-page="/ScanJobs" title="Scan Jobs">
                 <i class="bi bi-activity"></i>
             </a>
-            <a class="gv-action-btn" asp-page="/Index" title="Dashboard">
-                <i class="bi bi-speedometer2"></i>
+            <a class="gv-action-btn" asp-page="/Reports" title="Reports">
+                <i class="bi bi-bar-chart-fill"></i>
             </a>
         </div>
     </div>
@@ -109,7 +112,7 @@
         </article>
         <article class="gv-kpi gv-kpi--lime">
             <div class="gv-kpi-label">Duplicate %</div>
-            <div class="gv-kpi-value">@dupPct<span class="gv-kpi-unit">%</span></div>
+            <div class="gv-kpi-value">@dupPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)<span class="gv-kpi-unit">%</span></div>
             <div class="gv-kpi-trend"><span class="gv-trend-line gv-trend-line--warn"></span>Monitor</div>
         </article>
         <article class="gv-kpi gv-kpi--mint">
@@ -243,7 +246,7 @@
             <div class="gv-gauge-wrap">
                 <canvas id="gvExportGauge"></canvas>
                 <div class="gv-gauge-label">
-                    <div class="gv-gauge-value">@dupPct%</div>
+                    <div class="gv-gauge-value">@dupPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%</div>
                     <div class="gv-gauge-sub">Duplicates</div>
                 </div>
             </div>
@@ -308,9 +311,9 @@
     const growthValues = @Html.Raw(growthValues);
     const typeLabels = @Html.Raw(typeLabels);
     const typeValues = @Html.Raw(typeValues);
-    const dupPct = @dupPct;
+    const dupPct = @dupPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
-    const statusColour = { online: '#3ef2d0', warning: '#f5a623', offline: '#f45b5b' };
+    const statusColour = { online: '#3ef2d0', warning: '#f5a623', offline: '#f45b5b', error: '#f45b5b' };
 
     const fmt = (bytes) => {
         if (!bytes) return '0 B';
@@ -351,8 +354,41 @@
         return Math.abs(hash);
     };
 
+    const resolveCoordinatesFromSite = (siteLocation) => {
+        const text = (siteLocation || '').trim();
+        if (!text) {
+            return null;
+        }
+
+        const numeric = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+        if (numeric) {
+            const latitude = Number.parseFloat(numeric[1]);
+            const longitude = Number.parseFloat(numeric[2]);
+            if (Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+                return { latitude, longitude };
+            }
+        }
+
+        const knownSites = [
+            { tokens: ['new york', 'nyc'], latitude: 40.7128, longitude: -74.0060 },
+            { tokens: ['san francisco', 'sf', 'bay area'], latitude: 37.7749, longitude: -122.4194 },
+            { tokens: ['london'], latitude: 51.5074, longitude: -0.1278 },
+            { tokens: ['paris'], latitude: 48.8566, longitude: 2.3522 },
+            { tokens: ['berlin'], latitude: 52.5200, longitude: 13.4050 },
+            { tokens: ['tokyo'], latitude: 35.6762, longitude: 139.6503 },
+            { tokens: ['singapore'], latitude: 1.3521, longitude: 103.8198 },
+            { tokens: ['sydney'], latitude: -33.8688, longitude: 151.2093 },
+            { tokens: ['toronto'], latitude: 43.6532, longitude: -79.3832 },
+            { tokens: ['dubai'], latitude: 25.2048, longitude: 55.2708 }
+        ];
+
+        const lowered = text.toLowerCase();
+        const known = knownSites.find((site) => site.tokens.some((token) => lowered.includes(token)));
+        return known ? { latitude: known.latitude, longitude: known.longitude } : null;
+    };
+
     const deriveCoordinates = (loc, index) => {
-        const key = `${loc.name}|${loc.path}|${loc.id}`;
+        const key = `${loc.name}|${loc.path}|${loc.siteLocation || ''}|${loc.id}`;
         const hash = hashValue(key);
         const base = coordPool[(hash + index) % coordPool.length];
         const latJitter = ((hash % 13) - 6) * 0.35;
@@ -399,6 +435,14 @@
                 return loc;
             }
 
+            const resolved = resolveCoordinatesFromSite(loc.siteLocation);
+            if (resolved) {
+                return {
+                    ...loc,
+                    ...resolved
+                };
+            }
+
             return {
                 ...loc,
                 ...deriveCoordinates(loc, index)
@@ -415,8 +459,9 @@
 
             const popup = `<div class="gv-popup">
                 <div class="gv-popup-title">${loc.name}</div>
-                <div class="gv-popup-row">${statusDot(loc.status)}<span>${loc.status || 'Unknown'}</span></div>
+                <div class="gv-popup-row">${statusDot(loc.status)}<span>${(loc.status || 'Unknown').toLowerCase() === 'offline' ? 'Error' : (loc.status || 'Unknown')}</span></div>
                 <div class="gv-popup-row"><span class="gv-popup-lbl">Type</span> ${loc.type}</div>
+                <div class="gv-popup-row"><span class="gv-popup-lbl">Location</span> ${loc.siteLocation || 'Unspecified'}</div>
                 <div class="gv-popup-row"><span class="gv-popup-lbl">Path</span> <code>${loc.path}</code></div>
                 <div class="gv-popup-row"><span class="gv-popup-lbl">Size</span> ${fmt(loc.totalSizeBytes)}</div>
                 <div class="gv-popup-row"><span class="gv-popup-lbl">Files</span> ${fmtNum(loc.fileCount)}</div>

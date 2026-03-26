@@ -97,7 +97,7 @@ body.dark-mode {
 
 .sidebar-panel {
   width: 270px;
-  background: linear-gradient(190deg, #0f4eb5, #0b2f78);
+  background: linear-gradient(170deg, #0d3ea0 0%, #091f5a 55%, #060e2a 100%);
   padding: 1.5rem 1.1rem;
   color: #dbe7ff;
   position: fixed;
@@ -105,29 +105,25 @@ body.dark-mode {
   top: 0;
   bottom: 0;
   z-index: 1030;
-  box-shadow: var(--sl-shadow);
+  box-shadow: 6px 0 32px rgba(5, 14, 40, 0.5);
+  overflow: hidden;
 }
 
 .sidebar-brand {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+  border-bottom: 1px solid rgba(53, 185, 255, 0.18);
   margin-bottom: 10px;
   background: transparent;
   border-radius: 14px;
-}
-
-.sidebar-logo {
-  width: 90px;
-  height: auto;
-  margin-bottom: 8px;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
+  padding-bottom: 12px;
 }
 
 .sidebar-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #e7f0ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(162, 210, 255, 0.65);
+  margin-top: 4px;
 }
 
 .sidebar-logo:hover {
@@ -296,6 +292,20 @@ body.dark-mode {
 .menu-nav {
   display: grid;
   gap: 0.3rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 224px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 160, 255, 0.22) transparent;
+}
+
+.menu-nav::-webkit-scrollbar {
+  width: 3px;
+}
+
+.menu-nav::-webkit-scrollbar-thumb {
+  background: rgba(100, 160, 255, 0.22);
+  border-radius: 999px;
 }
 
 .menu-link {
@@ -393,6 +403,58 @@ body.dark-mode {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* ── Sidebar nav section labels ─────────────────────────────── */
+.nav-section-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(162, 196, 255, 0.42);
+  padding: 0.85rem 0.8rem 0.2rem;
+  pointer-events: none;
+  user-select: none;
+}
+
+.nav-section-label:first-child {
+  padding-top: 0.25rem;
+}
+
+/* Enhanced active state — glassmorphism glow */
+.menu-link.active {
+  background: linear-gradient(120deg, rgba(53, 185, 255, 0.18), rgba(62, 242, 208, 0.10)) !important;
+  border-color: rgba(53, 185, 255, 0.38) !important;
+  box-shadow: 0 0 0 1px rgba(53, 185, 255, 0.15), 0 4px 18px rgba(14, 30, 70, 0.32), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+.menu-link.active i {
+  color: var(--sl-neon-turquoise) !important;
+  filter: drop-shadow(0 0 6px rgba(62, 242, 208, 0.65)) !important;
+}
+
+/* Menu link icon sizing */
+.menu-link > i {
+  font-size: 1rem;
+  width: 1.15rem;
+  flex-shrink: 0;
+}
+
+/* Sidebar panel — subtle radial glow overlay */
+.sidebar-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 22% 12%, rgba(53, 185, 255, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 78% 88%, rgba(62, 242, 208, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sidebar-panel > * {
+  position: relative;
+  z-index: 1;
 }
 
 .top-bar {
@@ -3655,7 +3717,20 @@ body.dark-mode .copy-path-btn.copied {
   gap: 0.4rem;
 }
 
+.file-inventory-action-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem;
+  border: 1px solid rgba(108, 143, 204, 0.24);
+  border-radius: 11px;
+  background: rgba(8, 18, 36, 0.55);
+}
+
 .file-inventory-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 32px;
   padding: 0;
@@ -3663,6 +3738,17 @@ body.dark-mode .copy-path-btn.copied {
   border: 1px solid rgba(108, 143, 204, 0.36);
   background: rgba(14, 30, 56, 0.72);
   color: #c7dbfb;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.file-inventory-icon-btn i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.92rem;
 }
 
 .file-inventory-icon-btn:hover,
@@ -3832,6 +3918,24 @@ body.dark-mode .copy-path-btn.copied {
   justify-content: center;
 }
 
+.fi-preview-media,
+.fi-preview-frame {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(92, 121, 171, 0.26);
+  border-radius: 12px;
+  background: rgba(5, 12, 24, 0.82);
+}
+
+.fi-preview-media {
+  object-fit: contain;
+}
+
+.fi-preview-audio {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
 .fi-preview-placeholder {
   text-align: center;
   padding: 1rem;
@@ -3855,6 +3959,10 @@ body.dark-mode .copy-path-btn.copied {
   font-size: 0.72rem;
   color: #4a6080;
   line-height: 1.5;
+}
+
+.fi-preview-placeholder .bi-exclamation-triangle {
+  color: #f59e0b;
 }
 
 /* Details tab */
@@ -4272,6 +4380,89 @@ body.dark-mode .copy-path-btn.copied {
 
 .file-inventory-list-panel .form-control::placeholder {
   color: rgba(167, 191, 228, 0.66);
+}
+
+.file-type-filter-toolbar {
+  border: 1px solid rgba(92, 124, 182, 0.28);
+  background: rgba(8, 18, 36, 0.58);
+  border-radius: 12px;
+  padding: 0.5rem 0.55rem;
+}
+
+.file-type-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.38rem;
+}
+
+.file-type-filter-title {
+  color: #9db8df;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.file-type-filter-clear {
+  color: #35b9ff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.file-type-filter-clear:hover {
+  color: #72d3ff;
+}
+
+.file-type-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+  max-height: 92px;
+  overflow-y: auto;
+  padding-right: 0.1rem;
+}
+
+.file-type-filter-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(95, 128, 187, 0.35);
+  background: rgba(12, 24, 44, 0.8);
+  color: #aec6e8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.48rem;
+  line-height: 1.1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.file-type-filter-chip span {
+  font-size: 0.62rem;
+  color: #7f9fcf;
+  background: rgba(58, 88, 138, 0.32);
+  border-radius: 999px;
+  padding: 0.08rem 0.3rem;
+}
+
+.file-type-filter-chip:hover,
+.file-type-filter-chip:focus {
+  border-color: rgba(44, 174, 187, 0.6);
+  color: #e7f5ff;
+  background: linear-gradient(120deg, rgba(33, 152, 182, 0.22), rgba(30, 90, 184, 0.22));
+}
+
+.file-type-filter-chip.active {
+  border-color: rgba(44, 174, 187, 0.82);
+  color: #eaf8ff;
+  background: linear-gradient(120deg, rgba(36, 167, 188, 0.35), rgba(30, 90, 184, 0.35));
+  box-shadow: 0 0 0 1px rgba(53, 185, 255, 0.14), 0 0 16px rgba(53, 185, 255, 0.2);
+}
+
+.file-type-filter-chip.active span {
+  color: #dff7ff;
+  background: rgba(21, 130, 184, 0.36);
 }
 
 .file-list-scroll {
@@ -5344,7 +5535,7 @@ body.dark-mode .marketing-step {
 .sidebar-profile-footer {
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid rgba(53, 185, 255, 0.16);
 }
 
 .sidebar-profile-link {
@@ -5354,12 +5545,14 @@ body.dark-mode .marketing-step {
   padding: 0.6rem 0.65rem;
   border-radius: 12px;
   text-decoration: none;
-  transition: background 0.18s ease;
+  border: 1px solid transparent;
+  transition: background 0.18s ease, border-color 0.18s ease;
 }
 
 .sidebar-profile-link:hover,
 .sidebar-profile-link.active {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(53, 185, 255, 0.12);
+  border-color: rgba(53, 185, 255, 0.22);
 }
 
 .sidebar-profile-avatar {
@@ -7518,6 +7711,14 @@ body.dark-mode .alerts-status-card {
   flex: 1;
   overflow-y: auto;
   padding: 0.4rem 0;
+}
+
+.fm-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
 }
 
 .fm-tree-group { margin-bottom: 0.1rem; }

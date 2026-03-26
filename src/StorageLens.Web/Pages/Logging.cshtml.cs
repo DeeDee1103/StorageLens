@@ -7,6 +7,7 @@ namespace StorageLens.Web.Pages;
 public class LoggingModel(ScanJobsApiClient scanJobsApiClient) : PageModel
 {
     public IReadOnlyList<LogInsightEntry> Entries { get; private set; } = [];
+    public bool UsingSyntheticData { get; private set; }
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
@@ -22,6 +23,7 @@ public class LoggingModel(ScanJobsApiClient scanJobsApiClient) : PageModel
             return;
         }
 
+        UsingSyntheticData = true;
         Entries =
         [
             new LogInsightEntry(

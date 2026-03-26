@@ -22,7 +22,10 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
                 x.LastScanDate,
                 x.TotalSizeBytes,
                 x.FileCount,
-                x.CreatedDate))
+                x.CreatedDate,
+                x.SiteLocation,
+                x.Latitude,
+                x.Longitude))
             .ToListAsync(cancellationToken);
     }
 
@@ -40,7 +43,10 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
                 x.LastScanDate,
                 x.TotalSizeBytes,
                 x.FileCount,
-                x.CreatedDate))
+                x.CreatedDate,
+                x.SiteLocation,
+                x.Latitude,
+                x.Longitude))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -51,8 +57,11 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
             Id = Guid.NewGuid(),
             Name = request.Name,
             Path = request.Path,
+            SiteLocation = request.SiteLocation,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
             Type = request.Type,
-            Status = LocationStatus.Online,
+            Status = request.Status,
             CreatedDate = DateTimeOffset.UtcNow,
             LastScanDate = DateTimeOffset.UtcNow.AddDays(-1),
             TotalSizeBytes = 0,
@@ -74,6 +83,9 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
                 .ExecuteUpdateAsync(x => x
                     .SetProperty(v => v.Name, request.Name)
                     .SetProperty(v => v.Path, request.Path)
+                    .SetProperty(v => v.SiteLocation, request.SiteLocation)
+                    .SetProperty(v => v.Latitude, request.Latitude)
+                    .SetProperty(v => v.Longitude, request.Longitude)
                     .SetProperty(v => v.Type, request.Type)
                     .SetProperty(v => v.Status, request.Status), cancellationToken);
 
@@ -88,6 +100,9 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
 
         entity.Name = request.Name;
         entity.Path = request.Path;
+        entity.SiteLocation = request.SiteLocation;
+        entity.Latitude = request.Latitude;
+        entity.Longitude = request.Longitude;
         entity.Type = request.Type;
         entity.Status = request.Status;
 
@@ -157,5 +172,8 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
             entity.LastScanDate,
             entity.TotalSizeBytes,
             entity.FileCount,
-            entity.CreatedDate);
+            entity.CreatedDate,
+            entity.SiteLocation,
+            entity.Latitude,
+            entity.Longitude);
 }

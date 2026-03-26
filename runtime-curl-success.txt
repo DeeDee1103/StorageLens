@@ -1,18 +1,23 @@
   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
                                  Dload  Upload  Total   Spent   Left   Speed
-  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0           00:04              0  0      0   0      0   0      0      0      0           00:05              0  0      0   0      0   0      0      0      0           00:07              0  0      0   0      0   0      0      0      0           00:09              0  0      0   0      0   0      0      0      0           00:11              0HTTP/1.1 200 OK
+  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0           00:01              0  0      0   0      0   0      0      0      0           00:03              0  0      0   0      0   0      0      0      0           00:04              0  0      0   0      0   0      0      0      0           00:06              0  0      0   0      0   0      0      0      0           00:08              0  0      0   0      0   0      0      0      0           00:10              0  0      0   0      0   0      0      0      0           00:11              0HTTP/1.1 200 OK
 Content-Type: text/html; charset=utf-8
-Date: Mon, 23 Mar 2026 14:21:44 GMT
+Date: Thu, 26 Mar 2026 09:45:45 GMT
 Server: Kestrel
+Cache-Control: no-cache, no-store
+Pragma: no-cache
+Set-Cookie: .AspNetCore.Antiforgery.VyLW6ORzMgk=CfDJ8PgthVmVzyxGtirCb1580EDbW8Zh-MOO0f_PEc_GOiv9D39xkGV3EL-NiBP-X4Bd0lwGQn5ip7iBnDDj8m17nJcn4urM_o2o7QoX_u_EdThtGitm1wLLQNBXL7f56K107FyNagHpRB7KE8PBVNrbN_Q; path=/; samesite=strict; httponly
+Set-Cookie: .AspNetCore.Mvc.CookieTempDataProvider=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax; httponly
 Transfer-Encoding: chunked
-X-Correlation-ID: 9637a409855648f0bfb911db83d5a9f3
+X-Frame-Options: SAMEORIGIN
+X-Correlation-ID: a9743b5f8fcd41069ed9bb5a26b0687d
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Landing - Storage Lens</title>
+    <title>StorageLens - Storage Lens</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,15 +25,35 @@ X-Correlation-ID: 9637a409855648f0bfb911db83d5a9f3
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="icon" type="image/png" href="/images/storagelens-logo-small.png?v=4oAfBlSTzhnuT4xm_0A9pcumjJfRSqYlBA5LFtU4Lao" />
     <link rel="shortcut icon" type="image/png" href="/images/storagelens-logo-small.png?v=4oAfBlSTzhnuT4xm_0A9pcumjJfRSqYlBA5LFtU4Lao" />
-    <link rel="stylesheet" href="/css/site.css?v=ifqHZmmiUt9sisjkwAVZ7E9NH01aOz8-NQutCRsJKaM" />
+    <link rel="stylesheet" href="/css/site.css?v=Jw5e45Z_Zs9C1ggwVE1cdTAaMpIe0rc3cbBEztmpDyA" />
     <link rel="stylesheet" href="/StorageLens.Web.styles.css?v=EiiGWaXW1JHl-BtobReu9Th1Bw5suip_g7iojBesYHw" />
 </head>
 <body class="marketing-body">
     <script>
         (function () {
             var t = localStorage.getItem('storagelens-theme');
-            var d = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (t === 'dark' || (!t && d)) { document.body.classList.add('dark-mode'); }
+            if (!t) {
+                localStorage.setItem('storagelens-theme', 'light');
+                t = 'light';
+            }
+
+            if (t === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+
+            function syncMarketingHeaderOffset() {
+                var header = document.querySelector('.marketing-header');
+                if (!header) {
+                    return;
+                }
+
+                document.documentElement.style.setProperty('--marketing-header-offset', header.offsetHeight + 'px');
+            }
+
+            window.addEventListener('resize', syncMarketingHeaderOffset);
+            window.addEventListener('load', syncMarketingHeaderOffset);
+            document.addEventListener('DOMContentLoaded', syncMarketingHeaderOffset);
+
             document.body.classList.add('preload');
             window.addEventListener('load', function () { document.body.classList.remove('preload'); });
         }());
@@ -48,15 +73,20 @@ X-Correlation-ID: 9637a409855648f0bfb911db83d5a9f3
                     <span class="sl-logo__line sl-logo__line--right"></span>
                 </span>
                 <span class="marketing-brand-copy">
-                    <span class="marketing-brand-subtitle">Storage intelligence for modern operations</span>
+                    <span class="marketing-brand-subtitle">Storage operations intelligence and automation</span>
                 </span>
             </a>
 
             <nav class="marketing-nav" aria-label="Primary">
-                <a href="#capabilities">Capabilities</a>
-                <a href="#workflow">Workflow</a>
+                <a href="#product">Product</a>
+                <a href="#problems">Problems We Solve</a>
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
                 <a href="#pricing">Pricing</a>
-                <a href="/About">About</a>
+                <a href="#faq">FAQ</a>
+                <a href="#contact">Contact</a>
+                <span class="marketing-nav-divider" aria-hidden="true"></span>
+                <a class="marketing-nav-app-link" href="/GlobalView"><i class="bi bi-speedometer2" aria-hidden="true"></i> Dashboard</a>
             </nav>
 
             <div class="marketing-header-actions">
@@ -64,457 +94,472 @@ X-Correlation-ID: 9637a409855648f0bfb911db83d5a9f3
                     <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>
                     <span class="theme-toggle-label">Theme</span>
                 </button>
-                <a class="btn btn-outline-soft marketing-header-link" href="/Pricing">Compare Plans</a>
-                <a class="btn btn-gradient marketing-header-cta" href="/Index">Open Dashboard</a>
+                <a class="btn btn-outline-soft marketing-header-link slp-pilot-btn" href="#pricing" aria-label="Start a Pilot">
+                    <span class="slp-pilot-btn-default">Start a Pilot</span>
+                    <span class="slp-pilot-btn-hover" aria-hidden="true">Plan Your Pilot</span>
+                </a>
+                <a class="btn btn-gradient marketing-header-cta" href="#contact">Request a Demo</a>
             </div>
         </div>
     </header>
 
     <main>
         
-<section class="marketing-hero">
+<section class="slp-hero" id="product">
     <div class="marketing-container">
-        <div class="marketing-hero-grid">
-            <div class="marketing-hero-copy reveal-item">
-                <div class="marketing-pill-row">
-                    <span class="badge about-badge about-badge-blue"><i class="bi bi-eye me-1" aria-hidden="true"></i>Unified storage visibility</span>
-                    <span class="badge about-badge about-badge-teal"><i class="bi bi-lightning-charge me-1" aria-hidden="true"></i>Workflow-driven scanning</span>
-                </div>
-
-                <h1 class="marketing-hero-title">See duplicate waste, capacity pressure, and scan progress before they turn into expensive storage decisions.</h1>
-                <p class="marketing-hero-text">
-                    StorageLens gives infrastructure and operations teams a clean control surface for distributed storage.
-                    Track growth, expose duplicate-heavy data, and move from scan execution to actionable reporting without stitching together spreadsheets or ad hoc scripts.
+        <div class="slp-hero-grid">
+            <div class="slp-hero-copy reveal-item">
+                <p class="slp-eyebrow">Enterprise Storage Operations Platform</p>
+                <h1 class="slp-title">Stop Monitoring Storage Problems. Start Fixing Them.</h1>
+                <p class="slp-subtitle">
+                    StorageLens gives IT and operations teams deep storage visibility, intelligent automation,
+                    and audit-ready reporting in one modern platform.
                 </p>
-
-                <div class="marketing-hero-actions">
-                    <a class="btn btn-gradient btn-lg" href="/Index">
-                        <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Open Dashboard
-                    </a>
-                    <a class="btn btn-outline-soft btn-lg" href="#workflow">
-                        <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>See How It Works
+                <div class="slp-cta-row">
+                    <button type="button" class="btn btn-gradient btn-lg" data-bs-toggle="modal" data-bs-target="#requestDemoModal">Request a Demo</button>
+                    <a class="btn btn-outline-soft btn-lg slp-pilot-btn" href="#pricing" aria-label="Start a Pilot">
+                        <span class="slp-pilot-btn-default">Start a Pilot</span>
+                        <span class="slp-pilot-btn-hover" aria-hidden="true">Plan Your Pilot</span>
                     </a>
                 </div>
-
-                <div class="marketing-proof-grid">
-                    <div class="marketing-proof-card card-premium">
-                        <div class="marketing-proof-value">4-stage</div>
-                        <div class="marketing-proof-label">scan orchestration with resume-ready workflow states</div>
-                    </div>
-                    <div class="marketing-proof-card card-premium">
-                        <div class="marketing-proof-value">Live KPIs</div>
-                        <div class="marketing-proof-label">capacity, duplicate pressure, and reclaimable storage</div>
-                    </div>
-                    <div class="marketing-proof-card card-premium">
-                        <div class="marketing-proof-value">API-first</div>
-                        <div class="marketing-proof-label">.NET 8 microservices built for independently scalable operations</div>
-                    </div>
+                <div class="slp-app-access">
+                    <span class="slp-app-access-label"><i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i>Workspace navigation</span>
+                    <nav class="slp-app-access-links" aria-label="App quick access">
+                        <a href="/GlobalView"><i class="bi bi-speedometer2" aria-hidden="true"></i>Dashboard</a>
+                        <a href="/StorageLocations"><i class="bi bi-hdd-stack" aria-hidden="true"></i>Locations</a>
+                        <a href="/ScanJobs"><i class="bi bi-activity" aria-hidden="true"></i>Scan History</a>
+                        <a href="/FileInventory"><i class="bi bi-folder2-open" aria-hidden="true"></i>File Inventory</a>
+                        <a href="/Duplicates"><i class="bi bi-files" aria-hidden="true"></i>Duplicates</a>
+                        <a href="/Reports"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i>Reports</a>
+                    </nav>
                 </div>
+                <ul class="slp-trust-bullets" aria-label="StorageLens core value points">
+                    <li><i class="bi bi-folder2-open" aria-hidden="true"></i>Deep file-level visibility</li>
+                    <li><i class="bi bi-magic" aria-hidden="true"></i>Automated cleanup workflows</li>
+                    <li><i class="bi bi-building-check" aria-hidden="true"></i>Built for enterprise scale</li>
+                </ul>
             </div>
-
-            <div class="marketing-hero-visual reveal-item" aria-hidden="true">
-                <div class="marketing-hero-panel card-premium">
-                    <div class="marketing-hero-panel-top">
-                        <span class="marketing-panel-label">Storage posture</span>
-                        <span class="marketing-panel-badge">Updated 2m ago</span>
+            <div class="slp-mockup-wrap reveal-item" aria-hidden="true">
+                <article class="slp-mockup card-premium">
+                    <div class="slp-mockup-gridfx"></div>
+                    <header class="slp-mockup-head">
+                        <span class="slp-mockup-title">StorageLens Command Center</span>
+                        <span class="slp-live-dot">Live Telemetry</span>
+                    </header>
+                    <div class="slp-mockup-topline">
+                        <span><i class="bi bi-cpu" aria-hidden="true"></i>Orchestration Matrix</span>
+                        <span><i class="bi bi-shield-check" aria-hidden="true"></i>Policy Guard: Active</span>
                     </div>
-                    <div class="marketing-scoreband">
+                    <div class="slp-mockup-stats">
                         <div>
-                            <div class="marketing-scoreband-value">31%</div>
-                            <div class="marketing-scoreband-label">duplicate exposure</div>
+                            <p>Potential Waste</p>
+                            <strong>18.4 TB</strong>
                         </div>
                         <div>
-                            <div class="marketing-scoreband-value">18.4 TB</div>
-                            <div class="marketing-scoreband-label">potential savings</div>
+                            <p>Duplicate Exposure</p>
+                            <strong>31%</strong>
+                        </div>
+                        <div>
+                            <p>Jobs Executing</p>
+                            <strong>42</strong>
                         </div>
                     </div>
-                    <div class="marketing-mini-chart">
-                        <span style="height: 30%"></span>
-                        <span style="height: 44%"></span>
-                        <span style="height: 52%"></span>
-                        <span style="height: 66%"></span>
-                        <span style="height: 79%"></span>
-                        <span style="height: 88%"></span>
+                    <div class="slp-mockup-radar">
+                        <div class="slp-mockup-radar-ring"></div>
+                        <div class="slp-mockup-radar-dot"></div>
                     </div>
-                    <div class="marketing-signal-list">
-                        <div class="marketing-signal-item">
-                            <span class="marketing-signal-dot marketing-signal-dot-blue"></span>
-                            <div>
-                                <strong>Locations indexed</strong>
-                                <span>Cross-estate visibility without manual reconciliation.</span>
-                            </div>
-                        </div>
-                        <div class="marketing-signal-item">
-                            <span class="marketing-signal-dot marketing-signal-dot-teal"></span>
-                            <div>
-                                <strong>Workflow telemetry</strong>
-                                <span>Track scanning, hashing, duplicate detection, and analytics refresh.</span>
-                            </div>
-                        </div>
-                        <div class="marketing-signal-item">
-                            <span class="marketing-signal-dot marketing-signal-dot-green"></span>
-                            <div>
-                                <strong>Actionable reporting</strong>
-                                <span>Move from raw file inventory to prioritized remediation quickly.</span>
-                            </div>
-                        </div>
+                    <div class="slp-mockup-bars">
+                        <span style="--bar-height: 42%"></span>
+                        <span style="--bar-height: 56%"></span>
+                        <span style="--bar-height: 71%"></span>
+                        <span style="--bar-height: 64%"></span>
+                        <span style="--bar-height: 85%"></span>
+                        <span style="--bar-height: 92%"></span>
                     </div>
-                </div>
+                    <div class="slp-mockup-log">
+                        <p><i class="bi bi-check-circle"></i>Parallel remediation job completed: 1.9 TB reclaimed</p>
+                        <p><i class="bi bi-arrow-repeat"></i>Retry and resume activated for interrupted namespace scan</p>
+                        <p><i class="bi bi-file-earmark-check"></i>Audit export generated for legal hold compliance review</p>
+                    </div>
+                </article>
             </div>
         </div>
     </div>
 </section>
 
-<section class="marketing-section">
+<section class="slp-trust-bar">
     <div class="marketing-container">
-        <div class="marketing-section-intro reveal-item">
-            <span class="marketing-section-eyebrow">Why teams use it</span>
-            <h2 class="marketing-section-title">StorageLens is designed for the operational gap between raw scans and confident action.</h2>
-            <p class="marketing-section-text">Instead of treating storage analysis as a one-off project, the platform turns it into a repeatable operating rhythm for infrastructure teams, IT operations, and governance stakeholders.</p>
-        </div>
-
-        <div class="marketing-outcome-grid">
-            <article class="card-premium marketing-outcome-card reveal-item">
-                <div class="kpi-icon kpi-icon-blue"><i class="bi bi-speedometer2" aria-hidden="true"></i></div>
-                <h3>Executive visibility</h3>
-                <p>See storage growth, duplicate pressure, and file distribution from one dashboard instead of reconstructing the picture from multiple tools.</p>
-            </article>
-            <article class="card-premium marketing-outcome-card reveal-item">
-                <div class="kpi-icon kpi-icon-teal"><i class="bi bi-activity" aria-hidden="true"></i></div>
-                <h3>Reliable scan operations</h3>
-                <p>Track each scan through a structured pipeline with operational checkpoints that make progress, delay, and failure states obvious.</p>
-            </article>
-            <article class="card-premium marketing-outcome-card reveal-item">
-                <div class="kpi-icon kpi-icon-green"><i class="bi bi-files" aria-hidden="true"></i></div>
-                <h3>Quantified duplicate waste</h3>
-                <p>Prioritize clean-up using duplicate groups, reclaimable byte counts, and location-level context instead of rough estimates.</p>
-            </article>
+        <div class="slp-trust-grid reveal-item">
+            <span>Built for enterprise storage teams</span>
+            <span>Designed for large-scale file operations</span>
+            <span>Ideal for compliance-driven environments</span>
         </div>
     </div>
 </section>
 
-<section class="marketing-section marketing-section-alt" id="capabilities">
+<section class="slp-section" id="problems">
     <div class="marketing-container">
-        <div class="marketing-section-intro reveal-item">
-            <span class="marketing-section-eyebrow">Capabilities</span>
-            <h2 class="marketing-section-title">Built for teams that need storage analytics, not just file counts.</h2>
+        <div class="slp-section-head reveal-item">
+            <p class="slp-eyebrow">Problems We Solve</p>
+            <h2>Why Traditional Storage Tools Fall Short</h2>
+            <p>You do not need more alerts. You need clear action paths that reduce waste, risk, and operational drag.</p>
         </div>
-
-        <div class="marketing-capability-grid">
-            <article class="card-premium marketing-capability-card reveal-item">
-                <div class="marketing-capability-header">
-                    <div class="kpi-icon kpi-icon-blue"><i class="bi bi-hdd-stack" aria-hidden="true"></i></div>
-                    <h3>Storage locations</h3>
-                </div>
-                <p>Register and organize storage targets across shared drives, network locations, and operational estates that need regular inspection.</p>
-            </article>
-            <article class="card-premium marketing-capability-card reveal-item">
-                <div class="marketing-capability-header">
-                    <div class="kpi-icon kpi-icon-teal"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></div>
-                    <h3>Scan orchestration</h3>
-                </div>
-                <p>Move through scanning, hashing, duplicate detection, and analytics refresh with observable transitions and fast troubleshooting context.</p>
-            </article>
-            <article class="card-premium marketing-capability-card reveal-item">
-                <div class="marketing-capability-header">
-                    <div class="kpi-icon kpi-icon-orange"><i class="bi bi-folder2-open" aria-hidden="true"></i></div>
-                    <h3>Deep file inventory</h3>
-                </div>
-                <p>Search files by extension, size, dates, and hash state so operational questions can be answered without manual exports.</p>
-            </article>
-            <article class="card-premium marketing-capability-card reveal-item">
-                <div class="marketing-capability-header">
-                    <div class="kpi-icon kpi-icon-green"><i class="bi bi-pie-chart" aria-hidden="true"></i></div>
-                    <h3>Reporting and trends</h3>
-                </div>
-                <p>Follow storage growth, file-type mix, duplicate clusters, and high-impact locations through visual reporting aimed at decisions.</p>
-            </article>
+        <div class="slp-problem-grid">
+            <article class="slp-problem-card card-premium reveal-item"><i class="bi bi-bell"></i><h3>Alerts Without Action</h3><p>Most tools stop at monitoring and leave remediation to manual follow-up.</p></article>
+            <article class="slp-problem-card card-premium reveal-item"><i class="bi bi-file-earmark-spreadsheet"></i><h3>Script and Spreadsheet Workarounds</h3><p>Teams still patch workflows with Excel, PowerShell, and ad hoc cleanup scripts.</p></article>
+            <article class="slp-problem-card card-premium reveal-item"><i class="bi bi-currency-dollar"></i><h3>Unpredictable Pricing at Scale</h3><p>Legacy platforms become expensive and difficult to budget as data grows.</p></article>
+            <article class="slp-problem-card card-premium reveal-item"><i class="bi bi-diagram-2"></i><h3>No File-Level Visibility</h3><p>Limited depth makes it hard to find large folders, stale files, and duplicate risk.</p></article>
+            <article class="slp-problem-card card-premium reveal-item"><i class="bi bi-sliders"></i><h3>Complex Setup and Onboarding</h3><p>Long deployment cycles delay time-to-value and slow stakeholder buy-in.</p></article>
+            <article class="slp-problem-card card-premium reveal-item"><i class="bi bi-window-stack"></i><h3>Outdated User Experience</h3><p>Clunky interfaces and dashboard sprawl reduce adoption across technical teams.</p></article>
         </div>
     </div>
 </section>
 
-<section class="marketing-section" id="workflow">
+<section class="slp-section slp-section-alt" id="solution">
     <div class="marketing-container">
-        <div class="marketing-workflow card-premium reveal-item">
-            <div class="marketing-workflow-copy">
-                <span class="marketing-section-eyebrow">Workflow</span>
-                <h2 class="marketing-section-title">A predictable path from scan execution to usable storage intelligence.</h2>
-                <p class="marketing-section-text">The platform is structured around an operational flow, so teams can understand where a job is, what data is ready, and when insights are safe to act on.</p>
+        <div class="slp-section-head reveal-item">
+            <p class="slp-eyebrow">Product</p>
+            <h2>StorageLens Turns Visibility into Action</h2>
+            <p>Analyze deeply, identify waste quickly, execute safely, and prove outcomes with before-and-after reporting.</p>
+        </div>
+        <div class="slp-solution-grid">
+            <div class="slp-solution-list card-premium reveal-item">
+                <p><i class="bi bi-check2-circle"></i>Analyze storage deeply across files, folders, and growth patterns</p>
+                <p><i class="bi bi-check2-circle"></i>Identify waste and large folders fast with actionable context</p>
+                <p><i class="bi bi-check2-circle"></i>Run jobs in parallel with retry and resume support</p>
+                <p><i class="bi bi-check2-circle"></i>Automate cleanup workflows instead of relying on scripts</p>
+                <p><i class="bi bi-check2-circle"></i>Export audit-ready reports for operations and compliance</p>
             </div>
-            <div class="marketing-workflow-steps">
-                <div class="marketing-step">
-                    <span class="marketing-step-number">01</span>
-                    <div>
-                        <h3>Register locations</h3>
-                        <p>Bring new storage targets into scope with enough metadata to manage them consistently.</p>
-                    </div>
-                </div>
-                <div class="marketing-step">
-                    <span class="marketing-step-number">02</span>
-                    <div>
-                        <h3>Run structured scans</h3>
-                        <p>Capture inventory and file state while monitoring progress and operational health in real time.</p>
-                    </div>
-                </div>
-                <div class="marketing-step">
-                    <span class="marketing-step-number">03</span>
-                    <div>
-                        <h3>Detect duplicate waste</h3>
-                        <p>Hash and group files to surface reclaimable capacity with clear example files and impact sizing.</p>
-                    </div>
-                </div>
-                <div class="marketing-step">
-                    <span class="marketing-step-number">04</span>
-                    <div>
-                        <h3>Act from the dashboard</h3>
-                        <p>Use KPIs, trend views, and reports to decide where cleanup, review, or storage planning should happen first.</p>
-                    </div>
-                </div>
+            <div class="slp-flow card-premium reveal-item" aria-label="StorageLens workflow sequence">
+                <span>Scan</span>
+                <i class="bi bi-arrow-right"></i>
+                <span>Analyze</span>
+                <i class="bi bi-arrow-right"></i>
+                <span>Act</span>
+                <i class="bi bi-arrow-right"></i>
+                <span>Report</span>
             </div>
         </div>
     </div>
 </section>
 
-<section class="marketing-section marketing-section-alt" id="pricing">
+<section class="slp-section" id="features">
     <div class="marketing-container">
-        <div class="marketing-section-intro reveal-item">
-            <span class="marketing-section-eyebrow">Pricing</span>
-            <h2 class="marketing-section-title">Start with the plan that matches your storage footprint and operational maturity.</h2>
-            <p class="marketing-section-text">All plans keep the same product foundation. As teams grow, they unlock more automation, duplicate analysis depth, and workflow flexibility.</p>
+        <div class="slp-section-head reveal-item">
+            <p class="slp-eyebrow">Features</p>
+            <h2>Everything Teams Need to Reduce Storage Waste</h2>
+            <p>StorageLens combines analytics, execution, and reporting in one platform designed for enterprise operations.</p>
         </div>
-
-        <div class="row g-4 justify-content-center reveal-item">
-                <div class="col-md-6 col-xl-3 d-flex">
-                    <div class="card-premium pricing-card p-4 d-flex flex-column w-100 position-relative marketing-pricing-card">
-
-                        <div class="mb-3">
-                            <h3 class="mb-1 pricing-tier-name">Starter</h3>
-                            <p class="text-secondary small mb-3">Great for small teams that want visibility into their storage without complexity.</p>
-
-                                <div class="pricing-price-wrap">
-                                    <span class="pricing-price-currency">$</span>
-                                    <span class="pricing-price-amount">29</span>
-                                    <span class="pricing-price-period">/month</span>
-                                </div>
-
-                                <div class="pricing-highlight mt-2">
-                                    <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i>Up to 2 storage locations
-                                </div>
-                        </div>
-
-                        <hr class="my-2 pricing-divider">
-
-                        <ul class="list-unstyled pricing-feature-list flex-grow-1 mb-3">
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>File Inventory</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Scan Jobs</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Reports &amp; Analytics</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Email Support</span>
-                                </li>
-                        </ul>
-
-                        <a class="btn btn-outline-primary w-100 mt-auto" href="/Index">
-                            <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Open Dashboard
-                        </a>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3 d-flex">
-                    <div class="card-premium pricing-card pricing-card-popular p-4 d-flex flex-column w-100 position-relative marketing-pricing-card">
-                            <span class="pricing-popular-badge">Most Popular</span>
-
-                        <div class="mb-3">
-                            <h3 class="mb-1 pricing-tier-name">Professional</h3>
-                            <p class="text-secondary small mb-3">Ideal for growing companies that need deeper insights and automated alerting.</p>
-
-                                <div class="pricing-price-wrap">
-                                    <span class="pricing-price-currency">$</span>
-                                    <span class="pricing-price-amount">79</span>
-                                    <span class="pricing-price-period">/month</span>
-                                </div>
-
-                                <div class="pricing-highlight mt-2">
-                                    <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i>Up to 10 storage locations
-                                </div>
-                        </div>
-
-                        <hr class="my-2 pricing-divider">
-
-                        <ul class="list-unstyled pricing-feature-list flex-grow-1 mb-3">
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>File Inventory</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Scan Jobs</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Reports &amp; Analytics</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Email Support</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Duplicate Detection</span>
-                                </li>
-                        </ul>
-
-                        <a class="btn btn-gradient w-100 mt-auto" href="/Index">
-                            <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Open Dashboard
-                        </a>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3 d-flex">
-                    <div class="card-premium pricing-card p-4 d-flex flex-column w-100 position-relative marketing-pricing-card">
-
-                        <div class="mb-3">
-                            <h3 class="mb-1 pricing-tier-name">Business</h3>
-                            <p class="text-secondary small mb-3">For teams that need automation, API access, and policy-driven storage management.</p>
-
-                                <div class="pricing-price-wrap">
-                                    <span class="pricing-price-currency">$</span>
-                                    <span class="pricing-price-amount">149</span>
-                                    <span class="pricing-price-period">/month</span>
-                                </div>
-
-                                <div class="pricing-highlight mt-2">
-                                    <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i>Unlimited storage locations
-                                </div>
-                        </div>
-
-                        <hr class="my-2 pricing-divider">
-
-                        <ul class="list-unstyled pricing-feature-list flex-grow-1 mb-3">
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>File Inventory</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Scan Jobs</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Reports &amp; Analytics</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Email Support</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Duplicate Detection</span>
-                                </li>
-                        </ul>
-
-                        <a class="btn btn-outline-primary w-100 mt-auto" href="/Index">
-                            <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Open Dashboard
-                        </a>
-                    </div>
-                </div>
-                <div class="col-md-6 col-xl-3 d-flex">
-                    <div class="card-premium pricing-card p-4 d-flex flex-column w-100 position-relative marketing-pricing-card">
-
-                        <div class="mb-3">
-                            <h3 class="mb-1 pricing-tier-name">Enterprise</h3>
-                            <p class="text-secondary small mb-3">Custom pricing for large organisations with advanced security, compliance, and integration requirements.</p>
-
-                                <div class="pricing-price-wrap">
-                                    <span class="pricing-price-custom">Custom</span>
-                                </div>
-
-                                <div class="pricing-highlight mt-2">
-                                    <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i>Tailored to your organisation
-                                </div>
-                        </div>
-
-                        <hr class="my-2 pricing-divider">
-
-                        <ul class="list-unstyled pricing-feature-list flex-grow-1 mb-3">
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>File Inventory</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Scan Jobs</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Reports &amp; Analytics</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Email Support</span>
-                                </li>
-                                <li class="pricing-feature-item">
-                                    <i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>
-                                    <span>Duplicate Detection</span>
-                                </li>
-                        </ul>
-
-                        <a class="btn btn-outline-primary w-100 mt-auto" href="/Index">
-                            <i class="bi bi-speedometer2 me-1" aria-hidden="true"></i>Open Dashboard
-                        </a>
-                    </div>
-                </div>
+        <div class="slp-feature-grid">
+            <article class="slp-feature-card card-premium reveal-item"><i class="bi bi-speedometer2"></i><h3>Storage Analytics Dashboard</h3><p>Unified visibility for growth, waste, and operational priority.</p><a class="slp-feature-link" href="/GlobalView">Open in app <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></article>
+            <article class="slp-feature-card card-premium reveal-item"><i class="bi bi-folder-symlink"></i><h3>File and Folder Breakdown</h3><p>Granular insight into large, stale, and high-risk data segments.</p><a class="slp-feature-link" href="/FileInventory">Open in app <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></article>
+            <article class="slp-feature-card card-premium reveal-item"><i class="bi bi-columns-gap"></i><h3>Parallel Job Processing</h3><p>Execute at scale across large file environments with higher throughput.</p><a class="slp-feature-link" href="/ScanJobs">Open in app <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></article>
+            <article class="slp-feature-card card-premium reveal-item"><i class="bi bi-arrow-repeat"></i><h3>Retry and Resume Engine</h3><p>Recover failed operations without losing job state or progress.</p><a class="slp-feature-link" href="/ScanJobs">Open in app <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></article>
+            <article class="slp-feature-card card-premium reveal-item"><i class="bi bi-files"></i><h3>Duplicate Detection</h3><p>Surface duplicate groups and prioritize reclaimable capacity quickly.</p><a class="slp-feature-link" href="/Duplicates">Open in app <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></article>
+            <article class="slp-feature-card card-premium reveal-item"><i class="bi bi-magic"></i><h3>Cleanup Automation</h3><p>Move from findings to execution with safer, repeatable workflows.</p><a class="slp-feature-link" href="/FlowManager">Open in app <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></article>
+            <article class="slp-feature-card card-premium reveal-item"><i class="bi bi-shield-check"></i><h3>Audit and Compliance Reporting</h3><p>Generate traceable, audit-ready exports with operational history.</p><a class="slp-feature-link" href="/Reports">Open in app <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></article>
+            <article class="slp-feature-card card-premium reveal-item"><i class="bi bi-window"></i><h3>Modern Enterprise UI</h3><p>Clear, decision-ready interface built for technical and executive users.</p><a class="slp-feature-link" href="/GlobalView">Open in app <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></article>
         </div>
     </div>
 </section>
 
-<section class="marketing-section">
+<section class="slp-section slp-section-alt" id="how-it-works">
     <div class="marketing-container">
-        <div class="marketing-cta card-premium reveal-item">
-            <div>
-                <span class="marketing-section-eyebrow">Ready to explore the product</span>
-                <h2 class="marketing-section-title m100  30131   0  30131   0      0   2361      0           00:12           3625100  30131   0  30131   0      0   2151      0           00:14           3750100  30131   0  30131   0      0   1983      0           00:15           4045100  30131   0  30131   0      0   1837      0           00:16           4500
-b-2">Open the dashboard and see how StorageLens presents storage pressure, duplicate waste, and operational flow.</h2>
-                <p class="marketing-section-text mb-0">The landing page stays lightweight and product-focused. The dashboard is where the live operational picture takes over.</p>
-            </div>
-            <div class="marketing-cta-actions">
-                <a class="btn btn-gradient btn-lg" href="/Index">
-                    <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>Go to Dashboard
+        <div class="slp-section-head reveal-item">
+            <p class="slp-eyebrow">How It Works</p>
+            <h2>A Clear 4-Step Operating Workflow</h2>
+        </div>
+        <div class="slp-steps-grid">
+            <article class="slp-step card-premium reveal-item"><span>1</span><h3>Connect your storage source</h3><p>Onboard NAS and file shares with a straightforward setup path.</p></article>
+            <article class="slp-step card-premium reveal-item"><span>2</span><h3>Scan and analyze your environment</h3><p>Capture file-level insights and uncover waste with context.</p></article>
+            <article class="slp-step card-premium reveal-item"><span>3</span><h3>Execute optimization and cleanup jobs</h3><p>Run high-volume operations with parallel execution and safeguards.</p></article>
+            <article class="slp-step card-premium reveal-item"><span>4</span><h3>Export reports and track results</h3><p>Share outcomes with operations, security, and compliance teams.</p></article>
+        </div>
+    </div>
+</section>
+
+<section class="slp-section" id="roi">
+    <div class="marketing-container">
+        <div class="slp-section-head reveal-item">
+            <p class="slp-eyebrow">Value</p>
+            <h2>Do Not Pay Just to Monitor. Pay to Reduce Waste.</h2>
+            <p>StorageLens helps enterprise teams reduce storage costs and operational overhead with measurable, execution-driven outcomes.</p>
+        </div>
+        <div class="slp-roi-grid">
+            <article class="slp-roi-card card-premium reveal-item">
+                <h3><span class="slp-counter" data-target="38">0</span><span>%</span></h3>
+                <p>Storage reclaimed from duplicate and obsolete data</p>
+            </article>
+            <article class="slp-roi-card card-premium reveal-item">
+                <h3><span class="slp-counter" data-target="64">0</span><span>%</span></h3>
+                <p>Manual effort reduced across cleanup operations</p>
+            </article>
+            <article class="slp-roi-card card-premium reveal-item">
+                <h3><span class="slp-counter" data-target="4.5">0</span><span>x</span></h3>
+                <p>Improvement in job throughput for large workloads</p>
+            </article>
+            <article class="slp-roi-card card-premium reveal-item">
+                <h3><span class="slp-counter" data-target="100">0</span><span>%</span></h3>
+                <p>Audit visibility with traceable execution records</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="slp-section slp-section-alt" id="pricing">
+    <div class="marketing-container">
+        <div class="slp-section-head reveal-item">
+            <p class="slp-eyebrow">Pricing</p>
+            <h2>Transparent Plans for Growing Storage Operations</h2>
+        </div>
+        <div class="slp-pricing-grid">
+            <article class="slp-price-card card-premium reveal-item">
+                <h3>Starter</h3>
+                <p class="slp-price">$99<span>/month</span></p>
+                <ul>
+                    <li>Foundational analytics and visibility</li>
+                    <li>Core scan and reporting workflows</li>
+                    <li>Email support</li>
+                </ul>
+                <button type="button" class="btn btn-outline-soft w-100" data-bs-toggle="modal" data-bs-target="#requestDemoModal">Request a Demo</button>
+            </article>
+            <article class="slp-price-card card-premium slp-price-popular reveal-item">
+                <span class="slp-price-badge">Most Popular</span>
+                <h3>Professional</h3>
+                <p class="slp-price">$499<span>/month</span></p>
+                <ul>
+                    <li>Parallel jobs with retry and resume</li>
+                    <li>Advanced duplicate and cleanup automation</li>
+                    <li>Priority support</li>
+                </ul>
+                <a class="btn btn-gradient w-100 slp-pilot-btn" href="#contact" aria-label="Start a Pilot">
+                    <span class="slp-pilot-btn-default">Start a Pilot</span>
+                    <span class="slp-pilot-btn-hover" aria-hidden="true">Launch Your Pilot</span>
                 </a>
-                <a class="btn btn-outline-soft btn-lg" href="/About">
-                    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>About StorageLens
+            </article>
+            <article class="slp-price-card card-premium reveal-item">
+                <h3>Enterprise</h3>
+                <p class="slp-price">Contact Sales</p>
+                <ul>
+                    <li>PB-scale architecture support</li>
+                    <li>Compliance and governance workflows</li>
+                    <li>Dedicated onboarding and success</li>
+                </ul>
+                <a class="btn btn-outline-soft w-100" href="#contact">Talk to Sales</a>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="slp-section" id="faq">
+    <div class="marketing-container">
+        <div class="slp-section-head reveal-item">
+            <p class="slp-eyebrow">FAQ</p>
+            <h2>Questions from Storage and Operations Leaders</h2>
+        </div>
+        <div class="accordion slp-faq reveal-item" id="storageLensFaq">
+            <div class="accordion-item">
+                <h3 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faqOne">How is StorageLens different from monitoring tools?</button></h3>
+                <div id="faqOne" class="accordion-collapse collapse show" data-bs-parent="#storageLensFaq"><div class="accordion-body">StorageLens goes beyond alerting. It combines analytics with execution workflows so teams can remediate and prove outcomes.</div></div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqTwo">Can it work with large NAS environments?</button></h3>
+                <div id="faqTwo" class="accordion-collapse collapse" data-bs-parent="#storageLensFaq"><div class="accordion-body">Yes. StorageLens is designed for enterprise and PB-scale environments that need high-throughput scan and execution capabilities.</div></div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqThree">Does it support retry and resume?</button></h3>
+                <div id="faqThree" class="accordion-collapse collapse" data-bs-parent="#storageLensFaq"><div class="accordion-body">Yes. StorageLens includes retry and resume support to keep long-running storage jobs resilient.</div></div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqFour">Is it designed for audit and compliance use cases?</button></h3>
+                <div id="faqFour" class="accordion-collapse collapse" data-bs-parent="#storageLensFaq"><div class="accordion-body">Absolutely. The platform includes before-and-after reporting and audit-ready exports for traceability and governance.</div></div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqFive">How quickly can teams get started?</button></h3>
+                <div id="faqFive" class="accordion-collapse collapse" data-bs-parent="#storageLensFaq"><div class="accordion-body">Most teams can onboard quickly with guided setup, then begin scanning and identifying waste in their first pilot phase.</div></div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqSix">Can it replace manual storage cleanup workflows?</button></h3>
+                <div id="faqSix" class="accordion-collapse collapse" data-bs-parent="#storageLensFaq"><div class="accordion-body">That is the goal. StorageLens reduces dependency on manual scripts and spreadsheets with workflow-driven automation.</div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="slp-final-cta" id="contact">
+    <div class="marketing-container">
+        <div class="slp-final-cta-card card-premium reveal-item">
+            <p class="slp-eyebrow">Contact</p>
+            <h2>Ready to turn storage insight into action?</h2>
+            <p>Book a tailored demo or launch a pilot to evaluate StorageLens in your environment.</p>
+            <div class="slp-cta-row">
+                <button type="button" class="btn btn-gradient btn-lg" data-bs-toggle="modal" data-bs-target="#requestDemoModal">Request a Demo</button>
+                <a class="btn btn-outline-soft btn-lg slp-pilot-btn" href="mailto:pilot@storagelens.io" aria-label="Start a Pilot">
+                    <span class="slp-pilot-btn-default">Start a Pilot</span>
+                    <span class="slp-pilot-btn-hover" aria-hidden="true">Email Pilot Team</span>
                 </a>
             </div>
         </div>
     </div>
 </section>
+
+<div class="modal fade" id="requestDemoModal" tabindex="-1" aria-labelledby="requestDemoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content card-premium border-0">
+            <div class="modal-header border-0 pb-0">
+                <h2 class="modal-title h4" id="requestDemoModalLabel">Request a StorageLens Demo</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary mb-3">Share your environment details and goals. Our team will contact you to schedule a tailored walkthrough.</p>
+                <form method="post" novalidate action="/?handler=RequestDemo">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="DemoRequest_Name">Full Name</label>
+                            <input class="form-control" autocomplete="name" type="text" data-val="true" data-val-length="The field Name must be a string with a maximum length of 120." data-val-length-max="120" data-val-required="Name is required" id="DemoRequest_Name" maxlength="120" name="DemoRequest.Name" value="" />
+                            <span class="text-danger small field-validation-valid" data-valmsg-for="DemoRequest.Name" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="DemoRequest_WorkEmail">Work Email</label>
+                            <input class="form-control" autocomplete="email" type="email" data-val="true" data-val-email="Enter a valid email address" data-val-length="The field WorkEmail must be a string with a maximum length of 180." data-val-length-max="180" data-val-required="Work email is required" id="DemoRequest_WorkEmail" maxlength="180" name="DemoRequest.WorkEmail" value="" />
+                            <span class="text-danger small field-validation-valid" data-valmsg-for="DemoRequest.WorkEmail" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="DemoRequest_Company">Company</label>
+                            <input class="form-control" autocomplete="organization" type="text" data-val="true" data-val-length="The field Company must be a string with a maximum length of 180." data-val-length-max="180" data-val-required="Company is required" id="DemoRequest_Company" maxlength="180" name="DemoRequest.Company" value="" />
+                            <span class="text-danger small field-validation-valid" data-valmsg-for="DemoRequest.Company" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="DemoRequest_TeamSize">Team Size</label>
+                            <select class="form-select" data-val="true" data-val-length="The field TeamSize must be a string with a maximum length of 60." data-val-length-max="60" data-val-required="Team size is required" id="DemoRequest_TeamSize" name="DemoRequest.TeamSize">
+                                <option value="" selected="selected">Select team size</option>
+                                <option>1-10</option>
+                                <option>11-50</option>
+                                <option>51-200</option>
+                                <option>201-1000</option>
+                                <option>1000+</option>
+                            </select>
+                            <span class="text-danger small field-validation-valid" data-valmsg-for="DemoRequest.TeamSize" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="DemoRequest_Notes">What are your primary storage challenges?</label>
+                            <textarea class="form-control" rows="4" placeholder="Example: duplicate sprawl, manual cleanup workflows, audit reporting, PB-scale performance" data-val="true" data-val-length="The field Notes must be a string with a maximum length of 1500." data-val-length-max="1500" id="DemoRequest_Notes" maxlength="1500" name="DemoRequest.Notes">
+</textarea>
+                            <span class="text-danger small field-validation-valid" data-valmsg-for="DemoRequest.Notes" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" data-val="true" data-val-required="The InterestedInPilot field is required." id="DemoRequest_InterestedInPilot" name="DemoRequest.InterestedInPilot" value="true" />
+                                <label class="form-check-label" for="DemoRequest_InterestedInPilot">I am interested in starting a pilot</label>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex flex-wrap gap-2 pt-1">
+                            <button type="submit" class="btn btn-gradient">Submit Demo Request</button>
+                            <button type="button" class="btn btn-outline-soft" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8PgthVmVzyxGtirCb1580EAT1PxnMP8bnzn8hPWS-WscpJBhS31IAK4SjH6ju4RSH7fNdMqku5lOpK4cQKipUhHNrsmAXfNfZXPPpoGXazv9A4XlZ_ni5XKlMJuWjGWRUutlQXGTGeViIO2hwJgdX5Y" /><input name="DemoRequest.Intereste100  36175   0  36175   0      0   2832      0           00:12           3779100  36175   0  36175   0      0   2712      0           00:13           3779100  36175   0  36175   0      0   2599      0           00:13           4016
+dInPilot" type="hidden" value="false" /></form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
     </main>
 
     <footer class="marketing-footer">
         <div class="marketing-container marketing-footer-inner">
-            <div>
-                <div class="marketing-footer-title">StorageLens MVP</div>
-                <p class="marketing-footer-copy mb-0">Enterprise visibility into storage growth, duplicate waste, and scan execution.</p>
+            <div class="marketing-footer-company">
+                <div class="marketing-footer-title">StorageLens</div>
+                <p class="marketing-footer-copy mb-0">Storage visibility, analytics, automation, and audit-ready reporting for enterprise teams.</p>
+                <p class="marketing-footer-copy mb-0 marketing-footer-contact">Contact: <a href="mailto:sales@storagelens.io">sales@storagelens.io</a></p>
+                <p class="marketing-footer-copy mb-0 marketing-footer-legal">&copy; 2026 StorageLens. All rights reserved.</p>
             </div>
-            <div class="marketing-footer-links">
-                <a href="/">Landing</a>
-                <a href="/Pricing">Pricing</a>
-                <a href="/About">About</a>
-                <a href="/Index">Dashboard</a>
-            </div>
+            <nav class="marketing-footer-links" aria-label="Footer navigation">
+                <a href="#product">Product</a>
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+                <a href="#contact">Contact</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </nav>
         </div>
     </footer>
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/site.js?v=1L3IHHb_BGoeHXpOMTmRv49d4S1LY2OIVwwrQrvHDtQ"></script>
+    <script src="/js/site.js?v=-0sVM5q-OTL6B3MzaNK0yPUJR1HhbGmdA_ltq_b5PVQ"></script>
 
     
+    <script>
+        (() => {
+            // Smooth scrolling for in-page navigation links.
+            const anchoredLinks = document.querySelectorAll('a[href^="#"]:not([href="#"])');
+            anchoredLinks.forEach((link) => {
+                link.addEventListener('click', (event) => {
+                    const targetId = link.getAttribute('href');
+                    const target = targetId ? document.querySelector(targetId) : null;
+                    if (!target) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    const y = target.getBoundingClientRect().top + window.scrollY - 86;
+                    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+                });
+            });
+
+            // Lightweight count-up animation for ROI metrics.
+            const counters = document.querySelectorAll('.slp-counter');
+            if (!counters.length) {
+                return;
+            }
+
+            const animateCounter = (el) => {
+                const target = Number(el.dataset.target || '0');
+                const duration = 1300;
+                const start = performance.now();
+                const hasDecimal = !Number.isInteger(target);
+
+                const step = (now) => {
+                    const progress = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const value = target * eased;
+                    el.textContent = hasDecimal ? value.toFixed(1) : Math.round(value).toString();
+
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+
+                window.requestAnimationFrame(step);
+            };
+
+            const observer = new IntersectionObserver((entries, io) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) {
+                        return;
+                    }
+
+                    animateCounter(entry.target);
+                    io.unobserve(entry.target);
+                });
+            }, { threshold: 0.6 });
+
+            counters.forEach((counter) => observer.observe(counter));
+
+            const shouldOpenDemoModal = false;
+            if (shouldOpenDemoModal) {
+                const modalElement = document.getElementById('requestDemoModal');
+                if (modalElement) {
+                    const modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                }
+            }
+        })();
+    </script>
+
 </body>
 </html>

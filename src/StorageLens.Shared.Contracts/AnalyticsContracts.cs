@@ -3,7 +3,7 @@ namespace StorageLens.Shared.Contracts;
 public record DashboardKpiDto(
 	long TotalStorageBytes,
 	long TotalFiles,
-	int DuplicatePercent,
+	double DuplicatePercent,
 	long PotentialSavingsBytes);
 
 public record ChartPointDto(string Label, double Value);

@@ -61,47 +61,13 @@
                 <div class="fm-tree" id="fmTree">
                     @if (!Model.Dashboard.Locations.Any())
                     {
-                        <!-- Demo tree when no real locations -->
-                        <div class="fm-tree-group" data-loc-id="demo-1" data-loc-name="NAS-Primary" data-loc-size="13958643712" data-loc-files="43800" data-loc-type="Nas" data-loc-status="Online" data-loc-path="\\nas01\primary">
-                            <div class="fm-tree-drive" data-expand-loc="demo-1">
-                                <i class="bi bi-hdd-network fm-tree-icon--drive"></i>
-                                <span>NAS-Primary</span>
-                                <span class="fm-tree-type-badge">Nas</span>
-                                <i class="bi bi-chevron-down fm-chevron"></i>
-                            </div>
-                            <div class="fm-tree-children" id="fm-children-demo-1">
-                                <div class="fm-tree-item" data-folder="Documents" data-frac="0.18"><i class="bi bi-file-earmark-text fm-tree-icon--doc"></i><span>Documents</span></div>
-                                <div class="fm-tree-item" data-folder="Images" data-frac="0.22"><i class="bi bi-image fm-tree-icon--img"></i><span>Images</span></div>
-                                <div class="fm-tree-item" data-folder="Videos" data-frac="0.38"><i class="bi bi-camera-video fm-tree-icon--vid"></i><span>Videos</span></div>
-                                <div class="fm-tree-item" data-folder="Archives" data-frac="0.12"><i class="bi bi-archive fm-tree-icon--arc"></i><span>Archives</span></div>
-                                <div class="fm-tree-item" data-folder="System" data-frac="0.10"><i class="bi bi-gear fm-tree-icon--sys"></i><span>System</span></div>
-                            </div>
-                        </div>
-                        <div class="fm-tree-group" data-loc-id="demo-2" data-loc-name="FileShare-EU" data-loc-size="4831838208" data-loc-files="12400" data-loc-type="FileShare" data-loc-status="Online" data-loc-path="\\fs01\eu-share">
-                            <div class="fm-tree-drive" data-expand-loc="demo-2">
-                                <i class="bi bi-hdd-stack fm-tree-icon--share"></i>
-                                <span>FileShare-EU</span>
-                                <span class="fm-tree-type-badge">Share</span>
-                                <i class="bi bi-chevron-down fm-chevron"></i>
-                            </div>
-                            <div class="fm-tree-children" id="fm-children-demo-2" hidden>
-                                <div class="fm-tree-item" data-folder="Projects" data-frac="0.45"><i class="bi bi-folder2 fm-tree-icon--doc"></i><span>Projects</span></div>
-                                <div class="fm-tree-item" data-folder="Backups" data-frac="0.30"><i class="bi bi-archive fm-tree-icon--arc"></i><span>Backups</span></div>
-                                <div class="fm-tree-item" data-folder="Media" data-frac="0.25"><i class="bi bi-collection-play fm-tree-icon--vid"></i><span>Media</span></div>
-                            </div>
-                        </div>
-                        <div class="fm-tree-group" data-loc-id="demo-3" data-loc-name="Local-Dev" data-loc-size="536870912" data-loc-files="1200" data-loc-type="Local" data-loc-status="Online" data-loc-path="D:\DevStorage">
-                            <div class="fm-tree-drive" data-expand-loc="demo-3">
-                                <i class="bi bi-laptop fm-tree-icon--local"></i>
-                                <span>Local-Dev</span>
-                                <span class="fm-tree-type-badge">Local</span>
-                                <i class="bi bi-chevron-down fm-chevron"></i>
-                            </div>
-                            <div class="fm-tree-children" id="fm-children-demo-3" hidden>
-                                <div class="fm-tree-item" data-folder="Source" data-frac="0.55"><i class="bi bi-code-slash fm-tree-icon--doc"></i><span>Source Code</span></div>
-                                <div class="fm-tree-item" data-folder="Builds" data-frac="0.30"><i class="bi bi-boxes fm-tree-icon--arc"></i><span>Builds</span></div>
-                                <div class="fm-tree-item" data-folder="Logs" data-frac="0.15"><i class="bi bi-file-text fm-tree-icon--sys"></i><span>Logs</span></div>
-                            </div>
+                        <div class="fm-empty-state text-center py-4 px-3">
+                            <i class="bi bi-hdd-network-fill" style="font-size:2.5rem;color:var(--sl-muted);opacity:0.6;"></i>
+                            <div class="fw-semibold mt-3 mb-1" style="color:var(--sl-text);">No storage locations configured</div>
+                            <div class="small mb-3" style="color:var(--sl-muted);">Add and scan a location first to use the Flow Manager.</div>
+                            <a asp-page="/StorageLocations" class="btn btn-primary btn-sm px-3">
+                                <i class="bi bi-plus-circle me-1"></i>Add Location
+                            </a>
                         </div>
                     }
                     else
@@ -164,12 +130,9 @@
                         <div class="fm-details-bar-label" id="fmDetailBarLabel">0% used</div>
                     </div>
                     <div class="fm-details-section">
-                        <div class="fm-details-heading">Active Users</div>
+                        <div class="fm-details-heading">Recent Activity</div>
                         <div class="fm-active-users" id="fmActiveUsers">
-                            <div class="fm-user-row"><span class="fm-user-dot fm-user-dot--a"></span><span class="fm-user-name">08 Polestar</span><span class="fm-user-time">just now</span></div>
-                            <div class="fm-user-row"><span class="fm-user-dot fm-user-dot--b"></span><span class="fm-user-name">08 LepB Amerelo</span><span class="fm-user-time">2m ago</span></div>
-                            <div class="fm-user-row"><span class="fm-user-dot fm-user-dot--c"></span><span class="fm-user-name">53 Polygon</span><span class="fm-user-time">5m ago</span></div>
-                            <div class="fm-user-row"><span class="fm-user-dot fm-user-dot--d"></span><span class="fm-user-name">4H Media</span><span class="fm-user-time">12m ago</span></div>
+                            <div class="fm-user-row text-secondary small"><i class="bi bi-info-circle me-2"></i>Scan history available in Scan Jobs.</div>
                         </div>
                     </div>
                 </div>

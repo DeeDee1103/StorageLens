@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
+using System.Net;
 using StorageLens.Shared.Contracts;
 using StorageLens.Web.Clients;
 using StorageLens.Web.Services;
@@ -62,6 +63,38 @@ public class FileInventoryModel(
         var globalTotals = await GetGlobalTotalsAsync(localTotals, cancellationToken);
         var snapshot = BuildSnapshot(result, globalTotals);
         return new JsonResult(snapshot);
+    }
+
+    public async Task<IActionResult> OnGetFileContentAsync(Guid id, bool download = false, CancellationToken cancellationToken = default)
+    {
+        var response = await fileInventoryApiClient.GetFileContentAsync(id, download, cancellationToken);
+        if (response is null)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "File content service unavailable." });
+        }
+
+        HttpContext.Response.RegisterForDispose(response);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return NotFound();
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return StatusCode((int)response.StatusCode);
+        }
+
+        var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var rawFileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+        var fileName = rawFileName?.Trim('"');
+
+        Response.Headers["Cache-Control"] = "no-store";
+        return download && !string.IsNullOrWhiteSpace(fileName)
+            ? File(stream, contentType, fileName, enableRangeProcessing: true)
+            : File(stream, contentType, enableRangeProcessing: true);
     }
 
     private async Task<GlobalInventoryTotals> GetGlobalTotalsAsync(LocalInventoryTotals localTotals, CancellationToken cancellationToken)

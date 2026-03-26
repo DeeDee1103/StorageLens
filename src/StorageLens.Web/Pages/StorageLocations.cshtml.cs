@@ -16,6 +16,18 @@ public class StorageLocationsModel(
     public string Path { get; set; } = string.Empty;
 
     [BindProperty]
+    public string SiteLocation { get; set; } = string.Empty;
+
+    [BindProperty]
+    public LocationStatus Status { get; set; } = LocationStatus.Online;
+
+    [BindProperty]
+    public double? Latitude { get; set; }
+
+    [BindProperty]
+    public double? Longitude { get; set; }
+
+    [BindProperty]
     public StorageLocationType Type { get; set; } = StorageLocationType.Nas;
 
     public IReadOnlyList<StorageLocationDto> Locations { get; private set; } = [];
@@ -38,14 +50,44 @@ public class StorageLocationsModel(
 
     public async Task<IActionResult> OnPostAddAsync(CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(Name) || string.IsNullOrWhiteSpace(Path))
+        if (string.IsNullOrWhiteSpace(Name) || string.IsNullOrWhiteSpace(Path) || string.IsNullOrWhiteSpace(SiteLocation))
         {
-            ModelState.AddModelError(string.Empty, "Name and path are required.");
+            ModelState.AddModelError(string.Empty, "Name, path, and site location are required.");
             await OnGetAsync(cancellationToken);
             return Page();
         }
 
-        await locationsApiClient.CreateAsync(new CreateStorageLocationRequest(Name.Trim(), Path.Trim(), Type), cancellationToken);
+        if (Latitude.HasValue ^ Longitude.HasValue)
+        {
+            ModelState.AddModelError(string.Empty, "Provide both latitude and longitude, or leave both empty.");
+            await OnGetAsync(cancellationToken);
+            return Page();
+        }
+
+        if (Latitude is < -90 or > 90)
+        {
+            ModelState.AddModelError(string.Empty, "Latitude must be between -90 and 90.");
+            await OnGetAsync(cancellationToken);
+            return Page();
+        }
+
+        if (Longitude is < -180 or > 180)
+        {
+            ModelState.AddModelError(string.Empty, "Longitude must be between -180 and 180.");
+            await OnGetAsync(cancellationToken);
+            return Page();
+        }
+
+        await locationsApiClient.CreateAsync(
+            new CreateStorageLocationRequest(
+                Name.Trim(),
+                Path.Trim(),
+                Type,
+                SiteLocation.Trim(),
+                Status,
+                Latitude,
+                Longitude),
+            cancellationToken);
         return RedirectToPage();
     }
 

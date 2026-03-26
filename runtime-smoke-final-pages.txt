@@ -1,0 +1,12 @@
+
+/GlobalView 200 46204
+/StorageLocations 200 107101
+/ScanJobs 200 199170
+/FileInventory 200 95068
+/Duplicates 200 94514
+/Insights 200 21306
+/FlowManager 200 84426
+/Alerts 200 20621
+/Pricing 200 55677
+/Settings 200 29888
+/About 200 35101

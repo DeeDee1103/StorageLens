@@ -156,18 +156,20 @@
                     <span id="fileInventoryLocationCount">0</span> locations
                     &middot; <span id="fileInventoryUniqueExtensions">0</span> types
                 </span>
-                <button type="button" class="btn file-inventory-icon-btn" data-file-screen-tab="navigator" aria-pressed="true" title="File Navigator">
-                    <i class="bi bi-folder2-open" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="btn file-inventory-icon-btn" data-file-screen-tab="telemetry" aria-pressed="false" title="Scan Telemetry">
-                    <i class="bi bi-broadcast" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="btn file-inventory-icon-btn" data-file-open-telemetry title="Open Telemetry view">
-                    <i class="bi bi-graph-up" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="btn file-inventory-icon-btn" data-file-refresh title="Refresh inventory">
-                    <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
-                </button>
+                <div class="file-inventory-action-cluster" role="group" aria-label="File inventory quick actions">
+                    <button type="button" class="btn file-inventory-icon-btn" data-file-screen-tab="navigator" aria-pressed="true" title="File Navigator">
+                        <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn file-inventory-icon-btn" data-file-screen-tab="telemetry" aria-pressed="false" title="Scan Telemetry">
+                        <i class="bi bi-broadcast" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn file-inventory-icon-btn" data-file-open-telemetry title="Open Telemetry view">
+                        <i class="bi bi-graph-up" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn file-inventory-icon-btn" data-file-refresh title="Refresh inventory">
+                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -189,6 +191,13 @@
                             <h3 class="mb-0">Files</h3>
                         </div>
                         <input type="text" class="form-control form-control-sm" data-file-quick-filter placeholder="Quick filter by name or path&hellip;" />
+                        <div class="file-type-filter-toolbar mt-2">
+                            <div class="file-type-filter-head">
+                                <span class="file-type-filter-title">File Type</span>
+                                <button type="button" class="btn btn-link p-0 file-type-filter-clear" data-file-type-filter-clear hidden>Clear</button>
+                            </div>
+                            <div class="file-type-filter-bar" data-file-type-filter-bar role="group" aria-label="Filter files by type"></div>
+                        </div>
                     </div>
                     <div class="file-list-scroll px-2 pb-2" style="flex:1;overflow-y:auto">
                         <div id="fileInventoryInteractiveList">
@@ -404,6 +413,8 @@
         const selectedFilePath = document.querySelector('[data-selected-file-path]');
         const selectedFileStatus = document.querySelector('[data-selected-file-status]');
         const quickFilter = document.querySelector('[data-file-quick-filter]');
+        const fileTypeFilterBar = document.querySelector('[data-file-type-filter-bar]');
+        const fileTypeFilterClear = document.querySelector('[data-file-type-filter-clear]');
         const openTelemetryBtn = document.querySelector('[data-file-open-telemetry]');
         const refreshInteractiveBtn = document.querySelector('[data-file-refresh]');
         const fiPreviewPanel  = document.getElementById('fiPreviewPanel');
@@ -446,8 +457,10 @@
         let selectedFileId = '';
         let currentFilePath = '';
         let currentQuickFilter = '';
+        let selectedFileTypes = new Set();
         let lastSnapshotSignature = JSON.stringify(initialSnapshot.files || []);
         let toastTimer = null;
+        let previewRequestToken = 0;
 
         if (!Number.isFinite(refreshIntervalSeconds) || refreshIntervalSeconds < 0) {
             refreshIntervalSeconds = DEFAULT_FILE_REFRESH_SECONDS;
@@ -521,13 +534,72 @@
             applyLocationNodeMetrics(target);
         };
 
-        const applyQuickFilter = (query) => {
-            currentQuickFilter = query.trim().toLowerCase();
+        const normalizeExtension = (extension) => {
+            const cleaned = String(extension || '').trim().toLowerCase().replace(/^\./, '');
+            return cleaned || '(none)';
+        };
+
+        const applyInteractiveFilters = () => {
             fileInventoryInteractiveList.querySelectorAll('.file-list-item').forEach((item) => {
                 const fileName = (item.getAttribute('data-file-name') || '').toLowerCase();
                 const filePath = (item.getAttribute('data-file-path') || '').toLowerCase();
-                item.hidden = currentQuickFilter.length > 0 && !fileName.includes(currentQuickFilter) && !filePath.includes(currentQuickFilter);
+                const fileType = normalizeExtension(item.getAttribute('data-file-ext-key'));
+                const matchesQuickFilter = currentQuickFilter.length === 0 || fileName.includes(currentQuickFilter) || filePath.includes(currentQuickFilter);
+                const matchesTypeFilter = selectedFileTypes.size === 0 || selectedFileTypes.has(fileType);
+                item.hidden = !(matchesQuickFilter && matchesTypeFilter);
             });
+        };
+
+        const syncFileTypeFilterBar = (files) => {
+            if (!fileTypeFilterBar) {
+                return;
+            }
+
+            const fileTypeCounts = new Map();
+            (files || []).forEach((file) => {
+                const key = normalizeExtension(file.extension);
+                fileTypeCounts.set(key, (fileTypeCounts.get(key) || 0) + 1);
+            });
+
+            const orderedTypes = [...fileTypeCounts.entries()]
+                .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+                .slice(0, 16);
+
+            const availableTypes = new Set(orderedTypes.map(([key]) => key));
+            selectedFileTypes = new Set([...selectedFileTypes].filter((type) => availableTypes.has(type)));
+
+            fileTypeFilterBar.innerHTML = orderedTypes.map(([key, count]) => {
+                const isActive = selectedFileTypes.has(key);
+                const label = key === '(none)' ? 'No Ext' : `.${key}`;
+                return `<button type="button" class="btn file-type-filter-chip${isActive ? ' active' : ''}" data-file-type-chip="${escapeAttr(key)}" aria-pressed="${isActive}">${escapeHtml(label)} <span>${escapeHtml(count)}</span></button>`;
+            }).join('');
+
+            if (fileTypeFilterClear) {
+                fileTypeFilterClear.hidden = selectedFileTypes.size === 0;
+            }
+
+            fileTypeFilterBar.querySelectorAll('[data-file-type-chip]').forEach((chip) => {
+                chip.addEventListener('click', () => {
+                    const key = normalizeExtension(chip.getAttribute('data-file-type-chip'));
+                    if (selectedFileTypes.has(key)) {
+                        selectedFileTypes.delete(key);
+                    } else {
+                        selectedFileTypes.add(key);
+                    }
+
+                    chip.classList.toggle('active', selectedFileTypes.has(key));
+                    chip.setAttribute('aria-pressed', String(selectedFileTypes.has(key)));
+                    if (fileTypeFilterClear) {
+                        fileTypeFilterClear.hidden = selectedFileTypes.size === 0;
+                    }
+                    applyInteractiveFilters();
+                });
+            });
+        };
+
+        const applyQuickFilter = (query) => {
+            currentQuickFilter = query.trim().toLowerCase();
+            applyInteractiveFilters();
         };
 
         const showPreviewToast = (msg, isError = false) => {
@@ -582,14 +654,112 @@
         };
 
         const PREVIEW_MESSAGES = {
-            image:   { icon: 'bi-file-earmark-image', title: 'Image File', sub: 'Image preview unavailable — file is on network storage. Use "Open File" to view it.' },
-            text:    { icon: 'bi-file-earmark-lines', title: 'Text Document', sub: 'Text content is stored on a network location. Open the file to read its contents.' },
-            code:    { icon: 'bi-file-earmark-code', title: 'Code / Data File', sub: 'Source or structured data file. Open with your preferred editor to inspect contents.' },
-            pdf:     { icon: 'bi-file-earmark-pdf', title: 'PDF Document', sub: 'PDF rendering is unavailable for network files. Click "Open File" to view in your PDF reader.' },
-            video:   { icon: 'bi-file-earmark-play', title: 'Video File', sub: 'Video playback is unavailable for network files. Open the file with your media player.' },
-            audio:   { icon: 'bi-file-earmark-music', title: 'Audio File', sub: 'Audio playback is unavailable for network files. Open the file with your media player.' },
-            archive: { icon: 'bi-file-earmark-zip', title: 'Archive / Package', sub: 'Compressed archive. Use your file manager to extract and browse its contents.' },
-            binary:  { icon: 'bi-file-earmark-binary', title: 'Executable / Binary', sub: 'Binary file — no preview available. Exercise caution before opening executables.' }
+            image:   { icon: 'bi-file-earmark-image', title: 'Image File', sub: 'Loading image preview from StorageLens service.' },
+            text:    { icon: 'bi-file-earmark-lines', title: 'Text Document', sub: 'Loading text preview from StorageLens service.' },
+            code:    { icon: 'bi-file-earmark-code', title: 'Code / Data File', sub: 'Loading source preview from StorageLens service.' },
+            pdf:     { icon: 'bi-file-earmark-pdf', title: 'PDF Document', sub: 'Loading PDF preview from StorageLens service.' },
+            video:   { icon: 'bi-file-earmark-play', title: 'Video File', sub: 'Loading video preview from StorageLens service.' },
+            audio:   { icon: 'bi-file-earmark-music', title: 'Audio File', sub: 'Loading audio preview from StorageLens service.' },
+            archive: { icon: 'bi-file-earmark-zip', title: 'Archive / Package', sub: 'This file type cannot be previewed inline. Use Open to download or launch it.' },
+            binary:  { icon: 'bi-file-earmark-binary', title: 'Executable / Binary', sub: 'Binary file cannot be previewed inline. Use Open to download or launch it.' }
+        };
+
+        const buildFileContentUrl = (fileId, download = false) => {
+            if (!fileId) {
+                return '';
+            }
+
+            const token = `v=${Date.now()}`;
+            const downloadPart = download ? '&download=true' : '';
+            return `${window.location.pathname}?handler=FileContent&id=${encodeURIComponent(fileId)}${downloadPart}&${token}`;
+        };
+
+        const renderPreviewPlaceholder = (msg) => {
+            if (!fiPreviewContent) {
+                return;
+            }
+
+            fiPreviewContent.innerHTML = `
+                <div class="fi-preview-placeholder">
+                    <i class="bi ${msg.icon} fi-preview-ph-icon" aria-hidden="true"></i>
+                    <p class="fi-preview-ph-title">${escapeHtml(msg.title)}</p>
+                    <p class="fi-preview-ph-sub">${escapeHtml(msg.sub)}</p>
+                </div>`;
+        };
+
+        const renderPreviewError = (title, detail) => {
+            renderPreviewPlaceholder({
+                icon: 'bi-exclamation-triangle',
+                title: title || 'Preview unavailable',
+                sub: detail || 'StorageLens could not load file content from the service.'
+            });
+        };
+
+        const probeFileContent = async (fileId) => {
+            const url = buildFileContentUrl(fileId, false);
+            if (!url) {
+                return { ok: false, status: 0, statusText: 'Invalid file id', contentType: '' };
+            }
+
+            try {
+                const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    statusText: response.statusText,
+                    contentType: response.headers.get('content-type') || ''
+                };
+            } catch {
+                return { ok: false, status: 0, statusText: 'Network error', contentType: '' };
+            }
+        };
+
+        const renderPreviewMedia = async (previewType, fileId, fileName, msg) => {
+            const requestToken = ++previewRequestToken;
+            const url = buildFileContentUrl(fileId, false);
+            if (!url) {
+                renderPreviewPlaceholder({ icon: 'bi-file-earmark', title: 'No file selected', sub: 'Choose a file in the list first.' });
+                return;
+            }
+
+            if (!fiPreviewContent) {
+                return;
+            }
+
+            const probe = await probeFileContent(fileId);
+            if (requestToken !== previewRequestToken) {
+                return;
+            }
+
+            if (!probe.ok) {
+                const detail = probe.status > 0
+                    ? `Service returned ${probe.status} ${probe.statusText}. The file might not be reachable from mounted storage.`
+                    : 'The service could not be reached from the browser.';
+                renderPreviewError('Preview unavailable', detail);
+                return;
+            }
+
+            if (previewType === 'image') {
+                fiPreviewContent.innerHTML = `<img class="fi-preview-media" src="${escapeAttr(url)}" alt="${escapeAttr(fileName || 'image preview')}" />`;
+                return;
+            }
+
+            if (previewType === 'video') {
+                fiPreviewContent.innerHTML = `<video class="fi-preview-media" controls preload="metadata" src="${escapeAttr(url)}"></video>`;
+                return;
+            }
+
+            if (previewType === 'audio') {
+                fiPreviewContent.innerHTML = `<audio class="fi-preview-audio" controls preload="metadata" src="${escapeAttr(url)}"></audio>`;
+                return;
+            }
+
+            if (previewType === 'pdf' || previewType === 'text' || previewType === 'code') {
+                fiPreviewContent.innerHTML = `<iframe class="fi-preview-frame" src="${escapeAttr(url)}" title="${escapeAttr(fileName || msg.title)}"></iframe>`;
+                return;
+            }
+
+            renderPreviewPlaceholder(msg);
         };
 
         const openPreviewPanel = (item) => {
@@ -621,14 +791,7 @@
 
             const previewType = EXT_PREVIEW_TYPE[ext] || 'generic';
             const msg = PREVIEW_MESSAGES[previewType] || { icon: 'bi-file-earmark', title: 'File', sub: 'No preview available for this file type.' };
-            if (fiPreviewContent) {
-                const phIcon = document.getElementById('fiPreviewPhIcon');
-                const phTitle = document.getElementById('fiPreviewPhTitle');
-                const phSub = document.getElementById('fiPreviewPhSub');
-                if (phIcon) phIcon.className = `bi ${msg.icon} fi-preview-ph-icon`;
-                if (phTitle) phTitle.textContent = msg.title;
-                if (phSub) phSub.textContent = msg.sub;
-            }
+            void renderPreviewMedia(previewType, selectedFileId, name, msg);
 
             document.getElementById('fi-det-name').textContent = name;
             document.getElementById('fi-det-ext').textContent = ext ? `.${ext}` : '—';
@@ -853,15 +1016,17 @@
         const renderFileListItem = (file, signature) => {
             const itemStatus = deriveFileStatus(file);
             const normalizedLocation = file.locationName || 'Unassigned';
+            const fileTypeKey = normalizeExtension(file.extension);
+            const fileTypeLabel = fileTypeKey === '(none)' ? 'no ext' : `.${fileTypeKey}`;
             const pill = itemStatus.toLowerCase().includes('duplicate') || file.isDuplicate
                 ? '<span class="file-list-pill warn">Dup</span>'
                 : '';
             return `
-                <button type="button" class="file-list-item" data-file-id="${escapeAttr(file.id)}" data-live-signature="${escapeAttr(signature)}" data-file-name="${escapeAttr(file.fileName)}" data-file-path="${escapeAttr(file.filePath)}" data-file-status="${escapeAttr(itemStatus)}" data-file-location="${escapeAttr(normalizedLocation)}" data-file-size="${escapeAttr(formatBytes(file.sizeBytes))}" data-file-ext="${escapeAttr(file.extension)}" data-file-modified="${escapeAttr(formatDateTime(file.lastModifiedDate))}">
+                <button type="button" class="file-list-item" data-file-id="${escapeAttr(file.id)}" data-live-signature="${escapeAttr(signature)}" data-file-name="${escapeAttr(file.fileName)}" data-file-path="${escapeAttr(file.filePath)}" data-file-status="${escapeAttr(itemStatus)}" data-file-location="${escapeAttr(normalizedLocation)}" data-file-size="${escapeAttr(formatBytes(file.sizeBytes))}" data-file-ext="${escapeAttr(file.extension)}" data-file-ext-key="${escapeAttr(fileTypeKey)}" data-file-modified="${escapeAttr(formatDateTime(file.lastModifiedDate))}">
                     <span class="file-list-icon"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span>
                     <span class="file-list-copy">
                         <strong>${escapeHtml(file.fileName)}</strong>
-                        <small>${escapeHtml(formatBytes(file.sizeBytes))} &middot; ${escapeHtml(file.extension)} &middot; ${escapeHtml(normalizedLocation)}</small>
+                        <small>${escapeHtml(formatBytes(file.sizeBytes))} &middot; ${escapeHtml(fileTypeLabel)} &middot; ${escapeHtml(normalizedLocation)}</small>
                     </span>
                     ${pill}
                 </button>`;
@@ -907,6 +1072,8 @@
 
             existing.forEach((item) => item.remove());
             ensureSelectedFileState();
+            syncFileTypeFilterBar(files || []);
+            applyInteractiveFilters();
         };
 
         const updateLiveChrome = (snapshot, hadError = false, wasChanged = false) => {
@@ -1051,6 +1218,18 @@
             quickFilter.addEventListener('input', () => applyQuickFilter(quickFilter.value));
         }
 
+        if (fileTypeFilterClear) {
+            fileTypeFilterClear.addEventListener('click', () => {
+                selectedFileTypes.clear();
+                fileTypeFilterBar?.querySelectorAll('[data-file-type-chip]').forEach((chip) => {
+                    chip.classList.remove('active');
+                    chip.setAttribute('aria-pressed', 'false');
+                });
+                fileTypeFilterClear.hidden = true;
+                applyInteractiveFilters();
+            });
+        }
+
         if (fiPreviewClose) {
             fiPreviewClose.addEventListener('click', () => clearPreviewSelection());
         }
@@ -1065,15 +1244,31 @@
         }
 
         if (fiActionOpen) {
-            fiActionOpen.addEventListener('click', () => {
-                if (!currentFilePath) { showPreviewToast('No file selected', true); return; }
-                let uri = currentFilePath;
-                if (uri.startsWith('\\\\')) {
-                    uri = 'file:' + uri.replace(/\\/g, '/');
-                } else if (/^[A-Za-z]:\\/.test(uri)) {
-                    uri = 'file:///' + uri.replace(/\\/g, '/');
+            fiActionOpen.addEventListener('click', async () => {
+                if (!selectedFileId) {
+                    showPreviewToast('No file selected', true);
+                    return;
                 }
-                window.open(uri, '_blank', 'noopener');
+
+                const probe = await probeFileContent(selectedFileId);
+                if (!probe.ok) {
+                    if (probe.status > 0) {
+                        showPreviewToast(`Open failed (${probe.status})`, true);
+                        renderPreviewError('Open failed', `Service returned ${probe.status} ${probe.statusText}. Verify the path is mounted and accessible.`);
+                    } else {
+                        showPreviewToast('Open failed (service unavailable)', true);
+                        renderPreviewError('Open failed', 'StorageLens could not reach the file content endpoint.');
+                    }
+                    return;
+                }
+
+                const streamUrl = buildFileContentUrl(selectedFileId, false);
+                if (!streamUrl) {
+                    showPreviewToast('Unable to open file stream', true);
+                    return;
+                }
+
+                window.open(streamUrl, '_blank', 'noopener,noreferrer');
             });
         }
 

@@ -510,16 +510,15 @@ else if (Model.ServiceUnavailable)
 
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', function () {
-            // Placeholder: actual API call would go here
             if (bsDeleteModal) bsDeleteModal.hide();
-            // Show brief feedback
+            // Bulk remediation via API is coming in a future release.
             if (deleteBtn) {
-                deleteBtn.textContent = 'Deleted';
+                deleteBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Coming Soon';
                 deleteBtn.disabled = true;
                 setTimeout(function () {
                     deleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Selected';
-                    deleteBtn.disabled = true;
-                }, 2000);
+                    deleteBtn.disabled = false;
+                }, 3000);
             }
         });
     }
