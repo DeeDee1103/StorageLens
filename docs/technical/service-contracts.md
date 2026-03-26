@@ -2,21 +2,23 @@
 
 ## Contract Source
 
-All cross-service DTOs are defined in:
-- `src/StorageLens.Shared.Contracts/Class1.cs`
+Cross-service DTOs are defined in domain-specific files under:
+- `src/StorageLens.Shared.Contracts/`
+
+> Note: For persisted entity mappings, table/column context, and cross-service data keys, see [Data Dictionary](../data-dictionary.md).
 
 ## Primary Contract Families
 
 - Location contracts
-  - `StorageLocationDto`, `CreateStorageLocationRequest`, `UpdateStorageLocationRequest`
+  - `StorageLocationDto`, `CreateStorageLocationRequest`, `UpdateStorageLocationRequest`, `UpdateStorageLocationStatsRequest`
 - Scan job contracts
   - `ScanJobDto`, `CreateScanJobRequest`, `UpdateScanJobStatusRequest`, `UpdateScanJobProgressRequest`
 - File inventory contracts
-  - `FileRecordDto`, `FileMetadataDto`, `FileMetadataBatchIngestRequest`, `PendingHashFileDto`, `FileHashResultRequest`
+  - `FileRecordDto`, `FileMetadataDto`, `FileMetadataBatchIngestRequest`, `PendingHashFileDto`, `FileHashResultRequest`, `LocationStorageStatsDto`
 - Duplicate contracts
   - `DuplicateGroupDto`, `DuplicateSummaryDto`, `DuplicateRecalculationResultDto`, `MarkDuplicateHashesRequest`
 - Workflow contracts
-  - `ScannerExecuteRequest`, `ScannerExecutionDto`, `HashingRunResultDto`, `WorkflowInstanceDto`, `WorkflowStartResultDto`
+  - `ScannerExecuteRequest`, `ScannerExecutionDto`, `HashingRunResultDto`, `WorkflowInstanceDto`, `WorkflowStartResultDto`, `StartScanRequest`
 - Analytics contracts
   - `DashboardDto`, `ReportsDto`, `DashboardKpiDto`, `ChartPointDto`
 

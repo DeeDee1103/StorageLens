@@ -140,6 +140,7 @@ public class LocationsControllerTests
         public Task<StorageLocationDto> CreateAsync(CreateStorageLocationRequest req, CancellationToken ct) =>
             Task.FromResult(Created ?? new StorageLocationDto(Guid.NewGuid(), req.Name, req.Path, req.Type.ToString(), "Online", null, 0, 0, DateTimeOffset.UtcNow));
         public Task<bool> UpdateAsync(Guid id, UpdateStorageLocationRequest req, CancellationToken ct) => Task.FromResult(UpdateResult);
+        public Task<bool> UpdateStatsAsync(Guid id, UpdateStorageLocationStatsRequest req, CancellationToken ct) => Task.FromResult(UpdateResult);
         public Task<bool> DeleteAsync(Guid id, CancellationToken ct) => Task.FromResult(DeleteResult);
     }
 }

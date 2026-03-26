@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using StorageLens.Shared.Contracts;
 using StorageLens.Web.Clients;
 using StorageLens.Web.Pages;
+using StorageLens.Web.Services;
 using Xunit;
 
 namespace StorageLens.Web.Tests;
@@ -48,7 +50,8 @@ public class ScanJobsModelTests
             new HttpClient(orchestratorHandler) { BaseAddress = new Uri("http://orchestrator") },
             NullLogger<OrchestratorApiClient>.Instance);
 
-        var model = new ScanJobsModel(scanJobsClient, locationsClient, orchestratorClient);
+        var appearanceOptions = Options.Create(new AppearanceOptions());
+        var model = new ScanJobsModel(scanJobsClient, locationsClient, orchestratorClient, appearanceOptions);
         IndexModelTests.SetupPageContext(model);
 
         await model.OnGetAsync(CancellationToken.None);
@@ -82,7 +85,8 @@ public class ScanJobsModelTests
             new HttpClient(orchestratorHandler) { BaseAddress = new Uri("http://orchestrator") },
             NullLogger<OrchestratorApiClient>.Instance);
 
-        var model = new ScanJobsModel(scanJobsClient, locationsClient, orchestratorClient);
+        var appearanceOptions = Options.Create(new AppearanceOptions());
+        var model = new ScanJobsModel(scanJobsClient, locationsClient, orchestratorClient, appearanceOptions);
         IndexModelTests.SetupPageContext(model);
 
         await model.OnGetAsync(CancellationToken.None);
@@ -124,7 +128,8 @@ public class ScanJobsModelTests
             new HttpClient(orchestratorHandler) { BaseAddress = new Uri("http://orchestrator") },
             NullLogger<OrchestratorApiClient>.Instance);
 
-        var model = new ScanJobsModel(scanJobsClient, locationsClient, orchestratorClient);
+        var appearanceOptions = Options.Create(new AppearanceOptions());
+        var model = new ScanJobsModel(scanJobsClient, locationsClient, orchestratorClient, appearanceOptions);
         IndexModelTests.SetupPageContext(model);
         await model.OnGetAsync(CancellationToken.None);
 

@@ -21,7 +21,7 @@ public class AppearanceOptions
     public int TablePageSize { get; set; } = 25;
 
     /// <summary>
-    /// Interval in seconds for the Scan Jobs auto-refresh. 0 = disabled.
+    /// Interval in seconds used by live-refresh pages such as Scan Jobs and File Inventory. 0 = disabled.
     /// </summary>
     public int ScanAutoRefreshSeconds { get; set; } = 10;
 

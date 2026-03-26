@@ -98,7 +98,7 @@ Build reusable components for all services. No service-specific code.
 - [ ] Performance traces are clear
 
 #### 1.5 Update Shared.Contracts
-**File**: `src/StorageLens.Shared.Contracts/Class1.cs`
+**File**: `src/StorageLens.Shared.Contracts/`
 
 ```
 ✓ Add ErrorResponseDto record

@@ -1,0 +1,110 @@
+﻿{
+    "generatedAtUtc":  "2026-03-26T01:26:28.7928893Z",
+    "totalScreenshots":  26,
+    "screenshots":  [
+                        {
+                            "file":  "about.png",
+                            "bytes":  852164
+                        },
+                        {
+                            "file":  "alerts.png",
+                            "bytes":  564418
+                        },
+                        {
+                            "file":  "appearance-settings.png",
+                            "bytes":  547319
+                        },
+                        {
+                            "file":  "client-management.png",
+                            "bytes":  308245
+                        },
+                        {
+                            "file":  "configuration.png",
+                            "bytes":  764952
+                        },
+                        {
+                            "file":  "duplicates.png",
+                            "bytes":  1619928
+                        },
+                        {
+                            "file":  "environment-settings.png",
+                            "bytes":  365953
+                        },
+                        {
+                            "file":  "error.png",
+                            "bytes":  652090
+                        },
+                        {
+                            "file":  "file-inventory.png",
+                            "bytes":  699671
+                        },
+                        {
+                            "file":  "flow-manager.png",
+                            "bytes":  342042
+                        },
+                        {
+                            "file":  "global-view.png",
+                            "bytes":  653296
+                        },
+                        {
+                            "file":  "home-index.png",
+                            "bytes":  890741
+                        },
+                        {
+                            "file":  "insights.png",
+                            "bytes":  311202
+                        },
+                        {
+                            "file":  "landing.png",
+                            "bytes":  783888
+                        },
+                        {
+                            "file":  "logging.png",
+                            "bytes":  600948
+                        },
+                        {
+                            "file":  "notification-settings.png",
+                            "bytes":  579125
+                        },
+                        {
+                            "file":  "pricing.png",
+                            "bytes":  736087
+                        },
+                        {
+                            "file":  "pricing-admin.png",
+                            "bytes":  591916
+                        },
+                        {
+                            "file":  "pricing-page.png",
+                            "bytes":  527234
+                        },
+                        {
+                            "file":  "privacy.png",
+                            "bytes":  601868
+                        },
+                        {
+                            "file":  "profile.png",
+                            "bytes":  450703
+                        },
+                        {
+                            "file":  "reports.png",
+                            "bytes":  441524
+                        },
+                        {
+                            "file":  "scan-jobs.png",
+                            "bytes":  791428
+                        },
+                        {
+                            "file":  "scanner-settings.png",
+                            "bytes":  499658
+                        },
+                        {
+                            "file":  "settings.png",
+                            "bytes":  510763
+                        },
+                        {
+                            "file":  "storage-locations.png",
+                            "bytes":  411081
+                        }
+                    ]
+}

@@ -21,6 +21,8 @@ StorageLens addresses this through a workflow-based architecture that captures s
 - File metadata ingestion in batches
 - Hashing and duplicate classification workflows
 - Aggregated analytics for dashboards and reports
+- Live global storage distribution backed by FileInventory grouped location statistics
+- Automatic synchronization of location totals into Locations metadata for consistent cross-page reporting
 - Operational health endpoints for runtime diagnostics
 
 ## System Design Principles

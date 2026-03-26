@@ -23,15 +23,30 @@ public record StorageLocationDto(
 	DateTimeOffset? LastScanDate,
 	long TotalSizeBytes,
 	long FileCount,
-	DateTimeOffset CreatedDate);
+	DateTimeOffset CreatedDate,
+	string SiteLocation,
+	double? Latitude,
+	double? Longitude);
 
 public record CreateStorageLocationRequest(
 	string Name,
 	string Path,
-	StorageLocationType Type);
+	StorageLocationType Type,
+	string SiteLocation,
+	LocationStatus Status,
+	double? Latitude = null,
+	double? Longitude = null);
 
 public record UpdateStorageLocationRequest(
 	string Name,
 	string Path,
 	StorageLocationType Type,
-	LocationStatus Status);
+	LocationStatus Status,
+	string SiteLocation,
+	double? Latitude,
+	double? Longitude);
+
+public record UpdateStorageLocationStatsRequest(
+	long TotalSizeBytes,
+	long FileCount,
+	DateTimeOffset? LastScanDate = null);
