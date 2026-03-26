@@ -1,8 +1,0 @@
-﻿URL=http://localhost:5001/GlobalView STATUS=200 LEN=44840
-MISSING=demo1
-MISSING=NAS-EU-West
-FOUND=No live trend data available
-FOUND=No live file type data available
-FOUND=No live geo-coordinates available for map plotting
-FOUND=Live metric
-FOUND=from live analytics

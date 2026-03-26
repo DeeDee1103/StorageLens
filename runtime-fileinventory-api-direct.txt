@@ -1,2 +1,0 @@
-STATUS=200
-BODY=[{"id":"45909074-2a1c-4bda-83b5-c3aab0562855","storageLocationId":"a1000000-0000-0000-0000-000000000001","locationName":"Legal NAS Archive","fileName":"file_0072.xlsx","filePath":"\\\\nas01\\legal\\archive\\dept1\\file_0072.xlsx","extension":".xlsx","sizeBytes":2796092484,"lastModifiedDate":"2025-10-31T23:46:51.6672098+00:00","hashValue":"1c83b51d16f7194ca0045d850ed49cb0","isDuplicate":true,"duplicateGroupId":"d4000000-0000-0000-0000-000000000013","hashStatus":"Pending","scanJobId":"00000000-000

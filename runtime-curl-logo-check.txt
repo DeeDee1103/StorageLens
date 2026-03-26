@@ -1,14 +1,0 @@
-  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
-                                 Dload  Upload  Total   Spent   Left   Speed
-  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0           00:03              0  0      0   0      0   0      0      0      0           00:05              0  0      0   0      0   0      0      0      0           00:06              0  0      0   0      0   0      0      0      0           00:08              0  0      0   0      0   0      0      0      0           00:10              0  0      0   0      0   0      0      0      0           00:12              0  0      0   0      0   0      0      0      0           00:14              0  0      0   0      0   0      0      0      0           00:17              0  0      0   0      0   0      0      0      0           00:18              0
-HTTP/1.1 200 OK
-Content-Type: text/html; charset=utf-8
-Date: Wed, 25 Mar 2026 00:10:00 GMT
-Server: Kestrel
-Cache-Control: no-cache, no-store
-Pragma: no-cache
-Set-Cookie: .AspNetCore.Antiforgery.VyLW6ORzMgk=CfDJ8Io9JQVrokxPnoClP5SC3GgJsKur-VHFnkhDj5d6gj73wTqYMLyErpD0M4Nt_eYBQDPJgyJ3xrbQPF9kvUZy3FHkhK8_DCoxz6uATPQKaTeGuiAjijI1MGEAs4gZeVM_c2d-WP-klv2DfPPuEVNxOUs; path=/; samesite=strict; httponly
-Set-Cookie: .AspNetCore.Mvc.CookieTempDataProvider=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax; httponly
-X-Frame-Options: SAMEORIGIN
-X-Correlation-ID: 7a91437a7f6a4a5a98546f8c1441dffc
-
