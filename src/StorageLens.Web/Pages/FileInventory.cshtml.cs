@@ -92,9 +92,17 @@ public class FileInventoryModel(
         var fileName = rawFileName?.Trim('"');
 
         Response.Headers["Cache-Control"] = "no-store";
-        return download && !string.IsNullOrWhiteSpace(fileName)
-            ? File(stream, contentType, fileName, enableRangeProcessing: true)
-            : File(stream, contentType, enableRangeProcessing: true);
+        var result = new FileStreamResult(stream, contentType)
+        {
+            EnableRangeProcessing = true
+        };
+
+        if (download && !string.IsNullOrWhiteSpace(fileName))
+        {
+            result.FileDownloadName = fileName;
+        }
+
+        return result;
     }
 
     private async Task<GlobalInventoryTotals> GetGlobalTotalsAsync(LocalInventoryTotals localTotals, CancellationToken cancellationToken)

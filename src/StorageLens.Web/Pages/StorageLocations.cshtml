@@ -54,17 +54,20 @@
             <label class="form-label">Type</label>
             <select class="form-select" asp-for="Type" asp-items="Html.GetEnumSelectList<StorageLocationType>()"></select>
         </div>
+        <div class="col-md-3">
+            <label class="form-label">Location Search</label>
+            <div class="location-search-container">
+                <input id="classicLocationSearch" class="form-control location-search-input" 
+                       placeholder="Enter city, region, or country..." 
+                       autocomplete="off" />
+                <div id="classicLocationDropdown" class="location-dropdown" hidden></div>
+            </div>
+        </div>
         <div class="col-md-2">
-            <label class="form-label">Location</label>
-            <input class="form-control" asp-for="SiteLocation" required placeholder="City, Region" />
-        </div>
-        <div class="col-md-1">
-            <label class="form-label">Lat</label>
-            <input class="form-control" asp-for="Latitude" type="number" step="0.000001" min="-90" max="90" placeholder="40.7128" />
-        </div>
-        <div class="col-md-1">
-            <label class="form-label">Lng</label>
-            <input class="form-control" asp-for="Longitude" type="number" step="0.000001" min="-180" max="180" placeholder="-74.0060" />
+            <label class="form-label">&nbsp;</label>
+            <button type="button" id="classicGeoBtn" class="btn btn-secondary w-100 locations-geo-btn" title="Use your browser's location">
+                <i class="bi bi-geo-alt" aria-hidden="true"></i> Use Location
+            </button>
         </div>
         <div class="col-md-1">
             <label class="form-label">Health</label>
@@ -74,7 +77,41 @@
             <button type="submit" class="btn btn-gradient w-100">Add Location</button>
         </div>
     </form>
-    <div class="form-text mt-2">Latitude/Longitude are optional. Provide both values for exact map pin placement.</div>
+    
+    <!-- Hidden input for SiteLocation to be auto-populated by search/geolocation -->
+    <input id="classicSiteLocation" name="SiteLocation" type="hidden" asp-for="SiteLocation" />
+    <input id="classicLatitude" name="Latitude" type="hidden" asp-for="Latitude" />
+    <input id="classicLongitude" name="Longitude" type="hidden" asp-for="Longitude" />
+    
+    <!-- Advanced Coordinates Section -->
+    <div class="locations-advanced-section mt-3">
+        <button type="button" class="btn btn-link locations-advanced-toggle" data-classic-coords-toggle>
+            <i class="bi bi-chevron-right" aria-hidden="true"></i> Advanced: Enter Coordinates Manually
+        </button>
+        <div id="classicAdvancedCoords" class="locations-coordinates-panel" hidden>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Latitude</label>
+                    <input id="classicLatitudeManual" class="form-control" type="number" step="0.000001" min="-90" max="90" placeholder="40.7128" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Longitude</label>
+                    <input id="classicLongitudeManual" class="form-control" type="number" step="0.000001" min="-180" max="180" placeholder="-74.0060" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-sm btn-outline-secondary w-100" data-classic-coords-apply>
+                        Apply Coordinates
+                    </button>
+                </div>
+            </div>
+            <small class="form-text text-muted d-block mt-2">Provide both latitude and longitude, or use the search and location buttons above.</small>
+        </div>
+    </div>
+    
+    <div class="form-text mt-2">
+        <small id="classicLocationStatus"></small>
+    </div>
 </section>
 
 <section class="card-premium p-3 reveal-item">
@@ -163,8 +200,11 @@
                                 <i class="bi bi-play-fill" aria-hidden="true"></i>
                             </button>
                         </form>
-                        <form method="post" asp-page-handler="Delete" class="d-inline ms-1"
-                              onsubmit="return confirm('Delete this location? This action cannot be undone.');">
+                        <form method="post"
+                              asp-page-handler="Delete"
+                              class="d-inline ms-1"
+                              data-delete-location-form="true"
+                              data-location-name="@location.Name">
                             <input type="hidden" name="locationId" value="@location.Id" />
                             <button type="submit" class="btn btn-delete-location btn-sm" title="Delete location" aria-label="Delete location @location.Name">
                                 <i class="bi bi-trash-fill delete-location-icon" aria-hidden="true"></i>
@@ -325,17 +365,50 @@
                         <input id="InteractivePath" name="Path" class="form-control storage-future-input" value="@Model.Path" required placeholder="\\nas01\share\folder" />
                     </div>
                     <div class="storage-future-field">
-                        <label for="InteractiveSiteLocation">Site Location</label>
-                        <input id="InteractiveSiteLocation" name="SiteLocation" class="form-control storage-future-input" value="@Model.SiteLocation" required placeholder="City, Region" />
+                        <label for="InteractiveLocationSearch">Site Location</label>
+                        <div class="location-search-container">
+                            <input id="InteractiveLocationSearch" class="form-control storage-future-input location-search-input" 
+                                   placeholder="Enter city, region, or country..." 
+                                   autocomplete="off" />
+                            <div id="InteractiveLocationDropdown" class="location-dropdown" hidden></div>
+                        </div>
                     </div>
                     <div class="storage-future-row">
-                        <div class="storage-future-field">
-                            <label for="InteractiveLatitude">Latitude</label>
-                            <input id="InteractiveLatitude" name="Latitude" class="form-control storage-future-input" type="number" step="0.000001" min="-90" max="90" value="@Model.Latitude" placeholder="40.7128" />
+                        <div class="storage-future-field storage-future-field-geo">
+                            <button type="button" id="interactiveGeoBtn" class="btn btn-secondary w-100 locations-geo-btn" title="Use browser location">
+                                <i class="bi bi-geo-alt" aria-hidden="true"></i> <span>Use Location</span>
+                            </button>
                         </div>
                         <div class="storage-future-field">
-                            <label for="InteractiveLongitude">Longitude</label>
-                            <input id="InteractiveLongitude" name="Longitude" class="form-control storage-future-input" type="number" step="0.000001" min="-180" max="180" value="@Model.Longitude" placeholder="-74.0060" />
+                            <div id="interactiveLocationStatus" class="form-text"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden inputs for coordinates -->
+                    <input id="InteractiveSiteLocation" name="SiteLocation" type="hidden" value="@Model.SiteLocation" />
+                    
+                    <!-- Advanced Coordinates Section -->
+                    <div class="locations-advanced-section">
+                        <button type="button" class="btn btn-link locations-advanced-toggle" data-interactive-coords-toggle>
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i> Advanced: Enter Coordinates Manually
+                        </button>
+                        <div id="InteractiveAdvancedCoords" class="locations-coordinates-panel" hidden>
+                            <div class="storage-future-row">
+                                <div class="storage-future-field">
+                                    <label for="InteractiveLatitudeManual">Latitude</label>
+                                    <input id="InteractiveLatitudeManual" class="form-control storage-future-input" type="number" step="0.000001" min="-90" max="90" placeholder="40.7128" />
+                                </div>
+                                <div class="storage-future-field">
+                                    <label for="InteractiveLongitudeManual">Longitude</label>
+                                    <input id="InteractiveLongitudeManual" class="form-control storage-future-input" type="number" step="0.000001" min="-180" max="180" placeholder="-74.0060" />
+                                </div>
+                                <div class="storage-future-field storage-future-field-action">
+                                    <button type="button" class="btn btn-secondary w-100" data-interactive-coords-apply>
+                                        Apply Coordinates
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-text">Provide both latitude and longitude, or use the search and location buttons above.</div>
                         </div>
                     </div>
                     <div class="storage-future-row">
@@ -520,7 +593,10 @@
                                 <i class="bi bi-folder2-open" aria-hidden="true"></i>
                                 <span>Open</span>
                             </a>
-                            <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Delete this location? This action cannot be undone.');">
+                            <form method="post"
+                                  asp-page-handler="Delete"
+                                  data-delete-location-form="true"
+                                  data-location-name="@location.Name">
                                 <input type="hidden" name="locationId" value="@location.Id" />
                                 <button type="submit" class="btn storage-node-action storage-node-action-danger">
                                     <i class="bi bi-trash-fill" aria-hidden="true"></i>
@@ -555,6 +631,30 @@
             <li><kbd>/</kbd><span>Focus the Path Vector input</span></li>
             <li><kbd>Esc</kbd><span>Close this panel</span></li>
         </ul>
+    </div>
+</div>
+
+<div class="storage-delete-overlay" data-location-delete-overlay hidden>
+    <div class="storage-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="storageDeleteTitle" aria-describedby="storageDeleteMessage">
+        <button type="button" class="btn storage-delete-close" data-location-delete-cancel aria-label="Cancel location deletion">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+        <div class="storage-delete-hero" aria-hidden="true">
+            <div class="storage-delete-icon-wrap">
+                <i class="bi bi-trash3-fill storage-delete-icon"></i>
+            </div>
+        </div>
+        <h3 id="storageDeleteTitle">Confirm deletion</h3>
+        <p id="storageDeleteMessage" class="storage-delete-copy">Please confirm that you want to delete this location.</p>
+        <p class="storage-delete-target" data-location-delete-name>Selected location</p>
+        <p class="storage-delete-note">This action permanently removes the location from StorageLens and cannot be undone.</p>
+        <div class="storage-delete-actions">
+            <button type="button" class="btn storage-delete-cancel" data-location-delete-cancel>Keep Location</button>
+            <button type="button" class="btn storage-delete-confirm" data-location-delete-confirm>
+                <i class="bi bi-trash3" aria-hidden="true"></i>
+                <span>Delete Location</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -716,6 +816,11 @@
         const shortcutsOverlay = document.querySelector('[data-storage-shortcuts]');
         const shortcutsToggleButtons = document.querySelectorAll('[data-storage-shortcuts-toggle]');
         const shortcutsCloseButton = document.querySelector('[data-storage-shortcuts-close]');
+        const deleteLocationForms = document.querySelectorAll('[data-delete-location-form="true"]');
+        const deleteOverlay = document.querySelector('[data-location-delete-overlay]');
+        const deleteConfirmButton = document.querySelector('[data-location-delete-confirm]');
+        const deleteCancelButtons = document.querySelectorAll('[data-location-delete-cancel]');
+        const deleteLocationNameLabel = document.querySelector('[data-location-delete-name]');
         const compactToggleButton = document.querySelector('[data-storage-compact-toggle]');
         const alertTickerText = document.querySelector('[data-alert-ticker-text]');
         const operatorToast = document.querySelector('[data-storage-operator-toast]');
@@ -730,6 +835,41 @@
         ];
         let alertTickerIndex = 0;
         let operatorToastTimer = null;
+        let pendingDeleteForm = null;
+        let deleteFocusReturnTarget = null;
+
+        const closeDeleteLocationDialog = (restoreFocus = true) => {
+            if (!deleteOverlay) {
+                return;
+            }
+
+            deleteOverlay.hidden = true;
+            document.body.classList.remove('storage-locations-delete-open');
+
+            if (restoreFocus && deleteFocusReturnTarget instanceof HTMLElement) {
+                deleteFocusReturnTarget.focus();
+            }
+        };
+
+        const openDeleteLocationDialog = (form, trigger) => {
+            if (!deleteOverlay || !form) {
+                return;
+            }
+
+            pendingDeleteForm = form;
+            deleteFocusReturnTarget = trigger instanceof HTMLElement ? trigger : null;
+
+            const locationName = form.getAttribute('data-location-name') || 'Selected location';
+            if (deleteLocationNameLabel) {
+                deleteLocationNameLabel.textContent = locationName;
+            }
+
+            deleteOverlay.hidden = false;
+            document.body.classList.add('storage-locations-delete-open');
+            if (deleteConfirmButton) {
+                deleteConfirmButton.focus();
+            }
+        };
 
         const showOperatorToast = (message) => {
             if (!operatorToast || !message) {
@@ -919,11 +1059,56 @@
             });
         }
 
+        if (deleteOverlay) {
+            deleteOverlay.addEventListener('click', (event) => {
+                if (event.target === deleteOverlay) {
+                    pendingDeleteForm = null;
+                    closeDeleteLocationDialog();
+                }
+            });
+        }
+
+        deleteCancelButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                pendingDeleteForm = null;
+                closeDeleteLocationDialog();
+            });
+        });
+
+        if (deleteConfirmButton) {
+            deleteConfirmButton.addEventListener('click', () => {
+                if (!pendingDeleteForm) {
+                    closeDeleteLocationDialog(false);
+                    return;
+                }
+
+                const formToSubmit = pendingDeleteForm;
+                pendingDeleteForm = null;
+                closeDeleteLocationDialog(false);
+                formToSubmit.submit();
+            });
+        }
+
+        deleteLocationForms.forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const trigger = form.querySelector('button[type="submit"]');
+                openDeleteLocationDialog(form, trigger);
+            });
+        });
+
         document.addEventListener('keydown', (event) => {
             const tagName = (event.target?.tagName || '').toLowerCase();
             const isTypingField = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 
             if (event.key === 'Escape') {
+                if (deleteOverlay && !deleteOverlay.hidden) {
+                    event.preventDefault();
+                    pendingDeleteForm = null;
+                    closeDeleteLocationDialog();
+                    return;
+                }
+
                 closeStorageShortcuts();
                 return;
             }
@@ -988,5 +1173,96 @@
                 showOperatorToast(willEnable ? 'Compact mode: enabled' : 'Compact mode: disabled');
             }
         });
+
+        // ── Geolocation Handler ──────────────────────────────────────
+        const initGeolocationButtons = () => {
+            const classicBtn = document.getElementById('classicGeoBtn');
+            const interactiveBtn = document.getElementById('interactiveGeoBtn');
+
+            const handleGeolocation = (latInputId, lngInputId, statusContainerId) => {
+                const latInput = document.getElementById(latInputId);
+                const lngInput = document.getElementById(lngInputId);
+                const statusContainer = document.getElementById(statusContainerId);
+
+                if (!latInput || !lngInput) return;
+
+                if (!navigator.geolocation) {
+                    showGeoError(statusContainer, 'Geolocation is not supported by this browser.');
+                    return;
+                }
+
+                showGeoLoading(statusContainer, 'Requesting location...');
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(6);
+                        const lng = position.coords.longitude.toFixed(6);
+                        const accuracy = Math.round(position.coords.accuracy);
+
+                        latInput.value = lat;
+                        lngInput.value = lng;
+
+                        showGeoSuccess(statusContainer, `Location acquired: ${lat}, ${lng} (±${accuracy}m)`);
+                    },
+                    (error) => {
+                        let message = 'Unable to retrieve your location.';
+                        if (error.code === error.PERMISSION_DENIED) {
+                            message = 'Location permission denied. Enable it in browser settings to use this feature.';
+                        } else if (error.code === error.POSITION_UNAVAILABLE) {
+                            message = 'Your device location is unavailable.';
+                        } else if (error.code === error.TIMEOUT) {
+                            message = 'Location request timed out. Please try again.';
+                        }
+                        showGeoError(statusContainer, message);
+                    },
+                    { timeout: 10000, enableHighAccuracy: false }
+                );
+            };
+
+            if (classicBtn) {
+                classicBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleGeolocation('classicLatitude', 'classicLongitude', 'classicGeoStatus');
+                });
+            }
+
+            if (interactiveBtn) {
+                interactiveBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleGeolocation('InteractiveLatitude', 'InteractiveLongitude', 'interactiveGeoStatus');
+                });
+            }
+        };
+
+        const showGeoLoading = (container, message) => {
+            if (!container) return;
+            container.innerHTML = `<small class="text-info"><i class="bi bi-hourglass-split animate-spin" style="animation: spin 1s linear infinite;"></i> ${message}</small>`;
+            container.style.display = 'block';
+        };
+
+        const showGeoSuccess = (container, message) => {
+            if (!container) return;
+            container.innerHTML = `<small class="text-success"><i class="bi bi-check-circle-fill"></i> ${message}</small>`;
+            container.style.display = 'block';
+            setTimeout(() => {
+                container.style.display = 'none';
+            }, 5000);
+        };
+
+        const showGeoError = (container, message) => {
+            if (!container) return;
+            container.innerHTML = `<small class="text-danger"><i class="bi bi-exclamation-circle-fill"></i> ${message}</small>`;
+            container.style.display = 'block';
+        };
+
+        // Initialize geolocation buttons when DOM is ready
+        document.addEventListener('DOMContentLoaded', initGeolocationButtons, { once: true });
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initGeolocationButtons, { once: true });
+        } else {
+            initGeolocationButtons();
+        }
     </script>
+    <script src="~/js/locations-geocoding.js"></script>
 }
+

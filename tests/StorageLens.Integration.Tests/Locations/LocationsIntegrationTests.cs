@@ -129,6 +129,24 @@ public class LocationsIntegrationTests(LocationsWebFactory factory)
     }
 
     [Fact]
+    public async Task Delete_ExistingLocation_HidesItFromUiApis()
+    {
+        var created = await CreateLocationAsync("Soft Delete Visibility");
+
+        var deleteResponse = await _client.DeleteAsync($"/api/locations/{created.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var listResponse = await _client.GetAsync("/api/locations");
+        listResponse.EnsureSuccessStatusCode();
+        var list = await listResponse.Content.ReadFromJsonAsync<List<StorageLocationDto>>();
+        Assert.NotNull(list);
+        Assert.DoesNotContain(list!, x => x.Id == created.Id);
+
+        var byIdResponse = await _client.GetAsync($"/api/locations/{created.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, byIdResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task Delete_UnknownId_Returns404()
     {
         var response = await _client.DeleteAsync($"/api/locations/{Guid.NewGuid()}");

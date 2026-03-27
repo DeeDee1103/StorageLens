@@ -41,12 +41,12 @@ public class LocationServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_OrdersByTotalSizeBytesDescending()
+    public async Task GetAllAsync_OrdersByCreatedDateDescending()
     {
         await using var db = CreateDb();
         db.StorageLocations.AddRange(
-            new StorageLocation { Id = Guid.NewGuid(), Name = "Small", Path = @"C:\small", TotalSizeBytes = 100, FileCount = 1, CreatedDate = DateTimeOffset.UtcNow, LastScanDate = DateTimeOffset.UtcNow },
-            new StorageLocation { Id = Guid.NewGuid(), Name = "Large", Path = @"C:\large", TotalSizeBytes = 9999, FileCount = 10, CreatedDate = DateTimeOffset.UtcNow, LastScanDate = DateTimeOffset.UtcNow }
+            new StorageLocation { Id = Guid.NewGuid(), Name = "Older", Path = @"C:\older", TotalSizeBytes = 9999, FileCount = 10, CreatedDate = DateTimeOffset.UtcNow.AddHours(-2), LastScanDate = DateTimeOffset.UtcNow, IsVisibleInUI = true },
+            new StorageLocation { Id = Guid.NewGuid(), Name = "Newer", Path = @"C:\newer", TotalSizeBytes = 100, FileCount = 1, CreatedDate = DateTimeOffset.UtcNow.AddHours(-1), LastScanDate = DateTimeOffset.UtcNow, IsVisibleInUI = true }
         );
         await db.SaveChangesAsync();
         var svc = new LocationService(db);
@@ -54,8 +54,25 @@ public class LocationServiceTests
         var result = await svc.GetAllAsync(CancellationToken.None);
 
         Assert.Equal(2, result.Count);
-        Assert.Equal("Large", result[0].Name);
-        Assert.Equal("Small", result[1].Name);
+        Assert.Equal("Newer", result[0].Name);
+        Assert.Equal("Older", result[1].Name);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_HidesSoftDeletedLocations()
+    {
+        await using var db = CreateDb();
+        db.StorageLocations.AddRange(
+            new StorageLocation { Id = Guid.NewGuid(), Name = "Visible", Path = @"C:\visible", TotalSizeBytes = 100, FileCount = 1, CreatedDate = DateTimeOffset.UtcNow, LastScanDate = DateTimeOffset.UtcNow, IsVisibleInUI = true },
+            new StorageLocation { Id = Guid.NewGuid(), Name = "Hidden", Path = @"C:\hidden", TotalSizeBytes = 100, FileCount = 1, CreatedDate = DateTimeOffset.UtcNow, LastScanDate = DateTimeOffset.UtcNow, IsVisibleInUI = false }
+        );
+        await db.SaveChangesAsync();
+        var svc = new LocationService(db);
+
+        var result = await svc.GetAllAsync(CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Equal("Visible", result[0].Name);
     }
 
     [Fact]
@@ -90,7 +107,7 @@ public class LocationServiceTests
     {
         await using var db = CreateDb();
         var svc = new LocationService(db);
-        var request = new CreateStorageLocationRequest("Work NAS", @"\\server\share", StorageLocationType.Nas);
+        var request = new CreateStorageLocationRequest("Work NAS", @"\\server\share", StorageLocationType.Nas, "HQ", LocationStatus.Online);
 
         var result = await svc.CreateAsync(request, CancellationToken.None);
 
@@ -106,7 +123,7 @@ public class LocationServiceTests
     {
         await using var db = CreateDb();
         var svc = new LocationService(db);
-        var request = new CreateStorageLocationRequest("New Loc", @"C:\new", StorageLocationType.Local);
+        var request = new CreateStorageLocationRequest("New Loc", @"C:\new", StorageLocationType.Local, "HQ", LocationStatus.Online);
 
         var result = await svc.CreateAsync(request, CancellationToken.None);
 
@@ -123,7 +140,7 @@ public class LocationServiceTests
         await db.SaveChangesAsync();
         var svc = new LocationService(db);
 
-        var updated = await svc.UpdateAsync(id, new UpdateStorageLocationRequest("New", @"C:\new", StorageLocationType.Local, LocationStatus.Online), CancellationToken.None);
+        var updated = await svc.UpdateAsync(id, new UpdateStorageLocationRequest("New", @"C:\new", StorageLocationType.Local, LocationStatus.Online, "HQ", null, null), CancellationToken.None);
 
         Assert.True(updated);
         var entity = await db.StorageLocations.FindAsync(id);
@@ -137,24 +154,26 @@ public class LocationServiceTests
         await using var db = CreateDb();
         var svc = new LocationService(db);
 
-        var updated = await svc.UpdateAsync(Guid.NewGuid(), new UpdateStorageLocationRequest("X", @"C:\x", StorageLocationType.Local, LocationStatus.Online), CancellationToken.None);
+        var updated = await svc.UpdateAsync(Guid.NewGuid(), new UpdateStorageLocationRequest("X", @"C:\x", StorageLocationType.Local, LocationStatus.Online, "HQ", null, null), CancellationToken.None);
 
         Assert.False(updated);
     }
 
     [Fact]
-    public async Task DeleteAsync_ExistingId_DeletesAndReturnsTrue()
+    public async Task DeleteAsync_ExistingId_SoftDeletesAndReturnsTrue()
     {
         await using var db = CreateDb();
         var id = Guid.NewGuid();
-        db.StorageLocations.Add(new StorageLocation { Id = id, Name = "Temp", Path = @"C:\temp", TotalSizeBytes = 0, FileCount = 0, CreatedDate = DateTimeOffset.UtcNow, LastScanDate = DateTimeOffset.UtcNow });
+        db.StorageLocations.Add(new StorageLocation { Id = id, Name = "Temp", Path = @"C:\temp", TotalSizeBytes = 0, FileCount = 0, CreatedDate = DateTimeOffset.UtcNow, LastScanDate = DateTimeOffset.UtcNow, IsVisibleInUI = true });
         await db.SaveChangesAsync();
         var svc = new LocationService(db);
 
         var deleted = await svc.DeleteAsync(id, CancellationToken.None);
 
         Assert.True(deleted);
-        Assert.Equal(0, await db.StorageLocations.CountAsync());
+        var entity = await db.StorageLocations.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        Assert.NotNull(entity);
+        Assert.False(entity!.IsVisibleInUI);
     }
 
     [Fact]
@@ -191,7 +210,7 @@ public class LocationServiceTests
         await db.SaveChangesAsync();
 
         var svc = new LocationService(db);
-        var updated = await svc.UpdateAsync(id, new UpdateStorageLocationRequest("New", @"C:\new", StorageLocationType.Nas, LocationStatus.Online), CancellationToken.None);
+        var updated = await svc.UpdateAsync(id, new UpdateStorageLocationRequest("New", @"C:\new", StorageLocationType.Nas, LocationStatus.Online, "HQ", null, null), CancellationToken.None);
 
         Assert.True(updated);
 
@@ -203,7 +222,7 @@ public class LocationServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_RelationalProvider_UsesFastPathAndDeletes()
+    public async Task DeleteAsync_RelationalProvider_UsesFastPathAndSoftDeletes()
     {
         var (db, connection) = CreateRelationalDb();
         await using var _ = db;
@@ -228,6 +247,8 @@ public class LocationServiceTests
         var deleted = await svc.DeleteAsync(id, CancellationToken.None);
 
         Assert.True(deleted);
-        Assert.False(await db.StorageLocations.AsNoTracking().AnyAsync(x => x.Id == id));
+        var entity = await db.StorageLocations.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        Assert.NotNull(entity);
+        Assert.False(entity!.IsVisibleInUI);
     }
 }

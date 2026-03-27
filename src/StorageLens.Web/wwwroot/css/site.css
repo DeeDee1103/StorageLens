@@ -107,6 +107,7 @@ body.dark-mode {
   z-index: 1030;
   box-shadow: 6px 0 32px rgba(5, 14, 40, 0.5);
   overflow: hidden;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
 }
 
 .sidebar-brand {
@@ -403,6 +404,60 @@ body.dark-mode {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1), width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.sidebar-collapsed .sidebar-panel {
+  transform: translateX(-100%);
+  box-shadow: none;
+}
+
+body.sidebar-collapsed .main-panel {
+  margin-left: 0;
+  width: 100%;
+}
+
+body.sidebar-compact .sidebar-panel {
+  width: 88px;
+  padding: 1.2rem 0.55rem;
+}
+
+body.sidebar-compact .main-panel {
+  margin-left: 88px;
+  width: calc(100% - 88px);
+}
+
+body.sidebar-compact .sidebar-title,
+body.sidebar-compact .nav-section-label,
+body.sidebar-compact .sidebar-profile-info,
+body.sidebar-compact .sidebar-profile-chevron {
+  display: none;
+}
+
+body.sidebar-compact .sidebar-brand {
+  padding-bottom: 0.6rem;
+}
+
+body.sidebar-compact .menu-link {
+  justify-content: center;
+  gap: 0;
+  font-size: 0;
+  padding: 0.68rem 0.45rem;
+}
+
+body.sidebar-compact .menu-link::after {
+  display: none;
+}
+
+body.sidebar-compact .menu-link > i {
+  font-size: 1.02rem;
+  width: auto;
+  margin: 0;
+}
+
+body.sidebar-compact .sidebar-profile-link {
+  justify-content: center;
+  padding: 0.48rem;
 }
 
 /* ── Sidebar nav section labels ─────────────────────────────── */
@@ -1222,6 +1277,106 @@ body.dashboard-interactive-mode .app-footer {
   background: #d4f5dd;
   border-color: #8fd7a1;
   color: #1f7a39;
+}
+
+/* ── Geolocation Button Styles ────────────────────────────────────── */
+.locations-geo-btn {
+  border: 1px solid var(--bs-secondary-border-subtle);
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.locations-geo-btn:hover {
+  border-color: var(--sl-primary);
+  background: rgba(17, 101, 216, 0.1);
+  color: var(--sl-primary);
+}
+
+.locations-geo-btn:active {
+  background: rgba(17, 101, 216, 0.2);
+}
+
+.locations-geo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinning animation for loading state */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+/* Geolocation status container */
+#classicGeoStatus,
+#interactiveGeoStatus {
+  display: none;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+#classicGeoStatus.text-success,
+#interactiveGeoStatus.text-success {
+  background: #d4f5dd;
+  color: #1f7a39;
+}
+
+#classicGeoStatus.text-info,
+#interactiveGeoStatus.text-info {
+  background: #e1f2ff;
+  color: #0f4eb5;
+}
+
+#classicGeoStatus.text-danger,
+#interactiveGeoStatus.text-danger {
+  background: #ffe8e8;
+  color: #b71c1c;
+}
+
+/* Dark mode support */
+body.dark-mode #classicGeoStatus,
+body.dark-mode #interactiveGeoStatus {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+}
+
+body.dark-mode #classicGeoStatus.text-success,
+body.dark-mode #interactiveGeoStatus.text-success {
+  background: rgba(74, 222, 128, 0.15);
+  color: #86efac;
+}
+
+body.dark-mode #classicGeoStatus.text-info,
+body.dark-mode #interactiveGeoStatus.text-info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+}
+
+body.dark-mode #classicGeoStatus.text-danger,
+body.dark-mode #interactiveGeoStatus.text-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+/* Interactive form field container for geo button */
+.storage-future-field-geo {
+  display: flex;
+  align-items: flex-end;
 }
 
 body.dark-mode .search-wrap,
@@ -2293,6 +2448,170 @@ body.dark-mode .btn-delete-location:focus {
   display: grid;
   place-items: center;
   padding: 1.1rem;
+}
+
+.storage-delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 104, 104, 0.22), transparent 40%),
+    radial-gradient(circle at 82% 10%, rgba(255, 193, 122, 0.2), transparent 36%),
+    rgba(10, 13, 22, 0.72);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.storage-delete-dialog {
+  position: relative;
+  width: min(92vw, 460px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 162, 162, 0.5);
+  background:
+    radial-gradient(circle at 50% -26%, rgba(255, 183, 183, 0.32), transparent 48%),
+    linear-gradient(165deg, rgba(36, 14, 19, 0.96), rgba(18, 10, 18, 0.96));
+  box-shadow: 0 24px 62px rgba(8, 4, 9, 0.62), inset 0 1px 0 rgba(255, 218, 218, 0.2);
+  padding: 1.2rem 1.2rem 1.1rem;
+  color: #ffeef0;
+}
+
+.storage-delete-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 177, 177, 0.44);
+  background: rgba(56, 18, 26, 0.68);
+  color: #ffd9dd;
+  display: grid;
+  place-items: center;
+}
+
+.storage-delete-close:hover,
+.storage-delete-close:focus {
+  border-color: rgba(255, 226, 171, 0.76);
+  background: rgba(86, 27, 37, 0.78);
+  color: #fff4db;
+}
+
+.storage-delete-hero {
+  display: grid;
+  place-items: center;
+  margin-top: 0.3rem;
+  margin-bottom: 0.8rem;
+}
+
+.storage-delete-icon-wrap {
+  width: 82px;
+  height: 82px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 203, 203, 0.5);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 239, 199, 0.44), transparent 56%),
+    linear-gradient(165deg, rgba(130, 31, 47, 0.74), rgba(84, 19, 31, 0.82));
+  box-shadow: inset 0 1px 0 rgba(255, 228, 228, 0.28), 0 12px 24px rgba(36, 8, 13, 0.55);
+  display: grid;
+  place-items: center;
+}
+
+.storage-delete-icon {
+  font-size: 2.05rem;
+  color: #fff2f4;
+}
+
+.storage-delete-dialog h3 {
+  margin: 0;
+  text-align: center;
+  color: #fff7f8;
+  font-size: 1.23rem;
+  font-weight: 800;
+}
+
+.storage-delete-copy {
+  margin: 0.55rem 0 0;
+  text-align: center;
+  color: #ffd8dd;
+  font-size: 0.95rem;
+}
+
+.storage-delete-target {
+  margin: 0.75rem 0 0;
+  text-align: center;
+  border: 1px solid rgba(255, 201, 201, 0.44);
+  border-radius: 12px;
+  background: rgba(94, 25, 36, 0.54);
+  padding: 0.6rem 0.72rem;
+  color: #fff5db;
+  font-weight: 700;
+}
+
+.storage-delete-note {
+  margin: 0.62rem 0 0;
+  text-align: center;
+  color: #ffd0d8;
+  font-size: 0.82rem;
+}
+
+.storage-delete-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.62rem;
+  margin-top: 1rem;
+}
+
+.storage-delete-cancel,
+.storage-delete-confirm {
+  border-radius: 12px;
+  font-weight: 800;
+  min-height: 42px;
+}
+
+.storage-delete-cancel {
+  border: 1px solid rgba(255, 206, 206, 0.48);
+  background: rgba(62, 24, 34, 0.66);
+  color: #ffdfe3;
+}
+
+.storage-delete-cancel:hover,
+.storage-delete-cancel:focus {
+  border-color: rgba(255, 233, 176, 0.78);
+  background: rgba(90, 32, 45, 0.76);
+  color: #fff7e0;
+}
+
+.storage-delete-confirm {
+  border: 1px solid rgba(255, 210, 167, 0.62);
+  color: #1e0b0f;
+  background: linear-gradient(135deg, #ff9f78, #ffd488);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.storage-delete-confirm:hover,
+.storage-delete-confirm:focus {
+  border-color: rgba(255, 237, 200, 0.92);
+  background: linear-gradient(135deg, #ffab86, #ffe09f);
+}
+
+body.storage-locations-delete-open {
+  overflow: hidden;
+}
+
+@media (max-width: 575.98px) {
+  .storage-delete-dialog {
+    width: min(94vw, 420px);
+    padding: 1rem 0.9rem;
+  }
+
+  .storage-delete-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .storage-shortcuts-card {
@@ -3701,7 +4020,7 @@ body.dark-mode .copy-path-btn.copied {
 .file-inventory-breadcrumb-path {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.6rem;
   color: #94b1de;
   font-size: 0.84rem;
   font-weight: 600;
@@ -3720,8 +4039,8 @@ body.dark-mode .copy-path-btn.copied {
 .file-inventory-action-cluster {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem;
+  gap: 0.5rem;
+  padding: 0.26rem;
   border: 1px solid rgba(108, 143, 204, 0.24);
   border-radius: 11px;
   background: rgba(8, 18, 36, 0.55);
@@ -3740,6 +4059,25 @@ body.dark-mode .copy-path-btn.copied {
   color: #c7dbfb;
   line-height: 1;
   flex-shrink: 0;
+}
+
+.file-inventory-icon-btn--label {
+  width: auto;
+  padding: 0 0.7rem;
+  gap: 0.42rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.file-inventory-icon-btn--label i {
+  width: auto;
+  height: auto;
+  font-size: 0.88rem;
+}
+
+.file-inventory-icon-btn--label span {
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .file-inventory-icon-btn i {
@@ -4130,6 +4468,28 @@ body.dark-mode .copy-path-btn.copied {
   transition: all 0.2s ease;
 }
 
+.sidebar-toggle-btn {
+  width: auto;
+  padding: 0 0.72rem;
+  gap: 0.42rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.sidebar-toggle-btn .sidebar-toggle-label {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sidebar-toggle-btn[aria-pressed="true"] {
+  border-color: rgba(53, 185, 255, 0.46);
+  box-shadow: 0 0 0 1px rgba(53, 185, 255, 0.18), 0 5px 16px rgba(8, 24, 54, 0.26);
+}
+
+body.sidebar-collapsed .sidebar-toggle-btn i {
+  transform: scaleX(-1);
+}
+
 .file-folder-node:hover,
 .file-folder-node:focus {
   border-color: rgba(95, 130, 188, 0.54);
@@ -4159,7 +4519,7 @@ body.dark-mode .copy-path-btn.copied {
 .file-inventory-metadata-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .file-screen-panel {
@@ -4300,7 +4660,7 @@ body.dark-mode .copy-path-btn.copied {
 .file-telemetry-stack,
 .file-selected-meta {
   display: grid;
-  gap: 0.62rem;
+  gap: 0.75rem;
 }
 
 .file-telemetry-row,
@@ -4309,8 +4669,8 @@ body.dark-mode .copy-path-btn.copied {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid rgba(96, 130, 190, 0.24);
-  padding-bottom: 0.42rem;
-  gap: 0.8rem;
+  padding-bottom: 0.58rem;
+  gap: 1rem;
 }
 
 .file-telemetry-row:last-child,

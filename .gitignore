@@ -9,6 +9,7 @@ obj/
 .env
 .azure/*
 !.azure/plan.copilotmd
+/runtime-*
 /videos/
 *.mp4
 videos/**/frame*.png

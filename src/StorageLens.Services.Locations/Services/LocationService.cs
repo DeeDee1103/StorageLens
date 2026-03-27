@@ -12,7 +12,8 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
     {
         return await dbContext.StorageLocations
             .AsNoTracking()
-            .OrderByDescending(x => x.TotalSizeBytes)
+            .Where(x => x.IsVisibleInUI)
+            .OrderByDescending(x => x.CreatedDate)
             .Select(x => new StorageLocationDto(
                 x.Id,
                 x.Name,
@@ -33,7 +34,7 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
     {
         return await dbContext.StorageLocations
             .AsNoTracking()
-            .Where(x => x.Id == id)
+            .Where(x => x.Id == id && x.IsVisibleInUI)
             .Select(x => new StorageLocationDto(
                 x.Id,
                 x.Name,
@@ -65,7 +66,8 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
             CreatedDate = DateTimeOffset.UtcNow,
             LastScanDate = DateTimeOffset.UtcNow.AddDays(-1),
             TotalSizeBytes = 0,
-            FileCount = 0
+            FileCount = 0,
+            IsVisibleInUI = true
         };
 
         dbContext.StorageLocations.Add(entity);
@@ -79,7 +81,7 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
         if (dbContext.Database.IsRelational())
         {
             var rows = await dbContext.StorageLocations
-                .Where(x => x.Id == id)
+                .Where(x => x.Id == id && x.IsVisibleInUI)
                 .ExecuteUpdateAsync(x => x
                     .SetProperty(v => v.Name, request.Name)
                     .SetProperty(v => v.Path, request.Path)
@@ -92,7 +94,7 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
             return rows > 0;
         }
 
-        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id && x.IsVisibleInUI, cancellationToken);
         if (entity is null)
         {
             return false;
@@ -117,7 +119,7 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
         if (dbContext.Database.IsRelational())
         {
             var rows = await dbContext.StorageLocations
-                .Where(x => x.Id == id)
+                .Where(x => x.Id == id && x.IsVisibleInUI)
                 .ExecuteUpdateAsync(x => x
                     .SetProperty(v => v.TotalSizeBytes, request.TotalSizeBytes)
                     .SetProperty(v => v.FileCount, request.FileCount)
@@ -126,7 +128,7 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
             return rows > 0;
         }
 
-        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id && x.IsVisibleInUI, cancellationToken);
         if (entity is null)
         {
             return false;
@@ -145,19 +147,20 @@ public class LocationService(LocationsDbContext dbContext) : ILocationService
         if (dbContext.Database.IsRelational())
         {
             var rows = await dbContext.StorageLocations
-                .Where(x => x.Id == id)
-                .ExecuteDeleteAsync(cancellationToken);
+                .Where(x => x.Id == id && x.IsVisibleInUI)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(v => v.IsVisibleInUI, false), cancellationToken);
 
             return rows > 0;
         }
 
-        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var entity = await dbContext.StorageLocations.FirstOrDefaultAsync(x => x.Id == id && x.IsVisibleInUI, cancellationToken);
         if (entity is null)
         {
             return false;
         }
 
-        dbContext.StorageLocations.Remove(entity);
+        entity.IsVisibleInUI = false;
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
     }
