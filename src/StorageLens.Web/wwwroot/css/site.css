@@ -7493,6 +7493,21 @@ body.dark-mode .alerts-status-card {
   overflow: hidden;
 }
 
+.gv-map-no-data {
+  background: rgba(10, 18, 40, 0.88);
+  border: 1px solid rgba(116, 140, 191, 0.5);
+  color: #c9dcff;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.45rem 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+}
+
 .gv-map-legend {
   display: flex;
   align-items: center;

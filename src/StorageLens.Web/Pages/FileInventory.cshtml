@@ -11,20 +11,7 @@
         .Count();
     var duplicateCount = Model.GlobalDuplicateFiles;
     var latestModified = Model.Files.Any() ? Model.Files.Max(file => file.LastModifiedDate) : (DateTimeOffset?)null;
-    var locationSnapshots = Model.Files
-        .GroupBy(file => string.IsNullOrWhiteSpace(file.LocationName) ? "Unassigned" : file.LocationName)
-        .Select(group => new
-        {
-            Name = group.Key,
-            FileCount = group.Count(),
-            TotalBytes = group.Sum(file => file.SizeBytes),
-            LatestModified = group.Max(file => file.LastModifiedDate),
-            DuplicateCount = group.Count(file => file.HashStatus?.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true),
-            HashPendingCount = group.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase))
-        })
-        .OrderByDescending(location => location.FileCount)
-        .ThenBy(location => location.Name)
-        .ToList();
+    var locationSnapshots = Model.LocationSnapshots;
 }
 
 <section class="mb-3 reveal-item file-inventory-mode-header">

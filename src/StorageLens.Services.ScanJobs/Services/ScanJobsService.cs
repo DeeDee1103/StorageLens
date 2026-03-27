@@ -209,6 +209,28 @@ public class ScanJobsService(ScanJobsDbContext dbContext) : IScanJobsService
         return Map(entity);
     }
 
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        if (dbContext.Database.IsRelational())
+        {
+            var rows = await dbContext.ScanJobs
+                .Where(x => x.Id == id)
+                .ExecuteDeleteAsync(cancellationToken);
+
+            return rows > 0;
+        }
+
+        var entity = await dbContext.ScanJobs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return false;
+        }
+
+        dbContext.ScanJobs.Remove(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private static ScanJobDto Map(ScanJob entity) =>
         new(
             entity.Id,

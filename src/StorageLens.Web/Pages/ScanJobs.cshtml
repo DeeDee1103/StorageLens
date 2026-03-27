@@ -206,10 +206,17 @@
                                     <button type="submit" class="btn btn-job-action btn-job-resume" title="Resume this job">Resume</button>
                                 </form>
                             }
-                            @if (!isCancellable && !isResumable)
-                            {
-                                <span class="text-secondary small">—</span>
-                            }
+                            <form method="post"
+                                  asp-page-handler="Delete"
+                                  class="d-inline"
+                                  data-delete-scanjob-form="true"
+                                  data-scanjob-name="@job.LocationName">
+                                <input type="hidden" name="jobId" value="@job.Id" />
+                                <button type="submit" class="btn btn-delete-location btn-sm" title="Delete this job"
+                                        aria-label="Delete scan job @shortJobId">
+                                    <i class="bi bi-trash-fill delete-location-icon" aria-hidden="true"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 }
@@ -357,30 +364,61 @@
                             || string.Equals(job.Status, "Queued", StringComparison.OrdinalIgnoreCase)
                             || string.Equals(job.Status, "Pending", StringComparison.OrdinalIgnoreCase);
                     }
-                    @if (isJobCancellable || isJobResumable)
-                    {
-                        <div class="scan-jobs-card-actions">
-                            @if (isJobCancellable)
-                            {
-                                <form method="post" asp-page-handler="Cancel">
-                                    <input type="hidden" name="jobId" value="@job.Id" />
-                                    <button type="submit" class="btn btn-job-action btn-job-cancel w-100"
-                                            onclick="return confirm('Cancel this scan job?')">Cancel Job</button>
-                                </form>
-                            }
-                            @if (isJobResumable)
-                            {
-                                <form method="post" asp-page-handler="Resume">
-                                    <input type="hidden" name="jobId" value="@job.Id" />
-                                    <button type="submit" class="btn btn-job-action btn-job-resume w-100">Resume Job</button>
-                                </form>
-                            }
-                        </div>
-                    }
+                    <div class="scan-jobs-card-actions">
+                        @if (isJobCancellable)
+                        {
+                            <form method="post" asp-page-handler="Cancel">
+                                <input type="hidden" name="jobId" value="@job.Id" />
+                                <button type="submit" class="btn btn-job-action btn-job-cancel w-100"
+                                        onclick="return confirm('Cancel this scan job?')">Cancel Job</button>
+                            </form>
+                        }
+                        @if (isJobResumable)
+                        {
+                            <form method="post" asp-page-handler="Resume">
+                                <input type="hidden" name="jobId" value="@job.Id" />
+                                <button type="submit" class="btn btn-job-action btn-job-resume w-100">Resume Job</button>
+                            </form>
+                        }
+                        <form method="post"
+                              asp-page-handler="Delete"
+                              data-delete-scanjob-form="true"
+                              data-scanjob-name="@job.LocationName">
+                            <input type="hidden" name="jobId" value="@job.Id" />
+                            <button type="submit" class="btn btn-delete-location w-100">
+                                <i class="bi bi-trash-fill delete-location-icon" aria-hidden="true"></i>
+                                <span>Delete Job</span>
+                            </button>
+                        </form>
+                    </div>
                 </article>
             }
         </div>
     </section>
+</div>
+
+<div class="storage-delete-overlay" data-scanjob-delete-overlay hidden>
+    <div class="storage-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="scanJobDeleteTitle" aria-describedby="scanJobDeleteMessage">
+        <button type="button" class="btn storage-delete-close" data-scanjob-delete-cancel aria-label="Cancel scan job deletion">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+        <div class="storage-delete-hero" aria-hidden="true">
+            <div class="storage-delete-icon-wrap">
+                <i class="bi bi-trash3-fill storage-delete-icon"></i>
+            </div>
+        </div>
+        <h3 id="scanJobDeleteTitle">Confirm deletion</h3>
+        <p id="scanJobDeleteMessage" class="storage-delete-copy">Please confirm that you want to delete this scan job.</p>
+        <p class="storage-delete-target" data-scanjob-delete-name>Selected scan job</p>
+        <p class="storage-delete-note">This action permanently removes the scan job record from StorageLens and cannot be undone.</p>
+        <div class="storage-delete-actions">
+            <button type="button" class="btn storage-delete-cancel" data-scanjob-delete-cancel>Keep Job</button>
+            <button type="button" class="btn storage-delete-confirm" data-scanjob-delete-confirm>
+                <i class="bi bi-trash3" aria-hidden="true"></i>
+                <span>Delete Job</span>
+            </button>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -413,6 +451,10 @@
         const lastUpdated = document.getElementById('scanJobsLastUpdated');
         const refreshNowButton = document.getElementById('scanJobsRefreshNow');
         const quietModeToggleButton = document.getElementById('scanJobsQuietModeToggle');
+        const deleteScanJobOverlay = document.querySelector('[data-scanjob-delete-overlay]');
+        const deleteScanJobConfirmButton = document.querySelector('[data-scanjob-delete-confirm]');
+        const deleteScanJobCancelButtons = document.querySelectorAll('[data-scanjob-delete-cancel]');
+        const deleteScanJobNameLabel = document.querySelector('[data-scanjob-delete-name]');
 
         const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
         const activeStatuses = new Set(['running', 'scanning', 'hashing', 'detectingduplicates', 'refreshinganalytics', 'inprogress', 'queued']);
@@ -441,6 +483,8 @@
         let isFetchingSnapshot = false;
         let lastSnapshotSignature = '';
         let currentSnapshot = initialSnapshot;
+        let pendingDeleteForm = null;
+        let deleteFocusReturnTarget = null;
 
         const escapeHtml = (value) => String(value ?? '')
             .replaceAll('&', '&amp;')
@@ -505,6 +549,39 @@
 
             const minutes = Math.floor(deltaSeconds / 60);
             return `Updated ${minutes}m ago`;
+        };
+
+        const closeDeleteScanJobDialog = (restoreFocus = true) => {
+            if (!deleteScanJobOverlay) {
+                return;
+            }
+
+            deleteScanJobOverlay.hidden = true;
+            document.body.classList.remove('storage-locations-delete-open');
+
+            if (restoreFocus && deleteFocusReturnTarget instanceof HTMLElement) {
+                deleteFocusReturnTarget.focus();
+            }
+        };
+
+        const openDeleteScanJobDialog = (form, trigger) => {
+            if (!deleteScanJobOverlay || !form) {
+                return;
+            }
+
+            pendingDeleteForm = form;
+            deleteFocusReturnTarget = trigger instanceof HTMLElement ? trigger : null;
+
+            const scanJobName = form.getAttribute('data-scanjob-name') || 'Selected scan job';
+            if (deleteScanJobNameLabel) {
+                deleteScanJobNameLabel.textContent = scanJobName;
+            }
+
+            deleteScanJobOverlay.hidden = false;
+            document.body.classList.add('storage-locations-delete-open');
+            if (deleteScanJobConfirmButton) {
+                deleteScanJobConfirmButton.focus();
+            }
         };
 
         const applyScanJobsMode = (mode) => {
@@ -618,10 +695,6 @@
                 || normalizedStatus === 'queued'
                 || normalizedStatus === 'pending';
 
-            if (!isCancellable && !isResumable) {
-                return '<span class="text-secondary small">&mdash;</span>';
-            }
-
             const forms = [];
             if (isCancellable) {
                 forms.push(`
@@ -641,6 +714,15 @@
                     </form>`);
             }
 
+            forms.push(`
+                <form method="post" action="${escapeAttr(window.location.pathname)}?handler=Delete" class="d-inline" data-delete-scanjob-form="true" data-scanjob-name="${escapeAttr(job.locationName || 'Unknown Location')}">
+                    <input type="hidden" name="__RequestVerificationToken" value="${escapeAttr(antiForgeryToken)}" />
+                    <input type="hidden" name="jobId" value="${escapeAttr(job.id)}" />
+                    <button type="submit" class="btn btn-delete-location btn-sm" title="Delete this job" aria-label="Delete scan job ${escapeAttr(String(job.id).replaceAll('-', '').slice(0, 8))}">
+                        <i class="bi bi-trash-fill delete-location-icon" aria-hidden="true"></i>
+                    </button>
+                </form>`);
+
             return forms.join('');
         };
 
@@ -652,10 +734,6 @@
                 || normalizedStatus === 'cancelled'
                 || normalizedStatus === 'queued'
                 || normalizedStatus === 'pending';
-
-            if (!isCancellable && !isResumable) {
-                return '';
-            }
 
             return `
                 <div class="scan-jobs-card-actions">
@@ -671,6 +749,14 @@
                             <input type="hidden" name="jobId" value="${escapeAttr(job.id)}" />
                             <button type="submit" class="btn btn-job-action btn-job-resume w-100">Resume Job</button>
                         </form>` : ''}
+                    <form method="post" action="${escapeAttr(window.location.pathname)}?handler=Delete" data-delete-scanjob-form="true" data-scanjob-name="${escapeAttr(job.locationName || 'Unknown Location')}">
+                        <input type="hidden" name="__RequestVerificationToken" value="${escapeAttr(antiForgeryToken)}" />
+                        <input type="hidden" name="jobId" value="${escapeAttr(job.id)}" />
+                        <button type="submit" class="btn btn-delete-location w-100">
+                            <i class="bi bi-trash-fill delete-location-icon" aria-hidden="true"></i>
+                            <span>Delete Job</span>
+                        </button>
+                    </form>
                 </div>`;
         };
 
@@ -1055,9 +1141,58 @@
             }
         });
 
+        if (deleteScanJobOverlay) {
+            deleteScanJobOverlay.addEventListener('click', (event) => {
+                if (event.target === deleteScanJobOverlay) {
+                    pendingDeleteForm = null;
+                    closeDeleteScanJobDialog();
+                }
+            });
+        }
+
+        deleteScanJobCancelButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                pendingDeleteForm = null;
+                closeDeleteScanJobDialog();
+            });
+        });
+
+        if (deleteScanJobConfirmButton) {
+            deleteScanJobConfirmButton.addEventListener('click', () => {
+                if (!pendingDeleteForm) {
+                    closeDeleteScanJobDialog(false);
+                    return;
+                }
+
+                const formToSubmit = pendingDeleteForm;
+                pendingDeleteForm = null;
+                closeDeleteScanJobDialog(false);
+                formToSubmit.submit();
+            });
+        }
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || form.getAttribute('data-delete-scanjob-form') !== 'true') {
+                return;
+            }
+
+            event.preventDefault();
+            const trigger = form.querySelector('button[type="submit"]');
+            openDeleteScanJobDialog(form, trigger);
+        });
+
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && !quietModeEnabled) {
                 void fetchSnapshot({ manual: true });
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && deleteScanJobOverlay && !deleteScanJobOverlay.hidden) {
+                event.preventDefault();
+                pendingDeleteForm = null;
+                closeDeleteScanJobDialog();
             }
         });
 

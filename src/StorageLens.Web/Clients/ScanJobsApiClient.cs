@@ -34,6 +34,20 @@ public class ScanJobsApiClient(HttpClient httpClient, ILogger<ScanJobsApiClient>
         }
     }
 
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await httpClient.DeleteAsync($"api/scanjobs/{id}", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (IsServiceUnavailable(ex, cancellationToken))
+        {
+            logger.LogWarning(ex, "ScanJobs service unavailable.");
+            return false;
+        }
+    }
+
     private static bool IsServiceUnavailable(Exception ex, CancellationToken cancellationToken) =>
         ex is HttpRequestException or BrokenCircuitException ||
         ex is TaskCanceledException && !cancellationToken.IsCancellationRequested;
