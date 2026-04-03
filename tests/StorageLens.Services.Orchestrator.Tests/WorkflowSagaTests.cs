@@ -346,7 +346,7 @@ public class WorkflowSagaTests
     }
 
     [Fact]
-    public async Task ProcessWorkflowAsync_WhenHashingFails_TriggesCompensation()
+    public async Task ProcessWorkflowAsync_WhenHashingFails_TriggersCompensation()
     {
         await using var dbContext = CreateDbContext();
 
