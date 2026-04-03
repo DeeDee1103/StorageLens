@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.ScanJobs.Data;
 using StorageLens.Services.ScanJobs.Extensions;
 using StorageLens.Services.ScanJobs.Interfaces;
+using StorageLens.Services.ScanJobs.Repositories;
 using StorageLens.Services.ScanJobs.Services;
 using StorageLens.Shared.Infrastructure;
 using System.Threading.RateLimiting;
@@ -44,6 +45,7 @@ builder.Services.AddDbContext<ScanJobsDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ScanJobsDb"));
 });
 
+builder.Services.AddScoped<IScanJobRepository, ScanJobRepository>();
 builder.Services.AddScoped<IScanJobsService, ScanJobsService>();
 
 

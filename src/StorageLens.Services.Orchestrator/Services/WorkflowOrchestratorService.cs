@@ -1,16 +1,17 @@
-using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Json;
-using StorageLens.Services.Orchestrator.Data;
 using StorageLens.Services.Orchestrator.Interfaces;
 using StorageLens.Services.Orchestrator.Models;
+using StorageLens.Services.Orchestrator.Repositories;
+using StorageLens.Services.Orchestrator.Sagas;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.Orchestrator.Services;
 
 public class WorkflowOrchestratorService(
-    OrchestratorDbContext dbContext,
+    IWorkflowRepository workflowRepository,
     WorkflowQueue workflowQueue,
     IHttpClientFactory httpClientFactory,
+    IWorkflowCompensator compensator,
     ILogger<WorkflowOrchestratorService> logger) : IWorkflowOrchestratorService
 {
     private static readonly IReadOnlyDictionary<WorkflowStatus, HashSet<WorkflowStatus>> AllowedTransitions =
@@ -71,8 +72,7 @@ public class WorkflowOrchestratorService(
             LastError = string.Empty
         };
 
-        dbContext.WorkflowInstances.Add(workflow);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await workflowRepository.AddWorkflowAsync(workflow, cancellationToken);
 
         if (!isScheduled)
         {
@@ -84,16 +84,13 @@ public class WorkflowOrchestratorService(
 
     public async Task<WorkflowInstanceDto?> GetWorkflowAsync(Guid id, CancellationToken cancellationToken)
     {
-        var workflow = await dbContext.WorkflowInstances
-            .Include(x => x.Steps)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-
+        var workflow = await workflowRepository.GetByIdAsync(id, includeSteps: true, cancellationToken);
         return workflow is null ? null : Map(workflow);
     }
 
     public async Task<WorkflowStartResultDto?> ResumeAsync(Guid id, CancellationToken cancellationToken)
     {
-        var workflow = await dbContext.WorkflowInstances.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var workflow = await workflowRepository.GetByIdAsync(id, includeSteps: false, cancellationToken);
         if (workflow is null)
         {
             return null;
@@ -101,7 +98,7 @@ public class WorkflowOrchestratorService(
 
         SetWorkflowStatus(workflow, WorkflowStatus.RetryQueued);
         workflow.LastError = string.Empty;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await workflowRepository.SaveChangesAsync(cancellationToken);
 
         await EnqueueAsync(workflow.Id, cancellationToken);
         return new WorkflowStartResultDto(workflow.Id, workflow.ScanJobId, workflow.CorrelationId, workflow.Status);
@@ -109,7 +106,7 @@ public class WorkflowOrchestratorService(
 
     public async Task<WorkflowStartResultDto?> RetryAsync(Guid id, CancellationToken cancellationToken)
     {
-        var workflow = await dbContext.WorkflowInstances.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var workflow = await workflowRepository.GetByIdAsync(id, includeSteps: false, cancellationToken);
         if (workflow is null)
         {
             return null;
@@ -117,7 +114,7 @@ public class WorkflowOrchestratorService(
 
         workflow.RetryCount += 1;
         SetWorkflowStatus(workflow, WorkflowStatus.RetryQueued);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await workflowRepository.SaveChangesAsync(cancellationToken);
 
         await EnqueueAsync(workflow.Id, cancellationToken);
         return new WorkflowStartResultDto(workflow.Id, workflow.ScanJobId, workflow.CorrelationId, workflow.Status);
@@ -125,8 +122,7 @@ public class WorkflowOrchestratorService(
 
     public async Task<bool> CancelByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken)
     {
-        var workflow = await dbContext.WorkflowInstances
-            .FirstOrDefaultAsync(x => x.ScanJobId == scanJobId, cancellationToken);
+        var workflow = await workflowRepository.GetByScanJobIdAsync(scanJobId, cancellationToken);
         if (workflow is null)
         {
             return false;
@@ -156,7 +152,7 @@ public class WorkflowOrchestratorService(
         SetWorkflowStatus(workflow, WorkflowStatus.Cancelled);
         workflow.LastError = "Cancelled by user.";
         workflow.CompletedAtUtc = DateTimeOffset.UtcNow;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await workflowRepository.SaveChangesAsync(cancellationToken);
 
         var scanJobsClient = httpClientFactory.CreateClient("scanjobs");
         await scanJobsClient.PutAsJsonAsync(
@@ -170,8 +166,7 @@ public class WorkflowOrchestratorService(
 
     public async Task<WorkflowStartResultDto?> ResumeByScanJobIdAsync(Guid scanJobId, CancellationToken cancellationToken)
     {
-        var workflow = await dbContext.WorkflowInstances
-            .FirstOrDefaultAsync(x => x.ScanJobId == scanJobId, cancellationToken);
+        var workflow = await workflowRepository.GetByScanJobIdAsync(scanJobId, cancellationToken);
         if (workflow is null)
         {
             return null;
@@ -179,7 +174,7 @@ public class WorkflowOrchestratorService(
 
         SetWorkflowStatus(workflow, WorkflowStatus.RetryQueued);
         workflow.LastError = string.Empty;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await workflowRepository.SaveChangesAsync(cancellationToken);
 
         await EnqueueAsync(workflow.Id, cancellationToken);
         return new WorkflowStartResultDto(workflow.Id, workflow.ScanJobId, workflow.CorrelationId, workflow.Status);
@@ -190,9 +185,7 @@ public class WorkflowOrchestratorService(
 
     public async Task ProcessWorkflowAsync(Guid workflowId, CancellationToken cancellationToken)
     {
-        var workflow = await dbContext.WorkflowInstances
-            .Include(x => x.Steps)
-            .FirstOrDefaultAsync(x => x.Id == workflowId, cancellationToken);
+        var workflow = await workflowRepository.GetByIdAsync(workflowId, includeSteps: true, cancellationToken);
 
         if (workflow is null)
         {
@@ -214,112 +207,151 @@ public class WorkflowOrchestratorService(
             return;
         }
 
+        // Determine which steps already completed in a previous attempt so they can be
+        // skipped during this run (checkpoint/resume pattern for the saga).
+        var completedStepNames = workflow.Steps
+            .Where(s => s.Status == WorkflowStepStatus.Completed.ToString())
+            .Select(s => s.StepName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var scanJobsClient = httpClientFactory.CreateClient("scanjobs");
 
         try
         {
             SetWorkflowStatus(workflow, WorkflowStatus.Running);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await workflowRepository.SaveChangesAsync(cancellationToken);
 
-            await RunStepAsync(workflow, "Scanning", async () =>
+            if (!completedStepNames.Contains("Scanning"))
             {
-                var scannerClient = httpClientFactory.CreateClient("scanner");
-                var locationsClient = httpClientFactory.CreateClient("locations");
-                var location = await locationsClient.GetFromJsonAsync<StorageLocationDto>($"api/locations/{workflow.StorageLocationId}", cancellationToken)
-                               ?? throw new InvalidOperationException("Location lookup failed.");
-
-                await scanJobsClient.PutAsJsonAsync(
-                    $"api/scanjobs/{workflow.ScanJobId}/status",
-                    new UpdateScanJobStatusRequest(ScanJobStatus.Scanning, "Scanning", "Scanner execution started"),
-                    cancellationToken);
-
-                var executeRequest = new ScannerExecuteRequest(
-                    workflow.StorageLocationId,
-                    workflow.ScanJobId,
-                    workflow.CorrelationId,
-                    location.Name,
-                    workflow.RootPath);
-
-                var response = await scannerClient.PostAsJsonAsync("api/scanner/execute", executeRequest, cancellationToken);
-                if (!response.IsSuccessStatusCode)
+                await RunStepAsync(workflow, "Scanning", async () =>
                 {
-                    var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                    string errorMessage;
-                    try
+                    var scannerClient = httpClientFactory.CreateClient("scanner");
+                    var locationsClient = httpClientFactory.CreateClient("locations");
+                    var location = await locationsClient.GetFromJsonAsync<StorageLocationDto>($"api/locations/{workflow.StorageLocationId}", cancellationToken)
+                                   ?? throw new InvalidOperationException("Location lookup failed.");
+
+                    await scanJobsClient.PutAsJsonAsync(
+                        $"api/scanjobs/{workflow.ScanJobId}/status",
+                        new UpdateScanJobStatusRequest(ScanJobStatus.Scanning, "Scanning", "Scanner execution started"),
+                        cancellationToken);
+
+                    var executeRequest = new ScannerExecuteRequest(
+                        workflow.StorageLocationId,
+                        workflow.ScanJobId,
+                        workflow.CorrelationId,
+                        location.Name,
+                        workflow.RootPath);
+
+                    var response = await scannerClient.PostAsJsonAsync("api/scanner/execute", executeRequest, cancellationToken);
+                    if (!response.IsSuccessStatusCode)
                     {
-                        var failedExecution = System.Text.Json.JsonSerializer.Deserialize<ScannerExecutionDto>(
-                            rawBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        errorMessage = !string.IsNullOrWhiteSpace(failedExecution?.Notes)
-                            ? failedExecution.Notes
-                            : string.IsNullOrWhiteSpace(rawBody)
+                        var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                        string errorMessage;
+                        try
+                        {
+                            var failedExecution = System.Text.Json.JsonSerializer.Deserialize<ScannerExecutionDto>(
+                                rawBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            errorMessage = !string.IsNullOrWhiteSpace(failedExecution?.Notes)
+                                ? failedExecution.Notes
+                                : string.IsNullOrWhiteSpace(rawBody)
+                                    ? $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})"
+                                    : rawBody.Length > 500 ? rawBody[..500] : rawBody;
+                        }
+                        catch
+                        {
+                            errorMessage = string.IsNullOrWhiteSpace(rawBody)
                                 ? $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})"
                                 : rawBody.Length > 500 ? rawBody[..500] : rawBody;
-                    }
-                    catch
-                    {
-                        errorMessage = string.IsNullOrWhiteSpace(rawBody)
-                            ? $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase})"
-                            : rawBody.Length > 500 ? rawBody[..500] : rawBody;
-                    }
+                        }
 
-                    throw new InvalidOperationException(errorMessage);
-                }
-            }, cancellationToken);
-
-            await RunStepAsync(workflow, "Hashing", async () =>
+                        throw new InvalidOperationException(errorMessage);
+                    }
+                }, cancellationToken);
+            }
+            else
             {
-                var hashingClient = httpClientFactory.CreateClient("hashing");
+                logger.LogInformation("Workflow {WorkflowId}: skipping already-completed step 'Scanning'.", workflowId);
+            }
 
-                await scanJobsClient.PutAsJsonAsync(
-                    $"api/scanjobs/{workflow.ScanJobId}/status",
-                    new UpdateScanJobStatusRequest(ScanJobStatus.Hashing, "Hashing", "Hashing execution started"),
-                    cancellationToken);
+            if (!completedStepNames.Contains("Hashing"))
+            {
+                await RunStepAsync(workflow, "Hashing", async () =>
+                {
+                    var hashingClient = httpClientFactory.CreateClient("hashing");
 
-                var response = await hashingClient.PostAsync(
-                    $"api/hashing/run/{workflow.ScanJobId}?correlationId={workflow.CorrelationId}",
-                    null,
-                    cancellationToken);
-                await EnsureSuccessOrThrowAsync(response, cancellationToken);
-            }, cancellationToken);
+                    await scanJobsClient.PutAsJsonAsync(
+                        $"api/scanjobs/{workflow.ScanJobId}/status",
+                        new UpdateScanJobStatusRequest(ScanJobStatus.Hashing, "Hashing", "Hashing execution started"),
+                        cancellationToken);
+
+                    var response = await hashingClient.PostAsync(
+                        $"api/hashing/run/{workflow.ScanJobId}?correlationId={workflow.CorrelationId}",
+                        null,
+                        cancellationToken);
+                    await EnsureSuccessOrThrowAsync(response, cancellationToken);
+                }, cancellationToken);
+            }
+            else
+            {
+                logger.LogInformation("Workflow {WorkflowId}: skipping already-completed step 'Hashing'.", workflowId);
+            }
 
             DuplicateRecalculationResultDto? duplicateResult = null;
-            await RunStepAsync(workflow, "DetectingDuplicates", async () =>
+            if (!completedStepNames.Contains("DetectingDuplicates"))
             {
-                var duplicatesClient = httpClientFactory.CreateClient("duplicates");
+                await RunStepAsync(workflow, "DetectingDuplicates", async () =>
+                {
+                    var duplicatesClient = httpClientFactory.CreateClient("duplicates");
 
-                await scanJobsClient.PutAsJsonAsync(
-                    $"api/scanjobs/{workflow.ScanJobId}/status",
-                    new UpdateScanJobStatusRequest(ScanJobStatus.DetectingDuplicates, "DetectingDuplicates", "Duplicate recalculation started"),
-                    cancellationToken);
+                    await scanJobsClient.PutAsJsonAsync(
+                        $"api/scanjobs/{workflow.ScanJobId}/status",
+                        new UpdateScanJobStatusRequest(ScanJobStatus.DetectingDuplicates, "DetectingDuplicates", "Duplicate recalculation started"),
+                        cancellationToken);
 
-                var response = await duplicatesClient.PostAsync(
-                    $"api/duplicates/recalculate/{workflow.ScanJobId}?correlationId={workflow.CorrelationId}",
-                    null,
-                    cancellationToken);
-                await EnsureSuccessOrThrowAsync(response, cancellationToken);
-                duplicateResult = await response.Content.ReadFromJsonAsync<DuplicateRecalculationResultDto>(cancellationToken);
-            }, cancellationToken);
-
-            await RunStepAsync(workflow, "RefreshingAnalytics", async () =>
+                    var response = await duplicatesClient.PostAsync(
+                        $"api/duplicates/recalculate/{workflow.ScanJobId}?correlationId={workflow.CorrelationId}",
+                        null,
+                        cancellationToken);
+                    await EnsureSuccessOrThrowAsync(response, cancellationToken);
+                    duplicateResult = await response.Content.ReadFromJsonAsync<DuplicateRecalculationResultDto>(cancellationToken);
+                }, cancellationToken);
+            }
+            else
             {
-                var analyticsClient = httpClientFactory.CreateClient("analytics");
+                logger.LogInformation("Workflow {WorkflowId}: skipping already-completed step 'DetectingDuplicates'.", workflowId);
+            }
 
-                await scanJobsClient.PutAsJsonAsync(
-                    $"api/scanjobs/{workflow.ScanJobId}/status",
-                    new UpdateScanJobStatusRequest(ScanJobStatus.RefreshingAnalytics, "RefreshingAnalytics", "Refreshing analytics projections"),
+            if (!completedStepNames.Contains("RefreshingAnalytics"))
+            {
+                await RunStepAsync(workflow, "RefreshingAnalytics", async () =>
+                {
+                    var analyticsClient = httpClientFactory.CreateClient("analytics");
+
+                    await scanJobsClient.PutAsJsonAsync(
+                        $"api/scanjobs/{workflow.ScanJobId}/status",
+                        new UpdateScanJobStatusRequest(ScanJobStatus.RefreshingAnalytics, "RefreshingAnalytics", "Refreshing analytics projections"),
+                        cancellationToken);
+
+                    using var response = await analyticsClient.GetAsync("api/analytics/dashboard", cancellationToken);
+                    await EnsureSuccessOrThrowAsync(response, cancellationToken);
+                }, cancellationToken);
+            }
+            else
+            {
+                logger.LogInformation("Workflow {WorkflowId}: skipping already-completed step 'RefreshingAnalytics'.", workflowId);
+            }
+
+            ScanJobDto? currentJob = null;
+            try
+            {
+                currentJob = await scanJobsClient.GetFromJsonAsync<ScanJobDto>(
+                    $"api/scanjobs/{workflow.ScanJobId}",
                     cancellationToken);
-
-                using var response = await analyticsClient.GetAsync("api/analytics/dashboard", cancellationToken);
-                await EnsureSuccessOrThrowAsync(response, cancellationToken);
-            }, cancellationToken);
-
-            SetWorkflowStatus(workflow, WorkflowStatus.Completed);
-            workflow.CompletedAtUtc = DateTimeOffset.UtcNow;
-            workflow.LastError = string.Empty;
-
-            var currentJob = await scanJobsClient.GetFromJsonAsync<ScanJobDto>(
-                $"api/scanjobs/{workflow.ScanJobId}",
-                cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Workflow {WorkflowId}: could not read scan job status; using defaults.", workflowId);
+            }
 
             var duplicateGroups = Math.Max(currentJob?.DuplicateGroupsFound ?? 0, duplicateResult?.DuplicateGroups ?? 0);
 
@@ -340,7 +372,13 @@ public class WorkflowOrchestratorService(
                 new UpdateScanJobStatusRequest(ScanJobStatus.Completed, "Completed", "Workflow completed", true),
                 cancellationToken);
 
-            await dbContext.SaveChangesAsync(cancellationToken);
+            // Set Completed only after all downstream updates succeed to keep
+            // the state machine valid if a downstream call throws.
+            SetWorkflowStatus(workflow, WorkflowStatus.Completed);
+            workflow.CompletedAtUtc = DateTimeOffset.UtcNow;
+            workflow.LastError = string.Empty;
+
+            await workflowRepository.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -350,7 +388,7 @@ public class WorkflowOrchestratorService(
             workflow.CompletedAtUtc = DateTimeOffset.UtcNow;
             workflow.LastError = ex.Message;
 
-            dbContext.WorkflowErrors.Add(new WorkflowError
+            workflowRepository.AddError(new WorkflowError
             {
                 Id = Guid.NewGuid(),
                 WorkflowInstanceId = workflow.Id,
@@ -364,7 +402,10 @@ public class WorkflowOrchestratorService(
                 new UpdateScanJobStatusRequest(ScanJobStatus.Failed, "Failed", ex.Message, true),
                 cancellationToken);
 
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await workflowRepository.SaveChangesAsync(cancellationToken);
+
+            // Trigger best-effort compensating transactions to undo completed steps.
+            await compensator.CompensateAsync(workflow, cancellationToken);
         }
     }
 
@@ -431,8 +472,8 @@ public class WorkflowOrchestratorService(
             Notes = "Started"
         };
 
-        dbContext.WorkflowStepExecutions.Add(step);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        workflowRepository.AddStepExecution(step);
+        await workflowRepository.SaveChangesAsync(cancellationToken);
 
         try
         {
@@ -440,7 +481,7 @@ public class WorkflowOrchestratorService(
             SetStepStatus(step, WorkflowStepStatus.Completed);
             step.Notes = "Completed";
             step.CompletedAtUtc = DateTimeOffset.UtcNow;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await workflowRepository.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -448,7 +489,7 @@ public class WorkflowOrchestratorService(
             step.Notes = ex.Message;
             step.CompletedAtUtc = DateTimeOffset.UtcNow;
 
-            dbContext.WorkflowErrors.Add(new WorkflowError
+            workflowRepository.AddError(new WorkflowError
             {
                 Id = Guid.NewGuid(),
                 WorkflowInstanceId = workflow.Id,
@@ -457,7 +498,7 @@ public class WorkflowOrchestratorService(
                 OccurredAtUtc = DateTimeOffset.UtcNow
             });
 
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await workflowRepository.SaveChangesAsync(cancellationToken);
             throw;
         }
     }

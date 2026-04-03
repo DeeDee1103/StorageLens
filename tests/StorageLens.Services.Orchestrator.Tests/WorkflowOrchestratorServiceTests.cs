@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using StorageLens.Services.Orchestrator.Data;
 using StorageLens.Services.Orchestrator.Models;
+using StorageLens.Services.Orchestrator.Repositories;
+using StorageLens.Services.Orchestrator.Sagas;
 using StorageLens.Services.Orchestrator.Services;
 using StorageLens.Shared.Contracts;
 using Xunit;
@@ -12,6 +14,17 @@ namespace StorageLens.Services.Orchestrator.Tests;
 
 public class WorkflowOrchestratorServiceTests
 {
+    private static WorkflowOrchestratorService CreateService(
+        OrchestratorDbContext dbContext,
+        IHttpClientFactory clientFactory,
+        IWorkflowCompensator? compensator = null) =>
+        new(
+            new WorkflowRepository(dbContext),
+            new WorkflowQueue(),
+            clientFactory,
+            compensator ?? new NoOpWorkflowCompensator(),
+            NullLogger<WorkflowOrchestratorService>.Instance);
+
     [Fact]
     public async Task ProcessWorkflowAsync_WhenAllStepsSucceed_CompletesWorkflow_AndRecordsAllSteps()
     {
@@ -47,7 +60,10 @@ public class WorkflowOrchestratorServiceTests
                     null,
                     0,
                     0,
-                    DateTimeOffset.UtcNow);
+                    DateTimeOffset.UtcNow,
+                    siteLocation: null,
+                    latitude: null,
+                    longitude: null);
                 return Task.FromResult(JsonResponse(dto));
             }
 
@@ -144,11 +160,7 @@ public class WorkflowOrchestratorServiceTests
             ["analytics"] = CreateClient("http://analytics", analyticsHandler)
         });
 
-        var service = new WorkflowOrchestratorService(
-            dbContext,
-            new WorkflowQueue(),
-            clientFactory,
-            NullLogger<WorkflowOrchestratorService>.Instance);
+        var service = CreateService(dbContext, clientFactory);
 
         await service.ProcessWorkflowAsync(workflowId, CancellationToken.None);
 
@@ -211,11 +223,7 @@ public class WorkflowOrchestratorServiceTests
                 Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))))
         });
 
-        var service = new WorkflowOrchestratorService(
-            dbContext,
-            new WorkflowQueue(),
-            clientFactory,
-            NullLogger<WorkflowOrchestratorService>.Instance);
+        var service = CreateService(dbContext, clientFactory);
 
         await service.ProcessWorkflowAsync(workflowId, CancellationToken.None);
 
@@ -260,7 +268,10 @@ public class WorkflowOrchestratorServiceTests
                     null,
                     0,
                     0,
-                    DateTimeOffset.UtcNow);
+                    DateTimeOffset.UtcNow,
+                    siteLocation: null,
+                    latitude: null,
+                    longitude: null);
                 return Task.FromResult(JsonResponse(dto));
             }
 
@@ -327,11 +338,7 @@ public class WorkflowOrchestratorServiceTests
             ["analytics"] = CreateClient("http://analytics", analyticsHandler)
         });
 
-        var service = new WorkflowOrchestratorService(
-            dbContext,
-            new WorkflowQueue(),
-            clientFactory,
-            NullLogger<WorkflowOrchestratorService>.Instance);
+        var service = CreateService(dbContext, clientFactory);
 
         await service.ProcessWorkflowAsync(workflowId, CancellationToken.None);
 
@@ -396,7 +403,10 @@ public class WorkflowOrchestratorServiceTests
                     null,
                     0,
                     0,
-                    DateTimeOffset.UtcNow);
+                    DateTimeOffset.UtcNow,
+                    siteLocation: null,
+                    latitude: null,
+                    longitude: null);
                 return Task.FromResult(JsonResponse(dto));
             }
 
@@ -455,11 +465,7 @@ public class WorkflowOrchestratorServiceTests
             ["analytics"] = CreateClient("http://analytics", analyticsHandler)
         });
 
-        var service = new WorkflowOrchestratorService(
-            dbContext,
-            new WorkflowQueue(),
-            clientFactory,
-            NullLogger<WorkflowOrchestratorService>.Instance);
+        var service = CreateService(dbContext, clientFactory);
 
         await service.ProcessWorkflowAsync(workflowId, CancellationToken.None);
 
@@ -504,12 +510,15 @@ public class WorkflowOrchestratorServiceTests
     {
         public HttpClient CreateClient(string name)
         {
-            if (!clients.TryGetValue(name, out var client))
+            if (clients.TryGetValue(name, out var client))
             {
-                throw new InvalidOperationException($"No client configured for '{name}'.");
+                return client;
             }
 
-            return client;
+            // Return a no-op client for optional clients (e.g. fileinventory used by compensator)
+            return new HttpClient(new StubHttpMessageHandler((_, _) =>
+                Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK))))
+            { BaseAddress = new Uri("http://localhost") };
         }
     }
 
@@ -523,5 +532,11 @@ public class WorkflowOrchestratorServiceTests
             RequestCount += 1;
             return await handler(request, cancellationToken);
         }
+    }
+
+    private sealed class NoOpWorkflowCompensator : IWorkflowCompensator
+    {
+        public Task CompensateAsync(WorkflowInstance workflow, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 }
