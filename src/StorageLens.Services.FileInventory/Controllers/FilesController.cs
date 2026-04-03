@@ -102,6 +102,16 @@ public class FilesController(IFileInventoryService fileInventoryService) : Contr
         return Ok(changed);
     }
 
+    [HttpDelete("by-scan-job/{scanJobId:guid}")]
+    public async Task<ActionResult<int>> DeleteByScanJob(
+        Guid scanJobId,
+        [FromQuery] string correlationId,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await fileInventoryService.DeleteByScanJobAsync(scanJobId, correlationId, cancellationToken);
+        return Ok(deleted);
+    }
+
     [HttpGet("{id:guid}/content")]
     public async Task<IActionResult> GetContent(Guid id, [FromQuery] bool download = false, CancellationToken cancellationToken = default)
     {

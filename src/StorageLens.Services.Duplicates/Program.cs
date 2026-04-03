@@ -5,6 +5,7 @@ using StorageLens.Services.Duplicates.Clients;
 using StorageLens.Services.Duplicates.Data;
 using StorageLens.Services.Duplicates.Extensions;
 using StorageLens.Services.Duplicates.Interfaces;
+using StorageLens.Services.Duplicates.Repositories;
 using StorageLens.Services.Duplicates.Services;
 using StorageLens.Shared.Infrastructure;
 using System.Threading.RateLimiting;
@@ -59,6 +60,7 @@ var serviceApiKey = builder.Configuration["ServiceApiKey"] ?? string.Empty;
 
 builder.Services.AddConfiguredUpstreamClient("fileinventory", upstream.FileInventory, serviceApiKey, upstreamResilience);
 
+builder.Services.AddScoped<IDuplicateRepository, DuplicateRepository>();
 builder.Services.AddScoped<IDuplicatesService, DuplicatesService>();
 
 

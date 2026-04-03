@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.Orchestrator.Controllers;
 using StorageLens.Services.Orchestrator.Interfaces;
+using StorageLens.Services.Orchestrator.Models;
+using StorageLens.Services.Orchestrator.Sagas;
 using StorageLens.Shared.Contracts;
 using Xunit;
 
@@ -18,7 +20,7 @@ public class OrchestratorControllerTests
         var locationId = Guid.NewGuid();
         var expected = BuildStartResult();
         var stub = new StubWorkflowOrchestratorService { StartResult = expected };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         var result = await controller.Start(locationId, null, CancellationToken.None);
 
@@ -35,7 +37,7 @@ public class OrchestratorControllerTests
     {
         var locationId = Guid.NewGuid();
         var stub = new StubWorkflowOrchestratorService { StartResult = BuildStartResult() };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         await controller.Start(locationId, null, CancellationToken.None);
 
@@ -46,7 +48,7 @@ public class OrchestratorControllerTests
     public async Task Start_PassesCancellationToken_ToService()
     {
         var stub = new StubWorkflowOrchestratorService { StartResult = BuildStartResult() };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
         using var cts = new CancellationTokenSource();
 
         await controller.Start(Guid.NewGuid(), null, cts.Token);
@@ -64,7 +66,7 @@ public class OrchestratorControllerTests
         var id = Guid.NewGuid();
         var expected = BuildWorkflowInstance(id);
         var stub = new StubWorkflowOrchestratorService { WorkflowInstance = expected };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         var result = await controller.GetWorkflow(id, CancellationToken.None);
 
@@ -80,7 +82,7 @@ public class OrchestratorControllerTests
     public async Task GetWorkflow_ReturnsNotFound_WhenWorkflowDoesNotExist()
     {
         var stub = new StubWorkflowOrchestratorService { WorkflowInstance = null };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         var result = await controller.GetWorkflow(Guid.NewGuid(), CancellationToken.None);
 
@@ -92,7 +94,7 @@ public class OrchestratorControllerTests
     {
         var id = Guid.NewGuid();
         var stub = new StubWorkflowOrchestratorService { WorkflowInstance = BuildWorkflowInstance(id) };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         await controller.GetWorkflow(id, CancellationToken.None);
 
@@ -104,7 +106,7 @@ public class OrchestratorControllerTests
     {
         var id = Guid.NewGuid();
         var stub = new StubWorkflowOrchestratorService { WorkflowInstance = BuildWorkflowInstance(id) };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
         using var cts = new CancellationTokenSource();
 
         await controller.GetWorkflow(id, cts.Token);
@@ -122,7 +124,7 @@ public class OrchestratorControllerTests
         var id = Guid.NewGuid();
         var expected = BuildStartResult();
         var stub = new StubWorkflowOrchestratorService { ResumeResult = expected };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         var result = await controller.Resume(id, CancellationToken.None);
 
@@ -135,7 +137,7 @@ public class OrchestratorControllerTests
     public async Task Resume_ReturnsNotFound_WhenWorkflowDoesNotExist()
     {
         var stub = new StubWorkflowOrchestratorService { ResumeResult = null };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         var result = await controller.Resume(Guid.NewGuid(), CancellationToken.None);
 
@@ -147,7 +149,7 @@ public class OrchestratorControllerTests
     {
         var id = Guid.NewGuid();
         var stub = new StubWorkflowOrchestratorService { ResumeResult = BuildStartResult() };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         await controller.Resume(id, CancellationToken.None);
 
@@ -164,7 +166,7 @@ public class OrchestratorControllerTests
         var id = Guid.NewGuid();
         var expected = BuildStartResult();
         var stub = new StubWorkflowOrchestratorService { RetryResult = expected };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         var result = await controller.Retry(id, CancellationToken.None);
 
@@ -177,7 +179,7 @@ public class OrchestratorControllerTests
     public async Task Retry_ReturnsNotFound_WhenWorkflowDoesNotExist()
     {
         var stub = new StubWorkflowOrchestratorService { RetryResult = null };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         var result = await controller.Retry(Guid.NewGuid(), CancellationToken.None);
 
@@ -189,7 +191,7 @@ public class OrchestratorControllerTests
     {
         var id = Guid.NewGuid();
         var stub = new StubWorkflowOrchestratorService { RetryResult = BuildStartResult() };
-        var controller = new OrchestratorController(stub);
+        var controller = new OrchestratorController(stub, new NoOpWorkflowCompensator());
 
         await controller.Retry(id, CancellationToken.None);
 
@@ -290,6 +292,12 @@ public class OrchestratorControllerTests
             ValueTask.CompletedTask;
 
         public Task ProcessWorkflowAsync(Guid workflowId, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class NoOpWorkflowCompensator : IWorkflowCompensator
+    {
+        public Task CompensateAsync(WorkflowInstance workflow, CancellationToken cancellationToken) =>
             Task.CompletedTask;
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using StorageLens.Services.Duplicates.Data;
 using StorageLens.Services.Duplicates.Models;
+using StorageLens.Services.Duplicates.Repositories;
 using StorageLens.Services.Duplicates.Services;
 using StorageLens.Shared.Contracts;
 using Xunit;
@@ -12,6 +13,9 @@ namespace StorageLens.Services.Duplicates.Tests;
 
 public class DuplicatesServiceTests
 {
+    private static DuplicatesService CreateService(DuplicatesDbContext db, IHttpClientFactory httpFactory) =>
+        new(new DuplicateRepository(db), httpFactory, NullLogger<DuplicatesService>.Instance);
+
     private static DuplicatesDbContext CreateDbContext() =>
         new(new DbContextOptionsBuilder<DuplicatesDbContext>()
             .UseInMemoryDatabase($"duplicates-{Guid.NewGuid()}")
@@ -87,7 +91,7 @@ public class DuplicatesServiceTests
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         }));
 
-        var sut = new DuplicatesService(db, httpFactory, NullLogger<DuplicatesService>.Instance);
+        var sut = CreateService(db, httpFactory);
         var result = await sut.GetSummaryAsync(CancellationToken.None);
 
         Assert.Equal(2, result.DuplicateGroups);
@@ -148,7 +152,7 @@ public class DuplicatesServiceTests
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         }));
 
-        var sut = new DuplicatesService(db, httpFactory, NullLogger<DuplicatesService>.Instance);
+        var sut = CreateService(db, httpFactory);
         var result = await sut.RecalculateAsync(scanJobId, correlationId, CancellationToken.None);
 
         Assert.Equal(2, result.DuplicateGroups);
@@ -222,7 +226,7 @@ public class DuplicatesServiceTests
             };
         }));
 
-        var sut = new DuplicatesService(db, httpFactory, NullLogger<DuplicatesService>.Instance);
+        var sut = CreateService(db, httpFactory);
         var result = await sut.GetSummaryAsync(CancellationToken.None);
 
         Assert.Equal(new[] { 1, 2 }, requestedPages);
@@ -275,7 +279,7 @@ public class DuplicatesServiceTests
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         }));
 
-        var sut = new DuplicatesService(db, httpFactory, NullLogger<DuplicatesService>.Instance);
+        var sut = CreateService(db, httpFactory);
         var result = await sut.RecalculateAsync(scanJobId, correlationId, CancellationToken.None);
 
         Assert.Equal(new[] { 1, 2 }, requestedPages);

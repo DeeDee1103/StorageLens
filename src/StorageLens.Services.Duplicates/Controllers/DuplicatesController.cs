@@ -40,4 +40,14 @@ public class DuplicatesController(IDuplicatesService duplicatesService) : Contro
         var result = await duplicatesService.RecalculateAsync(scanJobId, correlationId, cancellationToken);
         return Ok(result);
     }
+
+    [HttpDelete("by-scan-job/{scanJobId:guid}")]
+    public async Task<ActionResult<int>> DeleteByScanJob(
+        Guid scanJobId,
+        [FromQuery] string correlationId,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await duplicatesService.DeleteByScanJobAsync(scanJobId, correlationId, cancellationToken);
+        return Ok(deleted);
+    }
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 using StorageLens.Services.ScanJobs.Data;
 using StorageLens.Services.ScanJobs.Models;
+using StorageLens.Services.ScanJobs.Repositories;
 using StorageLens.Services.ScanJobs.Services;
 using StorageLens.Shared.Contracts;
 using Xunit;
@@ -10,6 +11,9 @@ namespace StorageLens.Services.ScanJobs.Tests;
 
 public class ScanJobsServiceTests
 {
+    private static ScanJobsService CreateService(ScanJobsDbContext db) =>
+        new(new ScanJobRepository(db));
+
     private static ScanJobsDbContext CreateDb() =>
         new(new DbContextOptionsBuilder<ScanJobsDbContext>()
             .UseInMemoryDatabase($"scanjobs-{Guid.NewGuid()}")
@@ -53,7 +57,7 @@ public class ScanJobsServiceTests
     public async Task GetAllAsync_EmptyDb_ReturnsEmptyList()
     {
         await using var db = CreateDb();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.GetAllAsync(CancellationToken.None);
 
@@ -75,7 +79,7 @@ public class ScanJobsServiceTests
             newJob
         );
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.GetAllAsync(CancellationToken.None);
 
@@ -96,7 +100,7 @@ public class ScanJobsServiceTests
             db.ScanJobs.Add(MakeScanJob(baseTime.AddMinutes(-i)));
         }
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.GetRecentAsync(CancellationToken.None);
 
@@ -109,7 +113,7 @@ public class ScanJobsServiceTests
         await using var db = CreateDb();
         db.ScanJobs.AddRange(MakeScanJob(), MakeScanJob(), MakeScanJob());
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.GetRecentAsync(CancellationToken.None);
 
@@ -125,7 +129,7 @@ public class ScanJobsServiceTests
         var job = MakeScanJob();
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.GetByIdAsync(job.Id, CancellationToken.None);
 
@@ -138,7 +142,7 @@ public class ScanJobsServiceTests
     public async Task GetByIdAsync_UnknownId_ReturnsNull()
     {
         await using var db = CreateDb();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.GetByIdAsync(Guid.NewGuid(), CancellationToken.None);
 
@@ -151,7 +155,7 @@ public class ScanJobsServiceTests
     public async Task CreateAsync_PersistsJobWithQueuedStatus()
     {
         await using var db = CreateDb();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
         var locationId = Guid.NewGuid();
         var request = new CreateScanJobRequest(locationId, "Initial scan");
 
@@ -166,7 +170,7 @@ public class ScanJobsServiceTests
     public async Task CreateAsync_GeneratesCorrelationIdWhenEmpty()
     {
         await using var db = CreateDb();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
         var request = new CreateScanJobRequest(Guid.NewGuid(), "test", CorrelationId: null);
 
         var result = await svc.CreateAsync(request, CancellationToken.None);
@@ -178,7 +182,7 @@ public class ScanJobsServiceTests
     public async Task CreateAsync_UsesProvidedCorrelationId()
     {
         await using var db = CreateDb();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
         const string correlationId = "my-custom-correlation-id";
         var request = new CreateScanJobRequest(Guid.NewGuid(), "test", CorrelationId: correlationId);
 
@@ -191,7 +195,7 @@ public class ScanJobsServiceTests
     public async Task CreateAsync_UsesDefaultLocationNameWhenNotProvided()
     {
         await using var db = CreateDb();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
         var request = new CreateScanJobRequest(Guid.NewGuid(), "test", LocationName: null);
 
         var result = await svc.CreateAsync(request, CancellationToken.None);
@@ -208,7 +212,7 @@ public class ScanJobsServiceTests
         var job = MakeScanJob();
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateStatusAsync(
             job.Id,
@@ -224,7 +228,7 @@ public class ScanJobsServiceTests
     public async Task UpdateStatusAsync_UnknownId_ReturnsNull()
     {
         await using var db = CreateDb();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateStatusAsync(
             Guid.NewGuid(),
@@ -241,7 +245,7 @@ public class ScanJobsServiceTests
         var job = MakeScanJob();
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateStatusAsync(
             job.Id,
@@ -262,7 +266,7 @@ public class ScanJobsServiceTests
         job.ProgressPercent = 80;
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateStatusAsync(
             job.Id,
@@ -280,7 +284,7 @@ public class ScanJobsServiceTests
         var job = MakeScanJob();
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateStatusAsync(
             job.Id,
@@ -300,7 +304,7 @@ public class ScanJobsServiceTests
         var job = MakeScanJob();
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateProgressAsync(
             job.Id,
@@ -316,7 +320,7 @@ public class ScanJobsServiceTests
     public async Task UpdateProgressAsync_UnknownId_ReturnsNull()
     {
         await using var db = CreateDb();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateProgressAsync(
             Guid.NewGuid(),
@@ -333,7 +337,7 @@ public class ScanJobsServiceTests
         var job = MakeScanJob();
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateProgressAsync(
             job.Id,
@@ -351,7 +355,7 @@ public class ScanJobsServiceTests
         var job = MakeScanJob();
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         var result = await svc.UpdateProgressAsync(
             job.Id,
@@ -369,7 +373,7 @@ public class ScanJobsServiceTests
         var job = MakeScanJob();
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
 
         await svc.UpdateProgressAsync(
             job.Id,
@@ -394,7 +398,7 @@ public class ScanJobsServiceTests
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
 
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
         var result = await svc.UpdateStatusAsync(
             job.Id,
             new UpdateScanJobStatusRequest(ScanJobStatus.Completed, "Done", "Completed", IsTerminal: true),
@@ -417,7 +421,7 @@ public class ScanJobsServiceTests
         db.ScanJobs.Add(job);
         await db.SaveChangesAsync();
 
-        var svc = new ScanJobsService(db);
+        var svc = CreateService(db);
         var result = await svc.UpdateProgressAsync(
             job.Id,
             new UpdateScanJobProgressRequest(
