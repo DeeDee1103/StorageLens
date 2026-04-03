@@ -57,4 +57,11 @@ public class ScanJobsController(IScanJobsService scanJobsService) : ControllerBa
         var updated = await scanJobsService.UpdateProgressAsync(id, request, cancellationToken);
         return updated is null ? NotFound() : Ok(updated);
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var deleted = await scanJobsService.DeleteAsync(id, cancellationToken);
+        return deleted ? NoContent() : NotFound();
+    }
 }

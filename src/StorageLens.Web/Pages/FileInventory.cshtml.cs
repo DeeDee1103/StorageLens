@@ -10,6 +10,7 @@ namespace StorageLens.Web.Pages;
 
 public class FileInventoryModel(
     FileInventoryApiClient fileInventoryApiClient,
+    LocationsApiClient locationsApiClient,
     AnalyticsApiClient analyticsApiClient,
     DuplicatesApiClient duplicatesApiClient,
     IOptions<AppearanceOptions> appearanceOptions) : PageModel
@@ -29,6 +30,7 @@ public class FileInventoryModel(
     public int GlobalTotalFiles { get; private set; }
     public long GlobalTotalBytes { get; private set; }
     public int GlobalDuplicateFiles { get; private set; }
+    public IReadOnlyList<FileInventoryLocationSnapshotDto> LocationSnapshots { get; private set; } = [];
 
     public bool ServiceUnavailable { get; private set; }
 
@@ -44,11 +46,13 @@ public class FileInventoryModel(
         }
 
         Files = result;
+        var locations = await locationsApiClient.GetLocationsAsync(cancellationToken) ?? [];
         var localTotals = BuildLocalTotals(result);
         var globalTotals = await GetGlobalTotalsAsync(localTotals, cancellationToken);
         GlobalTotalFiles = globalTotals.TotalFiles;
         GlobalTotalBytes = globalTotals.TotalBytes;
         GlobalDuplicateFiles = globalTotals.DuplicateFiles;
+        LocationSnapshots = BuildLocationSnapshots(result, locations);
     }
 
     public async Task<IActionResult> OnGetSnapshotAsync(CancellationToken cancellationToken)
@@ -59,9 +63,11 @@ public class FileInventoryModel(
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "File Inventory is currently unavailable." });
         }
 
+        var locations = await locationsApiClient.GetLocationsAsync(cancellationToken) ?? [];
+
         var localTotals = BuildLocalTotals(result);
         var globalTotals = await GetGlobalTotalsAsync(localTotals, cancellationToken);
-        var snapshot = BuildSnapshot(result, globalTotals);
+        var snapshot = BuildSnapshot(result, globalTotals, locations);
         return new JsonResult(snapshot);
     }
 
@@ -92,9 +98,17 @@ public class FileInventoryModel(
         var fileName = rawFileName?.Trim('"');
 
         Response.Headers["Cache-Control"] = "no-store";
-        return download && !string.IsNullOrWhiteSpace(fileName)
-            ? File(stream, contentType, fileName, enableRangeProcessing: true)
-            : File(stream, contentType, enableRangeProcessing: true);
+        var result = new FileStreamResult(stream, contentType)
+        {
+            EnableRangeProcessing = true
+        };
+
+        if (download && !string.IsNullOrWhiteSpace(fileName))
+        {
+            result.FileDownloadName = fileName;
+        }
+
+        return result;
     }
 
     private async Task<GlobalInventoryTotals> GetGlobalTotalsAsync(LocalInventoryTotals localTotals, CancellationToken cancellationToken)
@@ -125,7 +139,10 @@ public class FileInventoryModel(
         return new LocalInventoryTotals(totalFiles, totalBytes, duplicateFiles);
     }
 
-    private static FileInventorySnapshotDto BuildSnapshot(IReadOnlyList<FileRecordDto> files, GlobalInventoryTotals globalTotals)
+    private static FileInventorySnapshotDto BuildSnapshot(
+        IReadOnlyList<FileRecordDto> files,
+        GlobalInventoryTotals globalTotals,
+        IReadOnlyList<StorageLocationDto> locations)
     {
         var uniqueExtensions = files
             .Select(file => file.Extension)
@@ -134,18 +151,7 @@ public class FileInventoryModel(
             .Count();
         var latestModified = files.Any() ? files.Max(file => file.LastModifiedDate) : (DateTimeOffset?)null;
         var pendingHashCount = files.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase) || string.Equals(file.HashStatus, "InProgress", StringComparison.OrdinalIgnoreCase));
-        var locationSnapshots = files
-            .GroupBy(file => string.IsNullOrWhiteSpace(file.LocationName) ? "Unassigned" : file.LocationName)
-            .Select(group => new FileInventoryLocationSnapshotDto(
-                group.Key,
-                group.Count(),
-                group.Sum(file => file.SizeBytes),
-                group.Max(file => file.LastModifiedDate),
-                group.Count(file => file.HashStatus?.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true || file.IsDuplicate),
-                group.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase) || string.Equals(file.HashStatus, "InProgress", StringComparison.OrdinalIgnoreCase))))
-            .OrderByDescending(location => location.FileCount)
-            .ThenBy(location => location.Name)
-            .ToList();
+        var locationSnapshots = BuildLocationSnapshots(files, locations);
 
         return new FileInventorySnapshotDto(
             files,
@@ -160,6 +166,47 @@ public class FileInventoryModel(
             DateTimeOffset.UtcNow);
     }
 
+    private static IReadOnlyList<FileInventoryLocationSnapshotDto> BuildLocationSnapshots(
+        IReadOnlyList<FileRecordDto> files,
+        IReadOnlyList<StorageLocationDto> locations)
+    {
+        var groupedByLocation = files
+            .GroupBy(file => string.IsNullOrWhiteSpace(file.LocationName) ? "Unassigned" : file.LocationName)
+            .ToDictionary(group => group.Key, StringComparer.OrdinalIgnoreCase);
+
+        var locationNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var location in locations)
+        {
+            if (!string.IsNullOrWhiteSpace(location.Name))
+            {
+                locationNames.Add(location.Name);
+            }
+        }
+
+        foreach (var locationName in groupedByLocation.Keys)
+        {
+            locationNames.Add(locationName);
+        }
+
+        return locationNames
+            .Select(locationName =>
+            {
+                groupedByLocation.TryGetValue(locationName, out var filesAtLocation);
+                var filesForLocation = filesAtLocation?.ToList() ?? [];
+
+                return new FileInventoryLocationSnapshotDto(
+                    locationName,
+                    filesForLocation.Count,
+                    filesForLocation.Sum(file => file.SizeBytes),
+                    filesForLocation.Count > 0 ? filesForLocation.Max(file => file.LastModifiedDate) : null,
+                    filesForLocation.Count(file => file.HashStatus?.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true || file.IsDuplicate),
+                    filesForLocation.Count(file => string.Equals(file.HashStatus, "Pending", StringComparison.OrdinalIgnoreCase) || string.Equals(file.HashStatus, "InProgress", StringComparison.OrdinalIgnoreCase)));
+            })
+            .OrderByDescending(location => location.FileCount)
+            .ThenBy(location => location.Name)
+            .ToList();
+    }
+
     private sealed record LocalInventoryTotals(int TotalFiles, long TotalBytes, int DuplicateFiles);
 
     private sealed record GlobalInventoryTotals(int TotalFiles, long TotalBytes, int DuplicateFiles);
@@ -168,7 +215,7 @@ public class FileInventoryModel(
         string Name,
         int FileCount,
         long TotalBytes,
-        DateTimeOffset LatestModified,
+        DateTimeOffset? LatestModified,
         int DuplicateCount,
         int HashPendingCount);
 

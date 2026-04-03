@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StorageLens.Services.Orchestrator.Interfaces;
+using StorageLens.Services.Orchestrator.Sagas;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.Orchestrator.Controllers;
@@ -8,7 +9,9 @@ namespace StorageLens.Services.Orchestrator.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class OrchestratorController(IWorkflowOrchestratorService workflowService) : ControllerBase
+public class OrchestratorController(
+    IWorkflowOrchestratorService workflowService,
+    IWorkflowCompensator compensator) : ControllerBase
 {
     [HttpPost("scans/start/{locationId:guid}")]
     public async Task<ActionResult<WorkflowStartResultDto>> Start(
@@ -44,6 +47,42 @@ public class OrchestratorController(IWorkflowOrchestratorService workflowService
     {
         var result = await workflowService.RetryAsync(id, cancellationToken);
         return result is null ? NotFound() : Accepted(result);
+    }
+
+    [HttpPost("workflows/{id:guid}/compensate")]
+    public async Task<IActionResult> Compensate(Guid id, CancellationToken cancellationToken)
+    {
+        var workflow = await workflowService.GetWorkflowAsync(id, cancellationToken);
+        if (workflow is null)
+        {
+            return NotFound();
+        }
+
+        var instance = new Models.WorkflowInstance
+        {
+            Id = workflow.Id,
+            ScanJobId = workflow.ScanJobId,
+            CorrelationId = workflow.CorrelationId,
+            StorageLocationId = workflow.StorageLocationId,
+            RootPath = workflow.RootPath,
+            Status = workflow.Status,
+            CreatedAtUtc = workflow.CreatedAtUtc,
+            Steps = workflow.Steps
+                .Select(s => new Models.WorkflowStepExecution
+                {
+                    Id = Guid.NewGuid(),
+                    WorkflowInstanceId = workflow.Id,
+                    StepName = s.StepName,
+                    Status = s.Status,
+                    StartedAtUtc = s.StartedAtUtc,
+                    CompletedAtUtc = s.CompletedAtUtc,
+                    Notes = s.Notes
+                })
+                .ToList()
+        };
+
+        await compensator.CompensateAsync(instance, cancellationToken);
+        return Accepted();
     }
 
     [HttpPost("scans/{scanJobId:guid}/cancel")]

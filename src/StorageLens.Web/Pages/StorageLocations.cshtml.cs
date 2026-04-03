@@ -50,16 +50,17 @@ public class StorageLocationsModel(
 
     public async Task<IActionResult> OnPostAddAsync(CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(Name) || string.IsNullOrWhiteSpace(Path) || string.IsNullOrWhiteSpace(SiteLocation))
+        if (string.IsNullOrWhiteSpace(Name) || string.IsNullOrWhiteSpace(Path))
         {
-            ModelState.AddModelError(string.Empty, "Name, path, and site location are required.");
+            ModelState.AddModelError(string.Empty, "Name and path are required.");
             await OnGetAsync(cancellationToken);
             return Page();
         }
 
-        if (Latitude.HasValue ^ Longitude.HasValue)
+        // SiteLocation is now optional as it's auto-populated from search, but coordinates are required
+        if (!Latitude.HasValue || !Longitude.HasValue)
         {
-            ModelState.AddModelError(string.Empty, "Provide both latitude and longitude, or leave both empty.");
+            ModelState.AddModelError(string.Empty, "Location coordinates are required. Use location search, browser geolocation, or enter coordinates manually.");
             await OnGetAsync(cancellationToken);
             return Page();
         }
@@ -78,12 +79,15 @@ public class StorageLocationsModel(
             return Page();
         }
 
+        // Use provided SiteLocation, or default to "Unknown" if empty
+        var siteLocation = string.IsNullOrWhiteSpace(SiteLocation) ? "Unknown Location" : SiteLocation.Trim();
+
         await locationsApiClient.CreateAsync(
             new CreateStorageLocationRequest(
                 Name.Trim(),
                 Path.Trim(),
                 Type,
-                SiteLocation.Trim(),
+                siteLocation,
                 Status,
                 Latitude,
                 Longitude),

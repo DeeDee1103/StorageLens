@@ -10,4 +10,5 @@ public interface IScanJobsService
     Task<ScanJobDto> CreateAsync(CreateScanJobRequest request, CancellationToken cancellationToken);
     Task<ScanJobDto?> UpdateStatusAsync(Guid id, UpdateScanJobStatusRequest request, CancellationToken cancellationToken);
     Task<ScanJobDto?> UpdateProgressAsync(Guid id, UpdateScanJobProgressRequest request, CancellationToken cancellationToken);
+    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
 }

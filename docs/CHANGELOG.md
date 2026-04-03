@@ -48,6 +48,23 @@ Example:
 - **Global View storage values for new locations** — corrected cases where newly added locations appeared as `0 B` in Global Storage Distribution despite ingested inventory data.
 
 ### Added
+- **Repository Abstraction Layer** — decouples all 5 data-bearing microservices from EF Core
+  - Added `ILocationRepository` + `LocationRepository` in `StorageLens.Services.Locations`; `LocationService` now takes `ILocationRepository` instead of `LocationsDbContext` directly.
+  - Added `IScanJobRepository` + `ScanJobRepository` in `StorageLens.Services.ScanJobs`; `ScanJobsService` now takes `IScanJobRepository`.
+  - Added `IFileInventoryRepository` + `FileInventoryRepository` in `StorageLens.Services.FileInventory`; `FileInventoryService` now takes `IFileInventoryRepository`. All EF relational/in-memory path logic is contained inside the repository.
+  - Added `IDuplicateRepository` + `DuplicateRepository` in `StorageLens.Services.Duplicates`; `DuplicatesService` now takes `IDuplicateRepository`.
+  - Added `IWorkflowRepository` + `WorkflowRepository` in `StorageLens.Services.Orchestrator`; `WorkflowOrchestratorService` now takes `IWorkflowRepository`.
+  - All repositories are registered as `Scoped` in their respective `Program.cs`. Unit tests updated to construct service through the repository.
+- **Saga Pattern with Compensating Transactions** — ensures multi-step workflow failures are recoverable and data-consistent
+  - Added `IWorkflowCompensator` / `WorkflowCompensator` to `StorageLens.Services.Orchestrator/Sagas/`.
+  - On workflow failure, `WorkflowOrchestratorService.ProcessWorkflowAsync` invokes `IWorkflowCompensator.CompensateAsync` which issues best-effort DELETE calls to FileInventory and Duplicates for every completed step.
+  - Compensation failures are fire-and-log: a failure in one step's compensation does not block the others.
+  - Added checkpoint/resume: on retry (`RetryQueued` status), steps that already have a `Completed` execution are skipped — Scanner will not re-scan if it already succeeded, preventing duplicate file records.
+  - Added `POST api/orchestrator/workflows/{id}/compensate` endpoint for operator-triggered cleanup of a failed workflow.
+  - Added `DELETE api/files/by-scan-job/{scanJobId}` to `FilesController` and `DELETE api/duplicates/by-scan-job/{scanJobId}` to `DuplicatesController` for compensation use.
+  - Added `DeleteByScanJobAsync` to `IFileInventoryService`, `FileInventoryService`, `IDuplicatesService`, and `DuplicatesService`.
+  - Added `FileInventory` upstream to `OrchestratorUpstreamOptions` so the Orchestrator can call FileInventory during compensation.
+  - Added 4 saga unit tests in `WorkflowSagaTests.cs`: step-resume, compensation calls for Scanning/DetectingDuplicates, no-op for no completed steps, and compensation trigger from `ProcessWorkflowAsync`.
 - **Global exception handler + standardised error responses** (Code Quality — Area #2):
   - Added `GlobalExceptionHandler` (`IExceptionHandler`) to `StorageLens.Shared.Infrastructure`. All unhandled exceptions in all 9 services now return a consistent RFC 7807 `ProblemDetails` JSON body with `status`, `title`, `detail` (safe — no internal paths), and a `correlationId` extension field.
   - Registered `UseExceptionHandler()` at the top of every service pipeline via `ObservabilityExtensions`. Raw exception details are logged server-side; callers receive only safe, sanitised messages.

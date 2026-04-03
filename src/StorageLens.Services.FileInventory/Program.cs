@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.FileInventory.Data;
 using StorageLens.Services.FileInventory.Extensions;
 using StorageLens.Services.FileInventory.Interfaces;
+using StorageLens.Services.FileInventory.Repositories;
 using StorageLens.Services.FileInventory.Services;
 using StorageLens.Shared.Infrastructure;
 using System.Threading.RateLimiting;
@@ -44,6 +45,7 @@ builder.Services.AddDbContext<FileInventoryDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("FileInventoryDb"));
 });
 
+builder.Services.AddScoped<IFileInventoryRepository, FileInventoryRepository>();
 builder.Services.AddScoped<IFileInventoryService, FileInventoryService>();
 
 

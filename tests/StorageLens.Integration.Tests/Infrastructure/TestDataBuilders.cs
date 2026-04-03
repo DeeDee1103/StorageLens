@@ -18,13 +18,20 @@ public sealed class CreateLocationBuilder
     private string _name = "Test Location";
     private string _path = @"C:\TestShare";
     private StorageLocationType _type = StorageLocationType.Local;
+    private string _siteLocation = "Test Site";
+    private LocationStatus _status = LocationStatus.Online;
+    private double? _latitude;
+    private double? _longitude;
 
     public CreateLocationBuilder WithName(string name) { _name = name; return this; }
     public CreateLocationBuilder WithPath(string path) { _path = path; return this; }
     public CreateLocationBuilder WithType(StorageLocationType type) { _type = type; return this; }
+    public CreateLocationBuilder WithSiteLocation(string siteLocation) { _siteLocation = siteLocation; return this; }
+    public CreateLocationBuilder WithStatus(LocationStatus status) { _status = status; return this; }
+    public CreateLocationBuilder WithCoordinates(double? latitude, double? longitude) { _latitude = latitude; _longitude = longitude; return this; }
 
     public CreateStorageLocationRequest Build() =>
-        new(_name, _path, _type);
+        new(_name, _path, _type, _siteLocation, _status, _latitude, _longitude);
 }
 
 public sealed class UpdateLocationBuilder
@@ -33,13 +40,18 @@ public sealed class UpdateLocationBuilder
     private string _path = @"C:\UpdatedShare";
     private StorageLocationType _type = StorageLocationType.Nas;
     private LocationStatus _status = LocationStatus.Online;
+    private string _siteLocation = "Test Site";
+    private double? _latitude;
+    private double? _longitude;
 
     public UpdateLocationBuilder WithName(string name) { _name = name; return this; }
     public UpdateLocationBuilder WithPath(string path) { _path = path; return this; }
     public UpdateLocationBuilder WithStatus(LocationStatus status) { _status = status; return this; }
+    public UpdateLocationBuilder WithSiteLocation(string siteLocation) { _siteLocation = siteLocation; return this; }
+    public UpdateLocationBuilder WithCoordinates(double? latitude, double? longitude) { _latitude = latitude; _longitude = longitude; return this; }
 
     public UpdateStorageLocationRequest Build() =>
-        new(_name, _path, _type, _status);
+        new(_name, _path, _type, _status, _siteLocation, _latitude, _longitude);
 }
 
 // ── ScanJobs ──────────────────────────────────────────────────────────────────

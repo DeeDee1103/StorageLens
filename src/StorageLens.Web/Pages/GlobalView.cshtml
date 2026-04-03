@@ -450,7 +450,13 @@
         });
 
         if (geoLocations.length === 0) {
-            showEmptyState('#globalMap', 'No live geo-coordinates available for map plotting');
+            const noLocCtrl = L.control({ position: 'topright' });
+            noLocCtrl.onAdd = function () {
+                const div = L.DomUtil.create('div', 'gv-map-no-data');
+                div.innerHTML = '<i class="bi bi-inbox"></i> No locations configured — add one to see it on the map';
+                return div;
+            };
+            noLocCtrl.addTo(map);
         }
 
         geoLocations.forEach((loc) => {
@@ -476,6 +482,8 @@
                 if (row) { row.classList.add('gv-loc-row--active'); row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
             });
         });
+    } else if (mapEl) {
+        showEmptyState('#globalMap', 'Map library could not be loaded. Check outbound access to static assets.');
     }
 
     // ── Storage growth sparkline ──────────────────────────────────
@@ -505,6 +513,8 @@
                 }
             });
         }
+    } else if (tiersCtx) {
+        showEmptyState('.gv-tier-chart-wrap', 'Charts are unavailable because Chart.js did not load.');
     }
 
     // ── File type donut ───────────────────────────────────────────
@@ -534,6 +544,8 @@
                 }
             });
         }
+    } else if (typeCtx) {
+        showEmptyState('.gv-type-chart-wrap', 'Charts are unavailable because Chart.js did not load.');
     }
 
     // ── Export / duplicate gauge ──────────────────────────────────
@@ -554,6 +566,8 @@
                 plugins: { legend: { display: false }, tooltip: { enabled: false } }
             }
         });
+    } else if (exportCtx) {
+        showEmptyState('.gv-gauge-wrap', 'Gauge is unavailable because Chart.js did not load.');
     }
 
     // ── Sync profile info from sidebar ───────────────────────────

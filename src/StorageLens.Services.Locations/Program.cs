@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.Locations.Data;
 using StorageLens.Services.Locations.Extensions;
 using StorageLens.Services.Locations.Interfaces;
+using StorageLens.Services.Locations.Repositories;
 using StorageLens.Services.Locations.Services;
 using StorageLens.Shared.Infrastructure;
 using System.Threading.RateLimiting;
@@ -44,6 +45,7 @@ builder.Services.AddDbContext<LocationsDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("LocationsDb"));
 });
 
+builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 
 var sqlConn = useInMemory ? null : builder.Configuration.GetConnectionString("LocationsDb");

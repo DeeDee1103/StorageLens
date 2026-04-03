@@ -10,4 +10,5 @@ public class OrchestratorUpstreamOptions
     public string Hashing { get; set; } = "http://localhost:5107";
     public string Duplicates { get; set; } = "http://localhost:5104";
     public string Analytics { get; set; } = "http://localhost:5105";
+    public string FileInventory { get; set; } = "http://localhost:5103";
 }

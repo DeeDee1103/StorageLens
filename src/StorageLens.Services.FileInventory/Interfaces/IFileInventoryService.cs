@@ -12,4 +12,9 @@ public interface IFileInventoryService
     Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(Guid? scanJobId, int take, CancellationToken cancellationToken);
     Task<bool> UpdateHashResultAsync(Guid id, FileHashResultRequest request, CancellationToken cancellationToken);
     Task<int> MarkDuplicateFlagsByHashAsync(Guid scanJobId, string correlationId, IReadOnlySet<string> duplicateHashes, CancellationToken cancellationToken);
+    /// <summary>
+    /// Deletes all file records belonging to the specified scan job and correlation ID.
+    /// Used as a compensating transaction when a workflow fails after the Scanning step completes.
+    /// </summary>
+    Task<int> DeleteByScanJobAsync(Guid scanJobId, string correlationId, CancellationToken cancellationToken);
 }
