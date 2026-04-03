@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.FileInventory.Data;
 using StorageLens.Services.FileInventory.Models;
+using StorageLens.Services.FileInventory.Repositories;
 using StorageLens.Services.FileInventory.Services;
 using StorageLens.Shared.Contracts;
 using Xunit;
@@ -9,6 +10,9 @@ namespace StorageLens.Services.FileInventory.Tests;
 
 public class FileInventoryServiceTests
 {
+    private static FileInventoryService CreateService(FileInventoryDbContext db) =>
+        new(new FileInventoryRepository(db));
+
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
@@ -89,7 +93,7 @@ public class FileInventoryServiceTests
             MakeRecord(@"C:\a\three.txt", "three.txt"));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.GetAllAsync(null, null, 1, 25, CancellationToken.None);
 
         Assert.Equal(3, result.Count);
@@ -105,7 +109,7 @@ public class FileInventoryServiceTests
             MakeRecord(@"C:\alpha\summary.docx", "summary.docx"));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.GetAllAsync("report", null, 1, 25, CancellationToken.None);
 
         Assert.Single(result);
@@ -122,7 +126,7 @@ public class FileInventoryServiceTests
             MakeRecord(@"C:\a\file3.pdf", "file3.pdf", ".pdf"));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.GetAllAsync(null, ".pdf", 1, 25, CancellationToken.None);
 
         Assert.Equal(2, result.Count);
@@ -140,7 +144,7 @@ public class FileInventoryServiceTests
         }
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
 
         // page 1, pageSize 2 — largest two (500, 400)
         var page1 = await sut.GetAllAsync(null, null, 1, 2, CancellationToken.None);
@@ -166,7 +170,7 @@ public class FileInventoryServiceTests
         db.FileRecords.Add(record);
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.GetByIdAsync(record.Id, CancellationToken.None);
 
         Assert.NotNull(result);
@@ -178,7 +182,7 @@ public class FileInventoryServiceTests
     public async Task GetByIdAsync_NotFound_ReturnsNull()
     {
         await using var db = CreateDbContext();
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
 
         var result = await sut.GetByIdAsync(Guid.NewGuid(), CancellationToken.None);
 
@@ -202,7 +206,7 @@ public class FileInventoryServiceTests
             MakeRecord(@"C:\a\file3.txt", storageLocationId: otherId));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.GetByLocationAsync(locationId, CancellationToken.None);
 
         Assert.Equal(2, result.Count);
@@ -220,7 +224,7 @@ public class FileInventoryServiceTests
         var request = new FileMetadataBatchIngestRequest(
             Guid.NewGuid(), Guid.NewGuid(), "corr-1", "Loc", @"C:\", []);
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.UpsertBatchAsync(request, CancellationToken.None);
 
         Assert.Equal(0, result.ProcessedCount);
@@ -244,7 +248,7 @@ public class FileInventoryServiceTests
 
         var request = new FileMetadataBatchIngestRequest(locationId, scanJobId, "corr-1", "Loc", @"C:\data", files);
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.UpsertBatchAsync(request, CancellationToken.None);
 
         Assert.Equal(2, result.ProcessedCount);
@@ -271,7 +275,7 @@ public class FileInventoryServiceTests
 
         var request = new FileMetadataBatchIngestRequest(locationId, scanJobId, "corr-1", "Loc", @"C:\data", files);
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.UpsertBatchAsync(request, CancellationToken.None);
 
         Assert.Equal(1, result.ProcessedCount);
@@ -302,7 +306,7 @@ public class FileInventoryServiceTests
 
         var request = new FileMetadataBatchIngestRequest(locationId, scanJobId, "corr-1", "Loc", @"C:\data", files);
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         await sut.UpsertBatchAsync(request, CancellationToken.None);
 
         var updated = await db.FileRecords.FirstAsync(x => x.FilePath == @"C:\data\failed.txt");
@@ -325,7 +329,7 @@ public class FileInventoryServiceTests
             MakeRecord(@"C:\a\inprogress.txt", hashStatus: "InProgress"));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.GetPendingHashFilesAsync(null, 100, CancellationToken.None);
 
         Assert.Equal(2, result.Count);
@@ -345,7 +349,7 @@ public class FileInventoryServiceTests
             MakeRecord(@"C:\a\file3.txt", hashStatus: "Failed", scanJobId: targetScanJobId));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var result = await sut.GetPendingHashFilesAsync(targetScanJobId, 100, CancellationToken.None);
 
         Assert.Equal(2, result.Count);
@@ -371,7 +375,7 @@ public class FileInventoryServiceTests
             null,
             DateTimeOffset.UtcNow);
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var success = await sut.UpdateHashResultAsync(record.Id, request, CancellationToken.None);
 
         Assert.True(success);
@@ -393,7 +397,7 @@ public class FileInventoryServiceTests
             null,
             DateTimeOffset.UtcNow);
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var success = await sut.UpdateHashResultAsync(Guid.NewGuid(), request, CancellationToken.None);
 
         Assert.False(success);
@@ -411,7 +415,7 @@ public class FileInventoryServiceTests
         db.FileRecords.Add(MakeRecord(@"C:\a\file.txt", scanJobId: scanJobId, hashValue: "aaa"));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var count = await sut.MarkDuplicateFlagsByHashAsync(
             scanJobId, "corr-1", new HashSet<string>(), CancellationToken.None);
 
@@ -432,7 +436,7 @@ public class FileInventoryServiceTests
             MakeRecord(@"C:\a\unique.txt", scanJobId: scanJobId, correlationId: correlationId, hashValue: "unique123"));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var count = await sut.MarkDuplicateFlagsByHashAsync(
             scanJobId, correlationId, new HashSet<string> { dupHash }, CancellationToken.None);
 
@@ -460,7 +464,7 @@ public class FileInventoryServiceTests
             MakeRecord(@"C:\a\active.txt", scanJobId: scanJobId, correlationId: correlationId, hashValue: activeDuplicateHash, isDuplicate: false));
         await db.SaveChangesAsync();
 
-        var sut = new FileInventoryService(db);
+        var sut = CreateService(db);
         var count = await sut.MarkDuplicateFlagsByHashAsync(
             scanJobId,
             correlationId,

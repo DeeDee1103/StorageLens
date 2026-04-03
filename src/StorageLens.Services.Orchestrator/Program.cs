@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using StorageLens.Services.Orchestrator.Clients;
 using StorageLens.Services.Orchestrator.Data;
 using StorageLens.Services.Orchestrator.Interfaces;
+using StorageLens.Services.Orchestrator.Repositories;
+using StorageLens.Services.Orchestrator.Sagas;
 using StorageLens.Services.Orchestrator.Services;
 using StorageLens.Shared.Infrastructure;
 using System.Threading.RateLimiting;
@@ -112,8 +114,11 @@ AddUpstreamClient("scanner", upstream.Scanner);
 AddUpstreamClient("hashing", upstream.Hashing);
 AddUpstreamClient("duplicates", upstream.Duplicates);
 AddUpstreamClient("analytics", upstream.Analytics);
+AddUpstreamClient("fileinventory", upstream.FileInventory);
 
 builder.Services.AddSingleton<WorkflowQueue>();
+builder.Services.AddScoped<IWorkflowRepository, WorkflowRepository>();
+builder.Services.AddScoped<IWorkflowCompensator, WorkflowCompensator>();
 builder.Services.AddScoped<IWorkflowOrchestratorService, WorkflowOrchestratorService>();
 builder.Services.AddHostedService<WorkflowBackgroundService>();
 
@@ -128,6 +133,7 @@ builder.AddStorageLensHealthChecks(
         new Uri($"{upstream.Hashing.TrimEnd('/')}/health/live"),
         new Uri($"{upstream.Duplicates.TrimEnd('/')}/health/live"),
         new Uri($"{upstream.Analytics.TrimEnd('/')}/health/live"),
+        new Uri($"{upstream.FileInventory.TrimEnd('/')}/health/live"),
     ]);
 
 var app = builder.Build();

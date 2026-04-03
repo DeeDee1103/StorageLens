@@ -16,4 +16,5 @@ public class StorageLocation
     public long TotalSizeBytes { get; set; }
     public long FileCount { get; set; }
     public DateTimeOffset CreatedDate { get; set; }
+    public bool IsVisibleInUI { get; set; } = true;
 }

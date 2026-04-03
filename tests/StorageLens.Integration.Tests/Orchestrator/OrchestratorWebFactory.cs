@@ -83,7 +83,10 @@ public sealed class OrchestratorStubClientFactory : IHttpClientFactory
             LastScanDate: null,
             TotalSizeBytes: 0,
             FileCount: 0,
-            CreatedDate: DateTimeOffset.UtcNow));
+            CreatedDate: DateTimeOffset.UtcNow,
+            SiteLocation: "Test Site",
+            Latitude: null,
+            Longitude: null));
 
         return _ => new HttpResponseMessage(HttpStatusCode.OK)
         {

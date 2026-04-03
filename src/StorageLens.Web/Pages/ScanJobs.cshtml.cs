@@ -118,6 +118,16 @@ public class ScanJobsModel(
         return RedirectToPage();
     }
 
+    public async Task<IActionResult> OnPostDeleteAsync(Guid jobId, CancellationToken cancellationToken)
+    {
+        if (jobId != Guid.Empty)
+        {
+            await scanJobsApiClient.DeleteAsync(jobId, cancellationToken);
+        }
+
+        return RedirectToPage();
+    }
+
     public sealed record ScanJobsSnapshotDto(
         IReadOnlyList<ScanJobDto> Jobs,
         bool HasActiveJobs,

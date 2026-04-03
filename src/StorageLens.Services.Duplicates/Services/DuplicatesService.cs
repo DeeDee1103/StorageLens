@@ -1,41 +1,28 @@
-using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
-using StorageLens.Services.Duplicates.Data;
 using StorageLens.Services.Duplicates.Interfaces;
 using StorageLens.Services.Duplicates.Models;
+using StorageLens.Services.Duplicates.Repositories;
 using StorageLens.Shared.Contracts;
 
 namespace StorageLens.Services.Duplicates.Services;
 
 public class DuplicatesService(
-    DuplicatesDbContext dbContext,
+    IDuplicateRepository repository,
     IHttpClientFactory httpClientFactory,
     ILogger<DuplicatesService> logger) : IDuplicatesService
 {
     public async Task<DuplicateSummaryDto> GetSummaryAsync(CancellationToken cancellationToken)
     {
-        var latestGroup = await dbContext.DuplicateGroups
-            .AsNoTracking()
-            .OrderByDescending(x => x.RecalculatedAtUtc)
-            .FirstOrDefaultAsync(cancellationToken);
+        var latestGroup = await repository.GetLatestGroupAsync(cancellationToken);
 
         if (latestGroup is null)
         {
             return new DuplicateSummaryDto(0, 0, 0, 0);
         }
 
-        var aggregate = await dbContext.DuplicateGroups
-            .AsNoTracking()
-            .Where(x => x.ScanJobId == latestGroup.ScanJobId && x.CorrelationId == latestGroup.CorrelationId)
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                GroupCount = g.Count(),
-                DuplicateFiles = g.Sum(x => x.FileCount),
-                WastedBytes = g.Sum(x => x.WastedBytes)
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var aggregate = await repository.GetAggregateForRunAsync(
+            latestGroup.ScanJobId, latestGroup.CorrelationId, cancellationToken);
 
         var groupCount = aggregate?.GroupCount ?? 0;
         var duplicateFiles = aggregate?.DuplicateFiles ?? 0;
@@ -63,20 +50,13 @@ public class DuplicatesService(
 
     public async Task<IReadOnlyList<DuplicateGroupDto>> GetGroupsAsync(CancellationToken cancellationToken)
     {
-        var groups = await dbContext.DuplicateGroups
-            .AsNoTracking()
-            .OrderByDescending(x => x.WastedBytes)
-            .Take(50)
-            .ToListAsync(cancellationToken);
-
+        var groups = await repository.GetTopByWastedBytesAsync(50, cancellationToken);
         return groups.Select(Map).ToList();
     }
 
     public async Task<DuplicateGroupDto?> GetGroupByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var group = await dbContext.DuplicateGroups
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var group = await repository.GetByIdAsync(id, cancellationToken);
         return group is null ? null : Map(group);
     }
 
@@ -110,44 +90,23 @@ public class DuplicatesService(
             .Where(x => x.FileCount > 1)
             .ToList();
 
-        if (dbContext.Database.IsRelational())
-        {
-            await dbContext.DuplicateGroups
-                .Where(x => x.ScanJobId == scanJobId && x.CorrelationId == correlationId)
-                .ExecuteDeleteAsync(cancellationToken);
-        }
-        else
-        {
-            var staleGroups = await dbContext.DuplicateGroups
-                .Where(x => x.ScanJobId == scanJobId && x.CorrelationId == correlationId)
-                .ToListAsync(cancellationToken);
-
-            if (staleGroups.Count > 0)
-            {
-                dbContext.DuplicateGroups.RemoveRange(staleGroups);
-            }
-        }
-
         var recalculatedAtUtc = DateTimeOffset.UtcNow;
 
-        foreach (var duplicateAggregate in duplicateAggregates)
+        var newGroups = duplicateAggregates.Select(duplicateAggregate => new DuplicateGroup
         {
-            dbContext.DuplicateGroups.Add(new DuplicateGroup
-            {
-                Id = Guid.NewGuid(),
-                ScanJobId = scanJobId,
-                CorrelationId = correlationId,
-                HashValue = duplicateAggregate.HashValue,
-                FileCount = duplicateAggregate.FileCount,
-                TotalSizeBytes = duplicateAggregate.TotalSizeBytes,
-                WastedBytes = duplicateAggregate.WastedBytes,
-                ExampleFileName = duplicateAggregate.ExampleFileName,
-                LocationsCsv = duplicateAggregate.GetLocationsCsv(),
-                RecalculatedAtUtc = recalculatedAtUtc
-            });
-        }
+            Id = Guid.NewGuid(),
+            ScanJobId = scanJobId,
+            CorrelationId = correlationId,
+            HashValue = duplicateAggregate.HashValue,
+            FileCount = duplicateAggregate.FileCount,
+            TotalSizeBytes = duplicateAggregate.TotalSizeBytes,
+            WastedBytes = duplicateAggregate.WastedBytes,
+            ExampleFileName = duplicateAggregate.ExampleFileName,
+            LocationsCsv = duplicateAggregate.GetLocationsCsv(),
+            RecalculatedAtUtc = recalculatedAtUtc
+        });
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await repository.DeleteAndReplaceAsync(scanJobId, correlationId, newGroups, cancellationToken);
 
         var duplicateHashValues = duplicateAggregates.Select(x => x.HashValue).ToList();
         var markRequest = new MarkDuplicateHashesRequest(scanJobId, correlationId, duplicateHashValues);
@@ -173,6 +132,9 @@ public class DuplicatesService(
             wastedBytes,
             recalculatedAtUtc);
     }
+
+    public Task<int> DeleteByScanJobAsync(Guid scanJobId, string correlationId, CancellationToken cancellationToken) =>
+        repository.DeleteByScanJobAsync(scanJobId, correlationId, cancellationToken);
 
     private static async IAsyncEnumerable<FileRecordDto> EnumerateFilesForRunAsync(
         HttpClient fileInventoryClient,

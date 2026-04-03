@@ -38,6 +38,17 @@ namespace StorageLens.Services.Locations.Migrations
                     b.Property<DateTimeOffset?>("LastScanDate")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<bool>("IsVisibleInUI")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -47,6 +58,11 @@ namespace StorageLens.Services.Locations.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SiteLocation")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -64,6 +80,8 @@ namespace StorageLens.Services.Locations.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("IsVisibleInUI");
 
                     b.HasIndex("TotalSizeBytes");
 

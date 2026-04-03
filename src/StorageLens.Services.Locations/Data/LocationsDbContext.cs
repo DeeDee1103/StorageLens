@@ -19,10 +19,14 @@ public class LocationsDbContext(DbContextOptions<LocationsDbContext> options) : 
             entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
             entity.Property(x => x.Path).HasMaxLength(255).IsRequired();
             entity.Property(x => x.SiteLocation).HasMaxLength(160).IsRequired();
+            entity.Property(x => x.IsVisibleInUI)
+                .HasDefaultValue(true)
+                .ValueGeneratedNever();
             entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(x => x.Name);
             entity.HasIndex(x => x.TotalSizeBytes);
+            entity.HasIndex(x => x.IsVisibleInUI);
         });
     }
 }

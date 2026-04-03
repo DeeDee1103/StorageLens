@@ -17,6 +17,7 @@
     <link rel="icon" type="image/png" href="~/images/storagelens-logo-small.png" asp-append-version="true" />
     <link rel="shortcut icon" type="image/png" href="~/images/storagelens-logo-small.png" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/locations-search.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/StorageLens.Web.styles.css" asp-append-version="true" />
 </head>
 <body class="app-body">
@@ -200,6 +201,14 @@
                     }
                 </div>
                 <div class="top-actions">
+                    <button class="btn icon-btn sidebar-toggle-btn d-none d-lg-inline-flex" id="sidebarCompactBtn" type="button" aria-label="Use compact side navigation" aria-controls="sidebarPanel" aria-pressed="false" title="Use compact side navigation">
+                        <i class="bi bi-distribute-horizontal" aria-hidden="true"></i>
+                        <span class="sidebar-toggle-label">Compact</span>
+                    </button>
+                    <button class="btn icon-btn sidebar-toggle-btn d-none d-lg-inline-flex" id="sidebarToggleBtn" type="button" aria-label="Hide side navigation" aria-controls="sidebarPanel" aria-expanded="true" title="Hide side navigation">
+                        <i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i>
+                        <span class="sidebar-toggle-label">Hide Nav</span>
+                    </button>
                     <div id="quickActionBtns" class="d-flex gap-1"></div>
                     <button class="btn icon-btn theme-toggle-btn" id="darkModeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="false" title="Switch to dark mode">
                         <i class="bi bi-moon-stars-fill" aria-hidden="true"></i>

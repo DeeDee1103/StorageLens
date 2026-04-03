@@ -9,7 +9,7 @@ namespace StorageLens.Services.Locations.Tests;
 public class LocationsControllerTests
 {
     private static StorageLocationDto MakeDto(string name = "Test") =>
-        new(Guid.NewGuid(), name, @"C:\test", "Local", "Online", null, 0, 0, DateTimeOffset.UtcNow);
+        new(Guid.NewGuid(), name, @"C:\test", "Local", "Online", null, 0, 0, DateTimeOffset.UtcNow, "HQ", null, null);
 
     [Fact]
     public async Task GetAll_ReturnsOkWithList()
@@ -55,7 +55,7 @@ public class LocationsControllerTests
         var stub = new StubLocationService { Created = dto };
         var controller = new LocationsController(stub);
 
-        var result = await controller.Create(new CreateStorageLocationRequest("New", @"C:\new", StorageLocationType.Local), CancellationToken.None);
+        var result = await controller.Create(new CreateStorageLocationRequest("New", @"C:\new", StorageLocationType.Local, "HQ", LocationStatus.Online), CancellationToken.None);
 
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
         Assert.Equal(dto, created.Value);
@@ -67,7 +67,7 @@ public class LocationsControllerTests
         var stub = new StubLocationService();
         var controller = new LocationsController(stub);
 
-        var result = await controller.Create(new CreateStorageLocationRequest("", @"C:\path", StorageLocationType.Local), CancellationToken.None);
+        var result = await controller.Create(new CreateStorageLocationRequest("", @"C:\path", StorageLocationType.Local, "HQ", LocationStatus.Online), CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
@@ -78,7 +78,7 @@ public class LocationsControllerTests
         var stub = new StubLocationService();
         var controller = new LocationsController(stub);
 
-        var result = await controller.Create(new CreateStorageLocationRequest("ValidName", "", StorageLocationType.Local), CancellationToken.None);
+        var result = await controller.Create(new CreateStorageLocationRequest("ValidName", "", StorageLocationType.Local, "HQ", LocationStatus.Online), CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
@@ -89,7 +89,7 @@ public class LocationsControllerTests
         var stub = new StubLocationService { UpdateResult = true };
         var controller = new LocationsController(stub);
 
-        var result = await controller.Update(Guid.NewGuid(), new UpdateStorageLocationRequest("N", @"C:\n", StorageLocationType.Local, LocationStatus.Online), CancellationToken.None);
+        var result = await controller.Update(Guid.NewGuid(), new UpdateStorageLocationRequest("N", @"C:\n", StorageLocationType.Local, LocationStatus.Online, "HQ", null, null), CancellationToken.None);
 
         Assert.IsType<NoContentResult>(result);
     }
@@ -100,7 +100,7 @@ public class LocationsControllerTests
         var stub = new StubLocationService { UpdateResult = false };
         var controller = new LocationsController(stub);
 
-        var result = await controller.Update(Guid.NewGuid(), new UpdateStorageLocationRequest("N", @"C:\n", StorageLocationType.Local, LocationStatus.Online), CancellationToken.None);
+        var result = await controller.Update(Guid.NewGuid(), new UpdateStorageLocationRequest("N", @"C:\n", StorageLocationType.Local, LocationStatus.Online, "HQ", null, null), CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result);
     }
@@ -138,7 +138,7 @@ public class LocationsControllerTests
         public Task<IReadOnlyList<StorageLocationDto>> GetAllAsync(CancellationToken ct) => Task.FromResult(All);
         public Task<StorageLocationDto?> GetByIdAsync(Guid id, CancellationToken ct) => Task.FromResult(ById);
         public Task<StorageLocationDto> CreateAsync(CreateStorageLocationRequest req, CancellationToken ct) =>
-            Task.FromResult(Created ?? new StorageLocationDto(Guid.NewGuid(), req.Name, req.Path, req.Type.ToString(), "Online", null, 0, 0, DateTimeOffset.UtcNow));
+            Task.FromResult(Created ?? new StorageLocationDto(Guid.NewGuid(), req.Name, req.Path, req.Type.ToString(), req.Status.ToString(), null, 0, 0, DateTimeOffset.UtcNow, req.SiteLocation, req.Latitude, req.Longitude));
         public Task<bool> UpdateAsync(Guid id, UpdateStorageLocationRequest req, CancellationToken ct) => Task.FromResult(UpdateResult);
         public Task<bool> UpdateStatsAsync(Guid id, UpdateStorageLocationStatsRequest req, CancellationToken ct) => Task.FromResult(UpdateResult);
         public Task<bool> DeleteAsync(Guid id, CancellationToken ct) => Task.FromResult(DeleteResult);

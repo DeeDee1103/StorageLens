@@ -156,6 +156,8 @@ document.addEventListener("DOMContentLoaded", () => {
 	initGlobalButtonHoverText();
 
 	const themeStorageKey = "storagelens-theme";
+	const sidebarModeKey = "sl-sidebar-mode";
+	const sidebarCollapsedKey = "sl-sidebar-collapsed";
 	const uiColorStorageKey = "sl-ui-color";
 	const uiColorCustomStorageKey = "sl-ui-color-custom";
 	const darkThemeValue = "dark";
@@ -163,6 +165,41 @@ document.addEventListener("DOMContentLoaded", () => {
 	const defaultCustomColor = "#6f64e7";
 	const themeToggle = document.getElementById("darkModeToggle");
 	const themeIcon = themeToggle?.querySelector("i");
+	const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
+	const sidebarCompactBtn = document.getElementById("sidebarCompactBtn");
+
+	const applySidebarMode = (mode) => {
+		const normalized = mode === "compact" || mode === "hidden" ? mode : "expanded";
+		const isHidden = normalized === "hidden";
+		const isCompact = normalized === "compact";
+
+		document.body.classList.toggle("sidebar-collapsed", isHidden);
+		document.body.classList.toggle("sidebar-compact", isCompact);
+
+		if (sidebarToggleBtn) {
+			sidebarToggleBtn.setAttribute("aria-expanded", String(!isHidden));
+			sidebarToggleBtn.setAttribute("aria-label", isHidden ? "Show side navigation" : "Hide side navigation");
+			sidebarToggleBtn.setAttribute("title", isHidden ? "Show side navigation" : "Hide side navigation");
+
+			const hideLabel = sidebarToggleBtn.querySelector(".sidebar-toggle-label");
+			if (hideLabel) {
+				hideLabel.textContent = isHidden ? "Show Nav" : "Hide Nav";
+			}
+		}
+
+		if (sidebarCompactBtn) {
+			sidebarCompactBtn.setAttribute("aria-pressed", String(isCompact));
+			sidebarCompactBtn.setAttribute("aria-label", isCompact ? "Use full side navigation" : "Use compact side navigation");
+			sidebarCompactBtn.setAttribute("title", isCompact ? "Use full side navigation" : "Use compact side navigation");
+
+			const compactLabel = sidebarCompactBtn.querySelector(".sidebar-toggle-label");
+			if (compactLabel) {
+				compactLabel.textContent = isCompact ? "Expanded" : "Compact";
+			}
+		}
+
+		return normalized;
+	};
 
 	const uiPalettes = {
 		azure: {
@@ -291,7 +328,29 @@ document.addEventListener("DOMContentLoaded", () => {
 		: (prefersDarkMode ? darkThemeValue : lightThemeValue);
 
 	applyTheme(initialTheme);
+	const storedSidebarMode = localStorage.getItem(sidebarModeKey);
+	const legacyCollapsed = localStorage.getItem(sidebarCollapsedKey) === "true";
+	const initialSidebarMode = storedSidebarMode || (legacyCollapsed ? "hidden" : "expanded");
+	const appliedSidebarMode = applySidebarMode(initialSidebarMode);
+	localStorage.setItem(sidebarModeKey, appliedSidebarMode);
+	localStorage.removeItem(sidebarCollapsedKey);
 	window.renderQuickActionBtns();
+
+	sidebarToggleBtn?.addEventListener("click", () => {
+		const currentMode = document.body.classList.contains("sidebar-collapsed")
+			? "hidden"
+			: (document.body.classList.contains("sidebar-compact") ? "compact" : "expanded");
+		const nextMode = currentMode === "hidden" ? "expanded" : "hidden";
+		localStorage.setItem(sidebarModeKey, applySidebarMode(nextMode));
+	});
+
+	sidebarCompactBtn?.addEventListener("click", () => {
+		const currentMode = document.body.classList.contains("sidebar-collapsed")
+			? "hidden"
+			: (document.body.classList.contains("sidebar-compact") ? "compact" : "expanded");
+		const nextMode = currentMode === "compact" ? "expanded" : "compact";
+		localStorage.setItem(sidebarModeKey, applySidebarMode(nextMode));
+	});
 
 	themeToggle?.addEventListener("click", () => {
 		const nextTheme = document.body.classList.contains("dark-mode") ? lightThemeValue : darkThemeValue;

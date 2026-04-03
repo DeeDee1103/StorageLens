@@ -1,0 +1,429 @@
+/* ====================================== */
+/* Location Search & Geocoding Styles     */
+/* ====================================== */
+
+/* Location Search Container */
+.location-search-container {
+  position: relative;
+  width: 100%;
+}
+
+.location-search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--sl-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--sl-text);
+  background: var(--sl-card);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.location-search-input:focus {
+  outline: none;
+  border-color: var(--sl-primary);
+  box-shadow: 0 0 0 3px rgba(17, 101, 216, 0.1);
+}
+
+.location-search-input::placeholder {
+  color: var(--sl-muted);
+}
+
+/* Interactive form styling */
+.storage-future-input.location-search-input {
+  background: rgba(10, 20, 38, 0.86);
+  border-color: rgba(106, 138, 194, 0.34);
+  color: #edf6ff;
+  min-height: 46px;
+}
+
+.storage-future-input.location-search-input::placeholder {
+  color: #738bb1;
+}
+
+.storage-future-input.location-search-input:focus {
+  background: rgba(10, 20, 38, 0.96);
+  border-color: rgba(43, 226, 219, 0.66);
+  box-shadow: 0 0 0 0.25rem rgba(43, 226, 219, 0.12);
+  color: #edf6ff;
+}
+
+/* Location Dropdown */
+.location-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  background: var(--sl-card);
+  border: 1px solid var(--sl-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 100%;
+}
+
+button.dark-mode .location-dropdown {
+  background: #1a2a42;
+  border-color: rgba(108, 140, 196, 0.34);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+/* Dropdown Item */
+.location-dropdown-item {
+  padding: 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--sl-text);
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid var(--sl-border);
+  font-size: 0.9rem;
+}
+
+.location-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.location-dropdown-item:hover {
+  background: rgba(17, 101, 216, 0.1);
+}
+
+.location-dropdown-item:focus {
+  outline: none;
+  background: rgba(17, 101, 216, 0.15);
+}
+
+.location-dropdown-item.selected {
+  background: rgba(17, 101, 216, 0.2);
+  font-weight: 600;
+}
+
+/* Dark Mode Dropdown Items */
+body.dark-mode .location-dropdown-item {
+  color: #edf6ff;
+  border-bottom-color: rgba(108, 140, 196, 0.2);
+}
+
+body.dark-mode .location-dropdown-item:hover {
+  background: rgba(43, 226, 219, 0.12);
+}
+
+body.dark-mode .location-dropdown-item:focus {
+  background: rgba(43, 226, 219, 0.18);
+}
+
+body.dark-mode .location-dropdown-item.selected {
+  background: rgba(43, 226, 219, 0.2);
+  color: #fff;
+}
+
+/* Location Result Item with Icon */
+.location-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.location-result-icon {
+  font-size: 1rem;
+  color: var(--sl-primary);
+  flex-shrink: 0;
+}
+
+.location-result-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.location-result-name {
+  font-weight: 600;
+  color: var(--sl-text);
+}
+
+.location-result-country {
+  font-size: 0.8rem;
+  color: var(--sl-muted);
+  margin-top: 0.1rem;
+}
+
+/* Advanced Coordinates Section */
+.locations-advanced-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--sl-border);
+  padding-top: 1rem;
+}
+
+.locations-advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  color: var(--sl-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.locations-advanced-toggle:hover {
+  color: var(--sl-primary);
+  text-decoration: underline;
+}
+
+.locations-advanced-toggle i {
+  transition: transform 0.2s ease;
+}
+
+.locations-advanced-toggle[aria-expanded="true"] i {
+  transform: rotate(90deg);
+}
+
+/* Dark Mode Toggle */
+body.dark-mode .locations-advanced-toggle {
+  color: #79f24a;
+}
+
+body.dark-mode .locations-advanced-toggle:hover {
+  color: #9eff72;
+}
+
+/* Coordinates Panel */
+.locations-coordinates-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(17, 101, 216, 0.05);
+  border: 1px solid rgba(17, 101, 216, 0.15);
+  border-radius: 8px;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark Mode Coordinates Panel */
+body.dark-mode .locations-coordinates-panel {
+  background: rgba(43, 226, 219, 0.08);
+  border-color: rgba(43, 226, 219, 0.2);
+}
+
+/* Coordinates Input Fields */
+.locations-coordinates-panel .form-control {
+  border: 1px solid rgba(17, 101, 216, 0.25);
+  transition: border-color 0.2s ease;
+}
+
+.locations-coordinates-panel .form-control:focus {
+  border-color: var(--sl-primary);
+  box-shadow: 0 0 0 3px rgba(17, 101, 216, 0.1);
+}
+
+body.dark-mode .locations-coordinates-panel .form-control {
+  background: rgba(10, 20, 38, 0.86);
+  border-color: rgba(106, 138, 194, 0.34);
+  color: #edf6ff;
+}
+
+body.dark-mode .locations-coordinates-panel .form-control:focus {
+  border-color: rgba(43, 226, 219, 0.66);
+  box-shadow: 0 0 0 0.25rem rgba(43, 226, 219, 0.12);
+}
+
+/* Status Messages */
+#classicLocationStatus,
+#interactiveLocationStatus,
+#classicGeoStatus,
+#interactiveGeoStatus {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  min-height: 1.2em;
+  transition: color 0.2s ease;
+}
+
+.location-status-loading {
+  color: #1165d8;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.location-status-loading::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(17, 101, 216, 0.3);
+  border-top-color: #1165d8;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.location-status-success {
+  color: #14b85d;
+  font-weight: 600;
+}
+
+.location-status-success::before {
+  content: "✓ ";
+  margin-right: 0.3rem;
+}
+
+.location-status-error {
+  color: #c41e3a;
+  font-weight: 600;
+}
+
+.location-status-error::before {
+  content: "⚠ ";
+  margin-right: 0.3rem;
+}
+
+/* Dark Mode Status Messages */
+body.dark-mode .location-status-loading {
+  color: #79f24a;
+}
+
+body.dark-mode .location-status-loading::before {
+  border-color: rgba(121, 242, 74, 0.3);
+  border-top-color: #79f24a;
+}
+
+body.dark-mode .location-status-success {
+  color: #79f24a;
+}
+
+body.dark-mode .location-status-error {
+  color: #ff8e8e;
+}
+
+/* Geo Button */
+.locations-geo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  border: 1px solid var(--sl-primary);
+  border-radius: 8px;
+  background: rgba(17, 101, 216, 0.1);
+  color: var(--sl-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.locations-geo-btn:hover {
+  background: rgba(17, 101, 216, 0.2);
+  border-color: var(--sl-primary);
+}
+
+.locations-geo-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 101, 216, 0.2);
+}
+
+.locations-geo-btn.is-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.locations-geo-btn.is-loading::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 0.3rem;
+}
+
+/* Dark Mode Geo Button */
+body.dark-mode .locations-geo-btn {
+  border-color: rgba(43, 226, 219, 0.66);
+  background: rgba(43, 226, 219, 0.12);
+  color: #79f24a;
+}
+
+body.dark-mode .locations-geo-btn:hover {
+  background: rgba(43, 226, 219, 0.2);
+}
+
+body.dark-mode .locations-geo-btn:focus {
+  box-shadow: 0 0 0 3px rgba(43, 226, 219, 0.2);
+}
+
+/* Form Text Helper */
+.form-text {
+  font-size: 0.85rem;
+  color: var(--sl-muted);
+  margin-top: 0.4rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .location-dropdown {
+    max-height: 250px;
+  }
+
+  .location-search-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .locations-coordinates-panel {
+    padding: 0.75rem;
+  }
+
+  .row.g-2 .col-md-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .location-dropdown,
+  .locations-coordinates-panel,
+  .location-search-input,
+  .location-status-loading::before,
+  .locations-geo-btn.is-loading::before {
+    animation: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: more) {
+  .location-search-input {
+    border-width: 2px;
+  }
+
+  .location-dropdown-item:hover {
+    text-decoration: underline;
+  }
+
+  .locations-advanced-toggle {
+    text-decoration: underline;
+  }
+}
