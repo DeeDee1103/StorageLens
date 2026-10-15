@@ -44,8 +44,8 @@ public class OrchestratorIntegrationTests(OrchestratorWebFactory factory)
         var response = await _client.PostAsync($"/api/orchestrator/scans/start/{Guid.Empty}", null);
 
         Assert.True(
-            response.StatusCode == HttpStatusCode.BadRequest  ||
-            response.StatusCode == HttpStatusCode.NotFound    ||
+            response.StatusCode == HttpStatusCode.BadRequest ||
+            response.StatusCode == HttpStatusCode.NotFound ||
             response.StatusCode == HttpStatusCode.InternalServerError,
             $"Expected 400, 404 or 500 for empty location id but got {response.StatusCode}");
     }

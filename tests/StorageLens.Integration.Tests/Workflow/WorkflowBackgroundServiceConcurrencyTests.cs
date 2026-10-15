@@ -31,7 +31,7 @@ public class WorkflowBackgroundServiceConcurrencyTests(ConcurrencyOrchestratorFa
 {
     private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
-    private const int PollingIntervalMs  = 100;
+    private const int PollingIntervalMs = 100;
     private const int MaxPollingAttempts = 150;   // 15 s budget per test
 
     // ── Max concurrent workflows ─────────────────────────────────────────────
@@ -40,7 +40,7 @@ public class WorkflowBackgroundServiceConcurrencyTests(ConcurrencyOrchestratorFa
     public async Task MaxConcurrentWorkflows_IsRespected()
     {
         const int concurrencyLimit = ConcurrencyOrchestratorFactory.ConcurrencyLimit;
-        const int totalWorkflows   = concurrencyLimit * 2 + 1;
+        const int totalWorkflows = concurrencyLimit * 2 + 1;
 
         // Start more workflows than the semaphore permits concurrently.
         var workflowIds = new List<Guid>(totalWorkflows);
@@ -206,8 +206,8 @@ public class WorkflowBackgroundServiceConcurrencyTests(ConcurrencyOrchestratorFa
 public sealed class ConcurrencyOrchestratorFactory
     : WebApplicationFactory<OrchestratorProgram>
 {
-    internal const int    ConcurrencyLimit = 2;
-    internal const string TestApiKey       = "integration-test-key";
+    internal const int ConcurrencyLimit = 2;
+    internal const string TestApiKey = "integration-test-key";
 
     private readonly string _dbName =
         $"integration-orchestrator-concurrency-{Guid.NewGuid()}";
@@ -218,17 +218,17 @@ public sealed class ConcurrencyOrchestratorFactory
     {
         builder.UseEnvironment("Development");
 
-        builder.UseSetting("Database:UseInMemory",                      "true");
-        builder.UseSetting("ServiceApiKey",                              TestApiKey);
+        builder.UseSetting("Database:UseInMemory", "true");
+        builder.UseSetting("ServiceApiKey", TestApiKey);
         builder.UseSetting("WorkflowProcessing:MaxConcurrentWorkflows",
             ConcurrencyLimit.ToString());
 
-        builder.UseSetting("UpstreamServices:Locations",  "http://stub-locations/");
-        builder.UseSetting("UpstreamServices:ScanJobs",   "http://stub-scanjobs/");
-        builder.UseSetting("UpstreamServices:Scanner",    "http://stub-scanner/");
-        builder.UseSetting("UpstreamServices:Hashing",    "http://stub-hashing/");
+        builder.UseSetting("UpstreamServices:Locations", "http://stub-locations/");
+        builder.UseSetting("UpstreamServices:ScanJobs", "http://stub-scanjobs/");
+        builder.UseSetting("UpstreamServices:Scanner", "http://stub-scanner/");
+        builder.UseSetting("UpstreamServices:Hashing", "http://stub-hashing/");
         builder.UseSetting("UpstreamServices:Duplicates", "http://stub-duplicates/");
-        builder.UseSetting("UpstreamServices:Analytics",  "http://stub-analytics/");
+        builder.UseSetting("UpstreamServices:Analytics", "http://stub-analytics/");
 
         builder.ConfigureServices(services =>
         {

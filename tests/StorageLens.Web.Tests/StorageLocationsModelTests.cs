@@ -18,7 +18,7 @@ public class StorageLocationsModelTests
         var locationId = Guid.NewGuid();
         var locations = new List<StorageLocationDto>
         {
-            new(locationId, "NAS01", @"\\nas01\data", "Nas", "Online", null, 0, 0, DateTimeOffset.UtcNow)
+            new(locationId, "NAS01", @"\\nas01\data", "Nas", "Online", null, 0, 0, DateTimeOffset.UtcNow, string.Empty, null, null)
         };
 
         var locationsHandler = new StubHttpMessageHandler((req, ct) =>

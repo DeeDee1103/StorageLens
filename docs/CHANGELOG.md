@@ -40,6 +40,12 @@ Example:
 - **Global map plotting behavior** — locations are now always plotted from configured data; when explicit coordinates are absent, deterministic coordinate derivation is used to avoid missing map pins.
 
 ### Fixed
+- **Broken restore on `main`** — Removed committed merge-conflict markers from `StorageLens.Shared.Infrastructure.csproj`, keeping both Dependabot bumps (`OpenTelemetry.Instrumentation.AspNetCore` 1.15.1, `OpenTelemetry.Instrumentation.Http` 1.15.0).
+  - Aligned `Microsoft.Extensions.Http.Polly` to 10.0.5 in Analytics and Orchestrator to clear NU1605 downgrade errors against Shared.Infrastructure.
+  - Changed `AspNetCore.HealthChecks.Uris` from the nonexistent 8.0.2 to 9.0.0.
+- **Vulnerable packages** — Upgraded OpenTelemetry core packages (Hosting, Console and OTLP exporters) to 1.20.0, and Swashbuckle.AspNetCore to 10.3.0 so `Microsoft.OpenApi` resolves to the patched 2.7.5 (GHSA-v5pm-xwqc-g5wc).
+- **Web test build errors** — `StorageLocationDto` test fixtures now pass the `SiteLocation`, `Latitude` and `Longitude` arguments added to the contract.
+- **Formatting** — Applied `dotnet format whitespace` so the code-quality format check passes. The changes are whitespace-only.
 - **Build errors in `StorageLens.Shared.Infrastructure`** — Added missing `using Microsoft.AspNetCore.Routing` to `HealthCheckExtensions.cs` (fixes `IEndpointRouteBuilder` CS0246 build error). Fixed `MetadataName<TimeSpan>` to `string` comparison in `DistributedRateLimiter.cs` using `.Name` property. Added missing `using Microsoft.Extensions.Hosting` to `ObservabilityExtensions.cs`. Reordered `ArgumentNullException`/`ArgumentException` arms in `GlobalExceptionHandler.cs` switch expression to fix CS8510 unreachable pattern.
 - **Seeder `CancellationToken` mismatch** — Added `CancellationToken cancellationToken = default` parameter to `DuplicatesSeeder`, `LocationsSeeder`, `FileInventorySeeder`, and `ScanJobsSeeder`. Seeders now propagate the cancellation token to `SaveChangesAsync` and match the delegate signature expected by `BackgroundDatabaseInitialization.Start`.
 - **Integration test `Program` accessibility** — Added `public partial class Program {}` to `StorageLens.Services.Locations/Program.cs` so `WebApplicationFactory<Program>` in integration tests can reference the type.
