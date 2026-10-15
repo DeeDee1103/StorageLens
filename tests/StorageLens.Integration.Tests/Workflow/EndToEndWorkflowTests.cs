@@ -21,7 +21,7 @@ public class EndToEndWorkflowTests(OrchestratorWebFactory factory)
     private readonly HttpClient _client = factory.CreateAuthenticatedClient();
 
     // Polling parameters for async workflow completion.
-    private const int PollingIntervalMs  = 100;
+    private const int PollingIntervalMs = 100;
     private const int MaxPollingAttempts = 100;  // 10 s total budget
 
     // ── Full pipeline ────────────────────────────────────────────────────────
@@ -47,8 +47,8 @@ public class EndToEndWorkflowTests(OrchestratorWebFactory factory)
 
         // ── 3. Verify all four pipeline steps ran ────────────────────────────
         var stepNames = workflow.Steps.Select(s => s.StepName).ToHashSet();
-        Assert.Contains("Scanning",            stepNames);
-        Assert.Contains("Hashing",             stepNames);
+        Assert.Contains("Scanning", stepNames);
+        Assert.Contains("Hashing", stepNames);
         Assert.Contains("DetectingDuplicates", stepNames);
         Assert.Contains("RefreshingAnalytics", stepNames);
 

@@ -75,13 +75,13 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
 
     private static int MapStatusCode(Exception ex) => ex switch
     {
-        ArgumentException              => StatusCodes.Status400BadRequest,
-        KeyNotFoundException           => StatusCodes.Status404NotFound,
-        FileNotFoundException          => StatusCodes.Status404NotFound,
-        UnauthorizedAccessException    => StatusCodes.Status403Forbidden,
-        NotImplementedException        => StatusCodes.Status501NotImplemented,
-        OperationCanceledException     => StatusCodes.Status499ClientClosedRequest,
-        _                              => StatusCodes.Status500InternalServerError,
+        ArgumentException => StatusCodes.Status400BadRequest,
+        KeyNotFoundException => StatusCodes.Status404NotFound,
+        FileNotFoundException => StatusCodes.Status404NotFound,
+        UnauthorizedAccessException => StatusCodes.Status403Forbidden,
+        NotImplementedException => StatusCodes.Status501NotImplemented,
+        OperationCanceledException => StatusCodes.Status499ClientClosedRequest,
+        _ => StatusCodes.Status500InternalServerError,
     };
 
     private static string GetTitle(int statusCode) => statusCode switch

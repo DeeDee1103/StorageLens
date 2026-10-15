@@ -61,12 +61,12 @@ public sealed class OrchestratorStubClientFactory : IHttpClientFactory
 
     public HttpClient CreateClient(string name) => name switch
     {
-        "locations"  => new HttpClient(LocationsHandler)  { BaseAddress = new Uri("http://stub-locations/") },
-        "scanjobs"   => new HttpClient(ScanJobsHandler)   { BaseAddress = new Uri("http://stub-scanjobs/") },
-        "scanner"    => new HttpClient(ScannerHandler)    { BaseAddress = new Uri("http://stub-scanner/") },
-        "hashing"    => new HttpClient(HashingHandler)    { BaseAddress = new Uri("http://stub-hashing/") },
+        "locations" => new HttpClient(LocationsHandler) { BaseAddress = new Uri("http://stub-locations/") },
+        "scanjobs" => new HttpClient(ScanJobsHandler) { BaseAddress = new Uri("http://stub-scanjobs/") },
+        "scanner" => new HttpClient(ScannerHandler) { BaseAddress = new Uri("http://stub-scanner/") },
+        "hashing" => new HttpClient(HashingHandler) { BaseAddress = new Uri("http://stub-hashing/") },
         "duplicates" => new HttpClient(DuplicatesHandler) { BaseAddress = new Uri("http://stub-duplicates/") },
-        "analytics"  => new HttpClient(AnalyticsHandler)  { BaseAddress = new Uri("http://stub-analytics/") },
+        "analytics" => new HttpClient(AnalyticsHandler) { BaseAddress = new Uri("http://stub-analytics/") },
         _ => new HttpClient(new CountingStubHandler()) { BaseAddress = new Uri("http://stub-default/") }
     };
 
@@ -233,12 +233,12 @@ public sealed class OrchestratorWebFactory
         // Point all upstream addresses at the stub base URI so the real
         // configuration does not interfere. These are overridden at the
         // IHttpClientFactory level below, so actual URL values don't matter.
-        builder.UseSetting("UpstreamServices:Locations",  "http://stub-locations/");
-        builder.UseSetting("UpstreamServices:ScanJobs",   "http://stub-scanjobs/");
-        builder.UseSetting("UpstreamServices:Scanner",    "http://stub-scanner/");
-        builder.UseSetting("UpstreamServices:Hashing",    "http://stub-hashing/");
+        builder.UseSetting("UpstreamServices:Locations", "http://stub-locations/");
+        builder.UseSetting("UpstreamServices:ScanJobs", "http://stub-scanjobs/");
+        builder.UseSetting("UpstreamServices:Scanner", "http://stub-scanner/");
+        builder.UseSetting("UpstreamServices:Hashing", "http://stub-hashing/");
         builder.UseSetting("UpstreamServices:Duplicates", "http://stub-duplicates/");
-        builder.UseSetting("UpstreamServices:Analytics",  "http://stub-analytics/");
+        builder.UseSetting("UpstreamServices:Analytics", "http://stub-analytics/");
 
         builder.ConfigureServices(services =>
         {
