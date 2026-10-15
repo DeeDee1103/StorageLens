@@ -200,6 +200,78 @@ public class WorkflowBackgroundServiceTests
         Assert.Equal(WorkflowStatus.Pending.ToString(), futureWorkflow.Status);
     }
 
+    [Fact]
+    public async Task EnqueueRecoverableWorkflowsAsync_RequeuesWorkflowsLeftRunningByCrashedProcess()
+    {
+        var orphanedId = Guid.NewGuid();
+        var completedId = Guid.NewGuid();
+        var dbName = $"background-service-recovery-{Guid.NewGuid()}";
+
+        var services = new ServiceCollection();
+        services.AddDbContext<OrchestratorDbContext>(options =>
+            options.UseInMemoryDatabase(dbName));
+
+        await using var provider = services.BuildServiceProvider();
+        await using (var scope = provider.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<OrchestratorDbContext>();
+            dbContext.WorkflowInstances.AddRange(
+                new WorkflowInstance
+                {
+                    Id = orphanedId,
+                    StorageLocationId = Guid.NewGuid(),
+                    ScanJobId = Guid.NewGuid(),
+                    CorrelationId = "corr-orphaned",
+                    RootPath = @"A:\\orphaned",
+                    Status = WorkflowStatus.Running.ToString(),
+                    CreatedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-30),
+                    LastError = string.Empty
+                },
+                new WorkflowInstance
+                {
+                    Id = completedId,
+                    StorageLocationId = Guid.NewGuid(),
+                    ScanJobId = Guid.NewGuid(),
+                    CorrelationId = "corr-completed",
+                    RootPath = @"A:\\completed",
+                    Status = WorkflowStatus.Completed.ToString(),
+                    CreatedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-60),
+                    LastError = string.Empty
+                });
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        var queue = new WorkflowQueue();
+        var svc = new WorkflowBackgroundService(
+            queue,
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            Options.Create(new WorkflowProcessingOptions { MaxConcurrentWorkflows = 1 }),
+            NullLogger<WorkflowBackgroundService>.Instance);
+
+        var method = typeof(WorkflowBackgroundService)
+            .GetMethod("EnqueueRecoverableWorkflowsAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(method);
+
+        var invoked = (Task?)method!.Invoke(svc, [CancellationToken.None]);
+        Assert.NotNull(invoked);
+        await invoked!;
+
+        using var dequeueTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        Assert.Equal(orphanedId, await queue.DequeueAsync(dequeueTimeout.Token));
+
+        using var secondTimeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await queue.DequeueAsync(secondTimeout.Token);
+        });
+
+        await using var verifyScope = provider.CreateAsyncScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<OrchestratorDbContext>();
+        Assert.Equal(WorkflowStatus.RetryQueued.ToString(), (await verifyDb.WorkflowInstances.FirstAsync(x => x.Id == orphanedId)).Status);
+        Assert.Equal(WorkflowStatus.Completed.ToString(), (await verifyDb.WorkflowInstances.FirstAsync(x => x.Id == completedId)).Status);
+    }
+
     private sealed class FakeOrchestrator(Func<Guid, CancellationToken, Task> handler) : IWorkflowOrchestratorService
     {
         public Task<WorkflowStartResultDto> StartScanAsync(Guid locationId, DateTimeOffset? scheduledStartUtc, CancellationToken cancellationToken) =>

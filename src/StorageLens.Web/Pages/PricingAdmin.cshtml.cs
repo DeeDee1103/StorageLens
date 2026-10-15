@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
@@ -8,12 +6,10 @@ using StorageLens.Web.Services;
 
 namespace StorageLens.Web.Pages;
 
-public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment environment) : PageModel
+public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment environment, OwnerSession ownerSession) : PageModel
 {
     // ── Cookie constants ─────────────────────────────────────────────────────
 
-    public const string OwnerCookieName = "sl-owner-mode";
-    private const string OwnerCookieValue = "granted";
 
     // ── Page state ───────────────────────────────────────────────────────────
 
@@ -47,25 +43,13 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
 
         var storedPin = configuration[$"{PricingOptions.SectionName}:OwnerPin"] ?? string.Empty;
 
-        // Use constant-time comparison to prevent timing-based PIN enumeration.
-        var storedBytes = Encoding.UTF8.GetBytes(storedPin);
-        var enteredBytes = Encoding.UTF8.GetBytes(OwnerPin ?? string.Empty);
-        var pinsMatch = storedBytes.Length > 0
-                        && CryptographicOperations.FixedTimeEquals(storedBytes, enteredBytes);
-
-        if (!pinsMatch)
+        if (!OwnerSession.PinMatches(storedPin, OwnerPin))
         {
             ErrorMessage = "Incorrect owner PIN. Please try again.";
             return Page();
         }
 
-        Response.Cookies.Append(OwnerCookieName, OwnerCookieValue, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = !environment.IsDevelopment(),
-            SameSite = SameSiteMode.Lax,
-            IsEssential = true,
-        });
+        ownerSession.SignIn(Response);
 
         IsOwnerAuthenticated = true;
         SuccessMessage = "Owner mode unlocked. You can now edit pricing tiers and services.";
@@ -74,7 +58,7 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
 
     public IActionResult OnPostLock()
     {
-        Response.Cookies.Delete(OwnerCookieName);
+        OwnerSession.SignOut(Response);
         return RedirectToPage();
     }
 
@@ -219,8 +203,7 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
         ViewData["Title"] = "Pricing Admin";
         ViewData["Nav"] = "Settings";
         SelectedEditEnvironment = EnvironmentSettingsModel.ResolveEditEnvironment(Request);
-        IsOwnerAuthenticated = Request.Cookies.TryGetValue(OwnerCookieName, out var val)
-                               && val == OwnerCookieValue;
+        IsOwnerAuthenticated = ownerSession.IsAuthenticated(Request);
     }
 
     private void LoadCurrentPricing()
@@ -241,7 +224,6 @@ public class PricingAdminModel(IConfiguration configuration, IWebHostEnvironment
         var writeOpts = new JsonSerializerOptions { WriteIndented = true };
         var pricingNode = JsonSerializer.SerializeToNode(new
         {
-            OwnerPin = configuration[$"{PricingOptions.SectionName}:OwnerPin"] ?? string.Empty,
             ActiveTierId,
             Tiers,
             AvailableServices,

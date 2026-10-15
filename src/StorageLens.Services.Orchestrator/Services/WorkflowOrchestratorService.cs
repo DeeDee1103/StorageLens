@@ -14,6 +14,8 @@ public class WorkflowOrchestratorService(
     IWorkflowCompensator compensator,
     ILogger<WorkflowOrchestratorService> logger) : IWorkflowOrchestratorService
 {
+    public const string InterruptedByShutdownMessage = "Interrupted by service shutdown; queued for resume.";
+
     private static readonly IReadOnlyDictionary<WorkflowStatus, HashSet<WorkflowStatus>> AllowedTransitions =
         new Dictionary<WorkflowStatus, HashSet<WorkflowStatus>>
         {
@@ -379,6 +381,19 @@ public class WorkflowOrchestratorService(
             workflow.LastError = string.Empty;
 
             await workflowRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Host shutdown or redeploy, not a scan failure. Keep everything ingested so far,
+            // requeue the workflow so completed steps are skipped on resume, and do not
+            // fail the scan job or run compensation (which would delete ingested files).
+            logger.LogWarning(
+                "Workflow {WorkflowId} was interrupted by shutdown; requeuing it for resume.",
+                workflowId);
+
+            SetWorkflowStatus(workflow, WorkflowStatus.RetryQueued);
+            workflow.LastError = InterruptedByShutdownMessage;
+            await workflowRepository.SaveChangesAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {

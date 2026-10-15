@@ -71,9 +71,10 @@ public class FilesController(IFileInventoryService fileInventoryService) : Contr
     public async Task<ActionResult<IReadOnlyList<PendingHashFileDto>>> GetPendingHash(
         [FromQuery] Guid? scanJobId,
         [FromQuery] int take = 500,
+        [FromQuery] bool includeFailed = true,
         CancellationToken cancellationToken = default)
     {
-        var items = await fileInventoryService.GetPendingHashFilesAsync(scanJobId, take, cancellationToken);
+        var items = await fileInventoryService.GetPendingHashFilesAsync(scanJobId, take, includeFailed, cancellationToken);
         return Ok(items);
     }
 

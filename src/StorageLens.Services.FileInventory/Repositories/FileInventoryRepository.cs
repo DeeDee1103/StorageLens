@@ -75,6 +75,11 @@ public class FileInventoryRepository(FileInventoryDbContext dbContext) : IFileIn
         {
             if (existingByPath.TryGetValue(item.FilePath, out var existing))
             {
+                // A different size or modified time means the content may have changed,
+                // so the stored hash and duplicate flags can no longer be trusted.
+                var contentChanged = existing.SizeBytes != item.SizeBytes
+                                     || existing.LastModifiedDate != item.LastModifiedDate;
+
                 existing.StorageLocationId = item.StorageLocationId;
                 existing.ScanJobId = item.ScanJobId;
                 existing.CorrelationId = item.CorrelationId;
@@ -88,7 +93,16 @@ public class FileInventoryRepository(FileInventoryDbContext dbContext) : IFileIn
                 existing.DiscoveryDate = item.ScanTimestamp;
                 existing.ScanSourcePath = item.ScanSourcePath;
 
-                if (existing.HashStatus == HashStatus.Failed.ToString())
+                if (contentChanged)
+                {
+                    existing.HashValue = string.Empty;
+                    existing.HashCalculatedDate = null;
+                    existing.HashStatus = HashStatus.Pending.ToString();
+                    existing.HashError = null;
+                    existing.IsDuplicate = false;
+                    existing.DuplicateGroupId = null;
+                }
+                else if (existing.HashStatus == HashStatus.Failed.ToString())
                 {
                     existing.HashStatus = HashStatus.Pending.ToString();
                     existing.HashError = null;
@@ -129,11 +143,13 @@ public class FileInventoryRepository(FileInventoryDbContext dbContext) : IFileIn
     }
 
     public async Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(
-        Guid? scanJobId, int take, CancellationToken cancellationToken)
+        Guid? scanJobId, int take, bool includeFailed, CancellationToken cancellationToken)
     {
+        var pending = HashStatus.Pending.ToString();
+        var failed = HashStatus.Failed.ToString();
         var query = dbContext.FileRecords
             .AsNoTracking()
-            .Where(x => x.HashStatus == HashStatus.Pending.ToString() || x.HashStatus == HashStatus.Failed.ToString());
+            .Where(x => x.HashStatus == pending || (includeFailed && x.HashStatus == failed));
 
         if (scanJobId.HasValue)
         {

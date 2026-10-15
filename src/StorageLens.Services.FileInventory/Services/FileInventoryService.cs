@@ -42,8 +42,8 @@ public class FileInventoryService(IFileInventoryRepository repository) : IFileIn
     }
 
     public Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(
-        Guid? scanJobId, int take, CancellationToken cancellationToken) =>
-        repository.GetPendingHashFilesAsync(scanJobId, take, cancellationToken);
+        Guid? scanJobId, int take, bool includeFailed, CancellationToken cancellationToken) =>
+        repository.GetPendingHashFilesAsync(scanJobId, take, includeFailed, cancellationToken);
 
     public Task<bool> UpdateHashResultAsync(Guid id, FileHashResultRequest request, CancellationToken cancellationToken) =>
         repository.UpdateHashResultAsync(id, request, cancellationToken);

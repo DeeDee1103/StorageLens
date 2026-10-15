@@ -433,6 +433,87 @@ public class WorkflowSagaTests
         Assert.Equal(workflowId, capturedWorkflowId);
     }
 
+    [Fact]
+    public async Task ProcessWorkflowAsync_WhenHostShutsDownMidStep_RequeuesWithoutCompensatingOrFailingScanJob()
+    {
+        await using var dbContext = CreateDbContext();
+
+        var locationId = Guid.NewGuid();
+        var scanJobId = Guid.NewGuid();
+        var workflowId = Guid.NewGuid();
+
+        dbContext.WorkflowInstances.Add(new WorkflowInstance
+        {
+            Id = workflowId,
+            StorageLocationId = locationId,
+            ScanJobId = scanJobId,
+            CorrelationId = "corr-shutdown",
+            RootPath = @"A:\\data",
+            Status = WorkflowStatus.Pending.ToString(),
+            CreatedAtUtc = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var compensationCalled = false;
+        var trackingCompensator = new TrackingWorkflowCompensator(_ =>
+        {
+            compensationCalled = true;
+            return Task.CompletedTask;
+        });
+
+        var scanJobStatusBodies = new List<string>();
+        var scanJobsHandler = new StubHttpMessageHandler(async (req, _) =>
+        {
+            if (req.Content is not null)
+            {
+                scanJobStatusBodies.Add(await req.Content.ReadAsStringAsync());
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+
+        var locationsHandler = new StubHttpMessageHandler((_, _) =>
+            Task.FromResult(JsonResponse(new StorageLocationDto(
+                locationId, "Primary", @"A:\\data",
+                StorageLocationType.Local.ToString(),
+                LocationStatus.Online.ToString(),
+                null, 0, 0, DateTimeOffset.UtcNow,
+                "Site A", null, null))));
+
+        var scannerHandler = new StubHttpMessageHandler((_, _) =>
+            Task.FromResult(JsonResponse(new ScannerExecutionDto(
+                Guid.NewGuid(), locationId, scanJobId, "corr-shutdown",
+                @"A:\\data", "Completed", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, 5, 0, string.Empty))));
+
+        // Simulate the host stopping while the Hashing step is in flight.
+        using var shutdown = new CancellationTokenSource();
+        var hashingHandler = new StubHttpMessageHandler((_, _) =>
+        {
+            shutdown.Cancel();
+            throw new OperationCanceledException(shutdown.Token);
+        });
+
+        var clientFactory = new StubHttpClientFactory(new Dictionary<string, HttpClient>
+        {
+            ["locations"] = CreateClient("http://locations", locationsHandler),
+            ["scanjobs"] = CreateClient("http://scanjobs", scanJobsHandler),
+            ["scanner"] = CreateClient("http://scanner", scannerHandler),
+            ["hashing"] = CreateClient("http://hashing", hashingHandler)
+        });
+
+        var service = CreateService(dbContext, clientFactory, trackingCompensator);
+        await service.ProcessWorkflowAsync(workflowId, shutdown.Token);
+
+        var updated = await dbContext.WorkflowInstances
+            .Include(x => x.Steps)
+            .FirstAsync(x => x.Id == workflowId);
+
+        Assert.Equal(WorkflowStatus.RetryQueued.ToString(), updated.Status);
+        Assert.Equal(WorkflowOrchestratorService.InterruptedByShutdownMessage, updated.LastError);
+        Assert.False(compensationCalled, "Shutdown must not trigger compensation, which deletes ingested files.");
+        Assert.DoesNotContain(scanJobStatusBodies, body => body.Contains("\"Failed\"", StringComparison.Ordinal));
+        Assert.Contains(updated.Steps, s => s.StepName == "Scanning" && s.Status == WorkflowStepStatus.Completed.ToString());
+    }
+
     // -----------------------------------------------------------------------
     // Stub helpers
     // -----------------------------------------------------------------------

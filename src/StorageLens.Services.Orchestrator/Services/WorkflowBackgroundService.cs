@@ -97,6 +97,25 @@ public class WorkflowBackgroundService(
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<OrchestratorDbContext>();
 
+        // A workflow still marked Running at startup lost its owner (the process crashed
+        // before it could requeue). The orchestrator runs as a single replica, so nothing
+        // else can be processing it; requeue it so it resumes from its last completed step.
+        var orphaned = await dbContext.WorkflowInstances
+            .Where(x => x.Status == "Running")
+            .ToListAsync(cancellationToken);
+
+        foreach (var workflow in orphaned)
+        {
+            workflow.Status = "RetryQueued";
+            workflow.LastError = "Recovered after the orchestrator restarted; queued for resume.";
+        }
+
+        if (orphaned.Count > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            logger.LogWarning("Requeued {Count} workflow(s) left Running by a previous orchestrator process.", orphaned.Count);
+        }
+
         var workflowIds = await dbContext.WorkflowInstances
             .AsNoTracking()
             .Where(x => x.Status == "RetryQueued")

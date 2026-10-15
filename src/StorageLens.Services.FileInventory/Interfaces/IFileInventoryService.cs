@@ -9,7 +9,7 @@ public interface IFileInventoryService
     Task<IReadOnlyList<FileRecordDto>> GetByLocationAsync(Guid locationId, CancellationToken cancellationToken);
     Task<IReadOnlyList<LocationStorageStatsDto>> GetLocationStorageStatsAsync(CancellationToken cancellationToken);
     Task<FileBatchIngestResultDto> UpsertBatchAsync(FileMetadataBatchIngestRequest request, CancellationToken cancellationToken);
-    Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(Guid? scanJobId, int take, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(Guid? scanJobId, int take, bool includeFailed, CancellationToken cancellationToken);
     Task<bool> UpdateHashResultAsync(Guid id, FileHashResultRequest request, CancellationToken cancellationToken);
     Task<int> MarkDuplicateFlagsByHashAsync(Guid scanJobId, string correlationId, IReadOnlySet<string> duplicateHashes, CancellationToken cancellationToken);
     /// <summary>

@@ -32,7 +32,8 @@ public class FileInventoryServiceTests
         string correlationId = "corr-1",
         string hashStatus = "Pending",
         string hashValue = "",
-        bool isDuplicate = false) =>
+        bool isDuplicate = false,
+        DateTimeOffset? lastModified = null) =>
         new()
         {
             Id = Guid.NewGuid(),
@@ -48,7 +49,7 @@ public class FileInventoryServiceTests
             LastAccessedDate = DateTimeOffset.UtcNow,
             DiscoveryDate = DateTimeOffset.UtcNow,
             ScanSourcePath = @"C:\data",
-            LastModifiedDate = DateTimeOffset.UtcNow,
+            LastModifiedDate = lastModified ?? DateTimeOffset.UtcNow,
             HashValue = hashValue,
             HashStatus = hashStatus,
             IsDuplicate = isDuplicate,
@@ -62,7 +63,8 @@ public class FileInventoryServiceTests
         long sizeBytes = 1024,
         Guid? storageLocationId = null,
         Guid? scanJobId = null,
-        string correlationId = "corr-1") =>
+        string correlationId = "corr-1",
+        DateTimeOffset? lastModified = null) =>
         new(
             Guid.NewGuid(),
             storageLocationId ?? Guid.NewGuid(),
@@ -73,7 +75,7 @@ public class FileInventoryServiceTests
             filePath,
             extension,
             sizeBytes,
-            DateTimeOffset.UtcNow,
+            lastModified ?? DateTimeOffset.UtcNow,
             DateTimeOffset.UtcNow,
             DateTimeOffset.UtcNow,
             DateTimeOffset.UtcNow,
@@ -314,6 +316,74 @@ public class FileInventoryServiceTests
         Assert.Null(updated.HashError);
     }
 
+    [Theory]
+    [InlineData(2048, 0)]   // size changed
+    [InlineData(1024, 60)]  // modified time changed
+    public async Task UpsertBatchAsync_ContentChanged_ClearsHashAndDuplicateFlags(long newSize, int modifiedShiftSeconds)
+    {
+        await using var db = CreateDbContext();
+        var locationId = Guid.NewGuid();
+        var modified = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        var existing = MakeRecord(
+            @"C:\data\changed.txt", "changed.txt",
+            sizeBytes: 1024,
+            storageLocationId: locationId,
+            hashStatus: HashStatus.Completed.ToString(),
+            hashValue: "stale-hash",
+            isDuplicate: true,
+            lastModified: modified);
+        existing.DuplicateGroupId = Guid.NewGuid();
+        existing.HashCalculatedDate = modified;
+        db.FileRecords.Add(existing);
+        await db.SaveChangesAsync();
+
+        var files = new List<FileMetadataDto>
+        {
+            MakeMetadata(@"C:\data\changed.txt", "changed.txt", sizeBytes: newSize, storageLocationId: locationId,
+                lastModified: modified.AddSeconds(modifiedShiftSeconds)),
+        };
+        var request = new FileMetadataBatchIngestRequest(locationId, Guid.NewGuid(), "corr-2", "Loc", @"C:\data", files);
+
+        await CreateService(db).UpsertBatchAsync(request, CancellationToken.None);
+
+        var updated = await db.FileRecords.FirstAsync(x => x.FilePath == @"C:\data\changed.txt");
+        Assert.Equal(HashStatus.Pending.ToString(), updated.HashStatus);
+        Assert.Equal(string.Empty, updated.HashValue);
+        Assert.Null(updated.HashCalculatedDate);
+        Assert.False(updated.IsDuplicate);
+        Assert.Null(updated.DuplicateGroupId);
+    }
+
+    [Fact]
+    public async Task UpsertBatchAsync_ContentUnchanged_KeepsExistingHash()
+    {
+        await using var db = CreateDbContext();
+        var locationId = Guid.NewGuid();
+        var modified = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        db.FileRecords.Add(MakeRecord(
+            @"C:\data\same.txt", "same.txt",
+            sizeBytes: 1024,
+            storageLocationId: locationId,
+            hashStatus: HashStatus.Completed.ToString(),
+            hashValue: "good-hash",
+            lastModified: modified));
+        await db.SaveChangesAsync();
+
+        var files = new List<FileMetadataDto>
+        {
+            MakeMetadata(@"C:\data\same.txt", "same.txt", sizeBytes: 1024, storageLocationId: locationId, lastModified: modified),
+        };
+        var request = new FileMetadataBatchIngestRequest(locationId, Guid.NewGuid(), "corr-2", "Loc", @"C:\data", files);
+
+        await CreateService(db).UpsertBatchAsync(request, CancellationToken.None);
+
+        var updated = await db.FileRecords.FirstAsync(x => x.FilePath == @"C:\data\same.txt");
+        Assert.Equal(HashStatus.Completed.ToString(), updated.HashStatus);
+        Assert.Equal("good-hash", updated.HashValue);
+    }
+
     // -----------------------------------------------------------------------
     // GetPendingHashFilesAsync
     // -----------------------------------------------------------------------
@@ -330,10 +400,24 @@ public class FileInventoryServiceTests
         await db.SaveChangesAsync();
 
         var sut = CreateService(db);
-        var result = await sut.GetPendingHashFilesAsync(null, 100, CancellationToken.None);
+        var result = await sut.GetPendingHashFilesAsync(null, 100, includeFailed: true, CancellationToken.None);
 
         Assert.Equal(2, result.Count);
         Assert.All(result, r => Assert.Contains(r.FilePath, new[] { @"C:\a\pending.txt", @"C:\a\failed.txt" }));
+    }
+
+    [Fact]
+    public async Task GetPendingHashFiles_ExcludingFailed_ReturnsOnlyPending()
+    {
+        await using var db = CreateDbContext();
+        db.FileRecords.AddRange(
+            MakeRecord(@"C:\a\pending.txt", hashStatus: "Pending"),
+            MakeRecord(@"C:\a\failed.txt", hashStatus: "Failed"));
+        await db.SaveChangesAsync();
+
+        var result = await CreateService(db).GetPendingHashFilesAsync(null, 100, includeFailed: false, CancellationToken.None);
+
+        Assert.Equal(@"C:\a\pending.txt", Assert.Single(result).FilePath);
     }
 
     [Fact]
@@ -350,7 +434,7 @@ public class FileInventoryServiceTests
         await db.SaveChangesAsync();
 
         var sut = CreateService(db);
-        var result = await sut.GetPendingHashFilesAsync(targetScanJobId, 100, CancellationToken.None);
+        var result = await sut.GetPendingHashFilesAsync(targetScanJobId, 100, includeFailed: true, CancellationToken.None);
 
         Assert.Equal(2, result.Count);
         Assert.All(result, r => Assert.Equal(targetScanJobId, r.ScanJobId));

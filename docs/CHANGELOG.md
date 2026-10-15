@@ -39,7 +39,17 @@ Example:
 - **Analytics location synchronization** — Analytics now performs best-effort stats synchronization back to Locations metadata so list views and dashboard totals converge on authoritative values.
 - **Global map plotting behavior** — locations are now always plotted from configured data; when explicit coordinates are absent, deterministic coordinate derivation is used to avoid missing map pins.
 
+### Security
+- **Service API key fails closed** — `ApiKeyAuthenticationHandler` used to authenticate every request when `ServiceApiKey` was blank, and the Azure deployment never set one, so deployed backends had no authentication. It now rejects requests outside `Development` when no key is set, and compares keys in constant time. `infra/main.bicep` takes a required secure `serviceApiKey` parameter (azd `STORAGELENS_SERVICE_API_KEY`) and passes it to every app as a Container Apps secret.
+- **Admin owner mode can't be forged** — Pricing Admin and Client Management used to treat a plain `sl-owner-mode=granted` cookie as proof of the owner PIN. They now share `OwnerSession`, which issues a Data Protection-encrypted cookie that expires after 8 hours and is `SameSite=Strict`.
+- **No committed owner PIN** — removed the default `storagelens-owner` PIN from `appsettings.json`. It now comes from secrets (`Pricing__OwnerPin` / `STORAGELENS_OWNER_PIN`), and Pricing Admin no longer writes it back into appsettings files. With no PIN set, owner mode stays locked.
+- **CORS** — removed the `*` CORS policy from every Container App. Web serves its own pages and the backends are only called server to server.
+
 ### Fixed
+- **Redeploys no longer delete scan data** — when the host shuts down partway through a workflow, the orchestrator used to mark it Failed and run compensation, which deleted the ingested file records. It now requeues the workflow (`RetryQueued`) without failing the scan job, and on startup it requeues workflows left `Running` by a crashed process. The orchestrator is pinned to one Container Apps replica so that recovery can't double-run a live workflow.
+- **Hashing processes every pending file** — a hashing run used to process only one batch (default 500 files), leaving the rest of a large scan unhashed. It now drains every pending batch, then gives earlier failures one retry batch. `GET /api/files/pending-hash` takes `includeFailed` (default `true`) to support this.
+- **Hash failures recorded safely under parallelism** — hashing workers wrote `HashFailures` to a shared `DbContext` from parallel tasks. Failures are now collected per batch and saved once.
+- **Stale hashes after rescans** — when a rescanned file's size or modified time changes, FileInventory now clears its hash and duplicate flags and marks it Pending, instead of keeping the old hash and reporting false duplicates.
 - **Broken restore on `main`** — Removed committed merge-conflict markers from `StorageLens.Shared.Infrastructure.csproj`, keeping both Dependabot bumps (`OpenTelemetry.Instrumentation.AspNetCore` 1.15.1, `OpenTelemetry.Instrumentation.Http` 1.15.0).
   - Aligned `Microsoft.Extensions.Http.Polly` to 10.0.5 in Analytics and Orchestrator to clear NU1605 downgrade errors against Shared.Infrastructure.
   - Changed `AspNetCore.HealthChecks.Uris` from the nonexistent 8.0.2 to 9.0.0.

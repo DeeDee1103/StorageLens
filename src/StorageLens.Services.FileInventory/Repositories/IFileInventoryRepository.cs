@@ -14,7 +14,7 @@ public interface IFileInventoryRepository
     Task<IReadOnlyList<FileRecord>> GetByLocationAsync(Guid locationId, int take, CancellationToken cancellationToken);
     Task<IReadOnlyList<LocationStorageStatsDto>> GetLocationStorageStatsAsync(CancellationToken cancellationToken);
     Task<(int Inserted, int Updated)> UpsertBatchAsync(FileMetadataBatchIngestRequest request, CancellationToken cancellationToken);
-    Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(Guid? scanJobId, int take, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PendingHashFileDto>> GetPendingHashFilesAsync(Guid? scanJobId, int take, bool includeFailed, CancellationToken cancellationToken);
     Task<bool> UpdateHashResultAsync(Guid id, FileHashResultRequest request, CancellationToken cancellationToken);
     Task<int> MarkDuplicateFlagsByHashAsync(Guid scanJobId, string correlationId, IReadOnlySet<string> duplicateHashes, CancellationToken cancellationToken);
     Task<int> DeleteByScanJobAsync(Guid scanJobId, string correlationId, CancellationToken cancellationToken);

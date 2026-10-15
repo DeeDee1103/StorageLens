@@ -13,6 +13,15 @@ param useDevelopmentCostProfile bool = true
 @description('Shared SQL connection string used by StorageLens services.')
 param sharedSqlConnectionString string
 
+@secure()
+@minLength(32)
+@description('Shared key services use to authenticate each other (X-API-Key). Services reject all calls when it is missing.')
+param serviceApiKey string
+
+@secure()
+@description('PIN that unlocks the Pricing Admin and Client Management pages. Leave empty to keep them locked.')
+param ownerPin string = ''
+
 var resourceToken = uniqueString(subscription().id, resourceGroup().id, location, environmentName)
 var tags = {
   'azd-env-name': environmentName
@@ -136,25 +145,30 @@ var endpoints = {
   orchestrator: 'http://${appResourceNames.orchestrator}.internal.${fqdn}'
 }
 
-var defaultCors = {
-  allowedOrigins: [
-    '*'
-  ]
-  allowedMethods: [
-    'GET'
-    'POST'
-    'PUT'
-    'DELETE'
-    'OPTIONS'
-  ]
-  allowedHeaders: [
-    '*'
-  ]
-  exposeHeaders: [
-    '*'
-  ]
-  allowCredentials: false
-}
+// No CORS policy: Web serves its own pages (same origin) and backends are only
+// called server-to-server, so no cross-origin browser access is allowed.
+
+var appSecrets = [
+  {
+    name: 'service-api-key'
+    value: serviceApiKey
+  }
+]
+
+// Container Apps rejects empty secret values, so the owner PIN is only wired up when set.
+var ownerPinSecret = empty(ownerPin) ? [] : [
+  {
+    name: 'owner-pin'
+    value: ownerPin
+  }
+]
+
+var ownerPinEnv = empty(ownerPin) ? [] : [
+  {
+    name: 'Pricing__OwnerPin'
+    secretRef: 'owner-pin'
+  }
+]
 
 var commonHttpEnv = [
   {
@@ -164,6 +178,10 @@ var commonHttpEnv = [
   {
     name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
     value: applicationInsights.properties.ConnectionString
+  }
+  {
+    name: 'ServiceApiKey'
+    secretRef: 'service-api-key'
   }
 ]
 
@@ -341,8 +359,8 @@ resource webApp 'Microsoft.App/containerApps@2025-01-01' = {
         targetPort: 8080
         allowInsecure: false
         transport: 'auto'
-        corsPolicy: defaultCors
       }
+      secrets: concat(appSecrets, ownerPinSecret)
     }
     template: {
       containers: [
@@ -378,7 +396,7 @@ resource webApp 'Microsoft.App/containerApps@2025-01-01' = {
               name: 'ServiceEndpoints__Orchestrator'
               value: endpoints.orchestrator
             }
-          ])
+          ], ownerPinEnv)
         }
       ]
       scale: {
@@ -419,8 +437,8 @@ resource internalApps 'Microsoft.App/containerApps@2025-01-01' = [for service in
         targetPort: 8080
         allowInsecure: false
         transport: 'auto'
-        corsPolicy: defaultCors
       }
+      secrets: appSecrets
     }
     template: {
       containers: [
@@ -448,7 +466,9 @@ resource internalApps 'Microsoft.App/containerApps@2025-01-01' = [for service in
       ]
       scale: {
         minReplicas: useDevelopmentCostProfile ? 0 : 1
-        maxReplicas: useDevelopmentCostProfile ? 1 : 2
+        // The orchestrator keeps its queue in memory and recovers Running workflows on
+        // startup, so it must run as exactly one replica until workflows are leased.
+        maxReplicas: service == 'orchestrator' ? 1 : (useDevelopmentCostProfile ? 1 : 2)
       }
     }
   }

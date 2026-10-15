@@ -13,13 +13,47 @@ namespace StorageLens.Shared.Infrastructure.Tests;
 public class ApiKeyAuthenticationHandlerTests
 {
     [Fact]
-    public async Task WhenNoApiKeyConfigured_AllowsRequestThrough()
+    public async Task WhenNoApiKeyConfigured_InDevelopment_AllowsRequestThrough()
     {
-        using var client = CreateTestClient(configuredKey: null);
+        using var client = CreateTestClient(configuredKey: null, environment: Environments.Development);
 
         var response = await client.GetAsync("/protected");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Production")]
+    [InlineData("Staging")]
+    public async Task WhenNoApiKeyConfigured_OutsideDevelopment_Returns401(string environment)
+    {
+        using var client = CreateTestClient(configuredKey: null, environment: environment);
+
+        var response = await client.GetAsync("/protected");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task WhenBlankApiKeyConfigured_OutsideDevelopment_Returns401()
+    {
+        using var client = CreateTestClient(configuredKey: "   ", environment: Environments.Production);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", "   ");
+
+        var response = await client.GetAsync("/protected");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task WhenApiKeyConfigured_KeyWithDifferentLength_Returns401()
+    {
+        using var client = CreateTestClient(configuredKey: "test-secret-key");
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", "test-secret-key-extra");
+
+        var response = await client.GetAsync("/protected");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
@@ -86,7 +120,7 @@ public class ApiKeyAuthenticationHandlerTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    private static HttpClient CreateTestClient(string? configuredKey)
+    private static HttpClient CreateTestClient(string? configuredKey, string environment = "Production")
     {
         var configValues = new Dictionary<string, string?>();
         if (configuredKey is not null)
@@ -95,6 +129,7 @@ public class ApiKeyAuthenticationHandlerTests
         }
 
         var host = new HostBuilder()
+            .UseEnvironment(environment)
             .ConfigureWebHost(webBuilder =>
             {
                 webBuilder.UseTestServer();
