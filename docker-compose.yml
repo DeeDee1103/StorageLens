@@ -354,6 +354,7 @@ services:
       ServiceEndpoints__Analytics: "http://analytics:8080/"
       ServiceEndpoints__Orchestrator: "http://orchestrator:8080/"
       ServiceApiKey: "${STORAGELENS_SERVICE_API_KEY}"
+      Pricing__OwnerPin: "${STORAGELENS_OWNER_PIN:-}"
       RateLimit__Redis: "redis:6379"
       Observability__OtlpEndpoint: "http://jaeger:4317"
     healthcheck:

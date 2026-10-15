@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
@@ -40,36 +41,41 @@ public class HashingService(
             new UpdateScanJobStatusRequest(ScanJobStatus.Hashing, "Hashing", "Calculating SHA-256 hashes"),
             cancellationToken);
 
-        var pendingFiles = await fileInventoryClient.GetFromJsonAsync<List<PendingHashFileDto>>(
-                          $"api/files/pending-hash?scanJobId={scanJobId}&take={Math.Clamp(options.BatchSize, 50, 5000)}",
-                          cancellationToken) ?? [];
+        var batchSize = Math.Clamp(options.BatchSize, 50, 5000);
+        var attemptedFileIds = new HashSet<Guid>();
+        using var semaphore = new SemaphoreSlim(Math.Clamp(options.MaxDegreeOfParallelism, 1, 16));
 
-        execution.Attempted = pendingFiles.Count;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        // Drain every pending file for the scan, one batch at a time. A file whose result
+        // could not be recorded may come back as pending, so each file is attempted at most
+        // once per run; a batch with nothing new ends the loop.
+        while (true)
+        {
+            var batch = await FetchPendingAsync(fileInventoryClient, scanJobId, batchSize, includeFailed: false, cancellationToken);
+            var newFiles = batch.Where(file => attemptedFileIds.Add(file.Id)).ToList();
+            if (newFiles.Count == 0)
+            {
+                break;
+            }
 
-        if (pendingFiles.Count == 0)
+            await HashBatchAsync(newFiles, execution, semaphore, options.MaxFileSizeBytes, cancellationToken);
+        }
+
+        // Then give files that failed in earlier runs one more attempt, as a single batch.
+        var previouslyFailed = (await FetchPendingAsync(fileInventoryClient, scanJobId, batchSize, includeFailed: true, cancellationToken))
+            .Where(file => attemptedFileIds.Add(file.Id))
+            .ToList();
+        if (previouslyFailed.Count > 0)
+        {
+            await HashBatchAsync(previouslyFailed, execution, semaphore, options.MaxFileSizeBytes, cancellationToken);
+        }
+
+        if (execution.Attempted == 0)
         {
             execution.Status = "Completed";
             execution.CompletedAtUtc = DateTimeOffset.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
             return Map(execution);
         }
-
-        using var semaphore = new SemaphoreSlim(Math.Clamp(options.MaxDegreeOfParallelism, 1, 16));
-        var tasks = pendingFiles.Select(async file =>
-        {
-            await semaphore.WaitAsync(cancellationToken);
-            try
-            {
-                await ProcessFileAsync(file, execution.Id, options.MaxFileSizeBytes, cancellationToken);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
-
-        await Task.WhenAll(tasks);
 
         execution.Failed = await dbContext.Set<HashFailure>()
             .Where(x => x.HashExecutionId == execution.Id)
@@ -105,7 +111,49 @@ public class HashingService(
         return entity is null ? null : Map(entity);
     }
 
-    private async Task ProcessFileAsync(PendingHashFileDto file, Guid executionId, long maxFileSizeBytes, CancellationToken cancellationToken)
+    private static async Task<List<PendingHashFileDto>> FetchPendingAsync(
+        HttpClient fileInventoryClient, Guid scanJobId, int batchSize, bool includeFailed, CancellationToken cancellationToken) =>
+        await fileInventoryClient.GetFromJsonAsync<List<PendingHashFileDto>>(
+            $"api/files/pending-hash?scanJobId={scanJobId}&take={batchSize}&includeFailed={(includeFailed ? "true" : "false")}",
+            cancellationToken) ?? [];
+
+    private async Task HashBatchAsync(
+        IReadOnlyList<PendingHashFileDto> files,
+        HashExecution execution,
+        SemaphoreSlim semaphore,
+        long maxFileSizeBytes,
+        CancellationToken cancellationToken)
+    {
+        execution.Attempted += files.Count;
+
+        // DbContext is not thread-safe: workers only collect failures, and they are
+        // saved here once the whole batch has finished.
+        var failures = new ConcurrentBag<HashFailure>();
+        var tasks = files.Select(async file =>
+        {
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                await ProcessFileAsync(file, execution.Id, maxFileSizeBytes, failures, cancellationToken);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+
+        dbContext.HashFailures.AddRange(failures);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ProcessFileAsync(
+        PendingHashFileDto file,
+        Guid executionId,
+        long maxFileSizeBytes,
+        ConcurrentBag<HashFailure> failures,
+        CancellationToken cancellationToken)
     {
         var fileInventoryClient = httpClientFactory.CreateClient("fileinventory");
 
@@ -134,7 +182,7 @@ public class HashingService(
         {
             logger.LogWarning(ex, "Failed to hash file {FilePath}", file.FilePath);
 
-            dbContext.HashFailures.Add(new HashFailure
+            failures.Add(new HashFailure
             {
                 Id = Guid.NewGuid(),
                 HashExecutionId = executionId,
@@ -143,8 +191,6 @@ public class HashingService(
                 Error = ex.Message,
                 OccurredAtUtc = DateTimeOffset.UtcNow
             });
-
-            await dbContext.SaveChangesAsync(cancellationToken);
 
             await fileInventoryClient.PostAsJsonAsync(
                 $"api/files/{file.Id}/hash-result",

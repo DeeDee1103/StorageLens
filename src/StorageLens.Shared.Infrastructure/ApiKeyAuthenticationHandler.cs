@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 
 namespace StorageLens.Shared.Infrastructure;
@@ -19,15 +22,18 @@ public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions { }
 public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
 {
     private readonly IConfiguration _configuration;
+    private readonly IHostEnvironment _environment;
 
     public ApiKeyAuthenticationHandler(
         IOptionsMonitor<ApiKeyAuthenticationOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
         : base(options, logger, encoder)
     {
         _configuration = configuration;
+        _environment = environment;
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -36,7 +42,12 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
         if (string.IsNullOrWhiteSpace(configuredKey))
         {
-            // If no key is configured, allow through (development/in-memory mode)
+            // Fail closed: an unconfigured key only opens access in local development.
+            if (!_environment.IsDevelopment())
+            {
+                return Task.FromResult(AuthenticateResult.Fail("Service API key is not configured."));
+            }
+
             var claims = new[] { new Claim(ClaimTypes.Name, "internal-service") };
             var identity = new ClaimsIdentity(claims, ApiKeyAuthentication.SchemeName);
             var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name);
@@ -48,7 +59,7 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
             return Task.FromResult(AuthenticateResult.Fail("Missing X-API-Key header."));
         }
 
-        if (!string.Equals(extractedApiKey, configuredKey, StringComparison.Ordinal))
+        if (!KeysMatch(extractedApiKey.ToString(), configuredKey))
         {
             return Task.FromResult(AuthenticateResult.Fail("Invalid API key."));
         }
@@ -58,4 +69,9 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         var authTicket = new AuthenticationTicket(new ClaimsPrincipal(authIdentity), Scheme.Name);
         return Task.FromResult(AuthenticateResult.Success(authTicket));
     }
+
+    private static bool KeysMatch(string provided, string configured) =>
+        CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(provided),
+            Encoding.UTF8.GetBytes(configured));
 }

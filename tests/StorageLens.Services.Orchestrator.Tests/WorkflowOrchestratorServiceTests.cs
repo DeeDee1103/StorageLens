@@ -61,9 +61,9 @@ public class WorkflowOrchestratorServiceTests
                     0,
                     0,
                     DateTimeOffset.UtcNow,
-                    siteLocation: null,
-                    latitude: null,
-                    longitude: null);
+                    SiteLocation: string.Empty,
+                    Latitude: null,
+                    Longitude: null);
                 return Task.FromResult(JsonResponse(dto));
             }
 
@@ -269,9 +269,9 @@ public class WorkflowOrchestratorServiceTests
                     0,
                     0,
                     DateTimeOffset.UtcNow,
-                    siteLocation: null,
-                    latitude: null,
-                    longitude: null);
+                    SiteLocation: string.Empty,
+                    Latitude: null,
+                    Longitude: null);
                 return Task.FromResult(JsonResponse(dto));
             }
 
@@ -404,9 +404,9 @@ public class WorkflowOrchestratorServiceTests
                     0,
                     0,
                     DateTimeOffset.UtcNow,
-                    siteLocation: null,
-                    latitude: null,
-                    longitude: null);
+                    SiteLocation: string.Empty,
+                    Latitude: null,
+                    Longitude: null);
                 return Task.FromResult(JsonResponse(dto));
             }
 

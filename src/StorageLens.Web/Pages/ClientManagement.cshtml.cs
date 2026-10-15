@@ -9,13 +9,9 @@ namespace StorageLens.Web.Pages;
 
 public class ClientManagementModel(
     IConfiguration configuration,
-    IWebHostEnvironment environment,
-    ClientsDbContext db) : PageModel
+    ClientsDbContext db,
+    OwnerSession ownerSession) : PageModel
 {
-    // ── Cookie constants (shared with PricingAdmin) ──────────────────────────
-
-    private const string OwnerCookieValue = "granted";
-
     // ── Page state ───────────────────────────────────────────────────────────
 
     public bool IsOwnerAuthenticated { get; private set; }
@@ -83,24 +79,13 @@ public class ClientManagementModel(
 
         var storedPin = configuration[$"{PricingOptions.SectionName}:OwnerPin"] ?? string.Empty;
 
-        var storedBytes = System.Text.Encoding.UTF8.GetBytes(storedPin);
-        var enteredBytes = System.Text.Encoding.UTF8.GetBytes(OwnerPin ?? string.Empty);
-        var pinsMatch = storedBytes.Length > 0
-            && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(storedBytes, enteredBytes);
-
-        if (!pinsMatch)
+        if (!OwnerSession.PinMatches(storedPin, OwnerPin))
         {
             ErrorMessage = "Incorrect owner PIN. Please try again.";
             return Page();
         }
 
-        Response.Cookies.Append(PricingAdminModel.OwnerCookieName, OwnerCookieValue, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = !environment.IsDevelopment(),
-            SameSite = SameSiteMode.Lax,
-            IsEssential = true,
-        });
+        ownerSession.SignIn(Response);
 
         IsOwnerAuthenticated = true;
         SuccessMessage = "Owner mode unlocked. You can now manage clients.";
@@ -110,7 +95,7 @@ public class ClientManagementModel(
 
     public IActionResult OnPostLock()
     {
-        Response.Cookies.Delete(PricingAdminModel.OwnerCookieName);
+        OwnerSession.SignOut(Response);
         return RedirectToPage();
     }
 
@@ -221,8 +206,7 @@ public class ClientManagementModel(
     {
         ViewData["Title"] = "Client Management";
         ViewData["Nav"] = "Settings";
-        IsOwnerAuthenticated = Request.Cookies.TryGetValue(PricingAdminModel.OwnerCookieName, out var val)
-                               && val == OwnerCookieValue;
+        IsOwnerAuthenticated = ownerSession.IsAuthenticated(Request);
     }
 
     private void LoadPricingConfig()

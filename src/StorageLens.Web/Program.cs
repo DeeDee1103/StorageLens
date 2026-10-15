@@ -57,6 +57,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<IAlertEmailService, SmtpAlertEmailService>();
 
 builder.Services.AddScoped<ITierAccessService, TierAccessService>();
+builder.Services.AddSingleton<OwnerSession>();
 
 var dbCfg = builder.Configuration.GetSection(DatabaseConfigOptions.SectionName).Get<DatabaseConfigOptions>()
             ?? new DatabaseConfigOptions();
